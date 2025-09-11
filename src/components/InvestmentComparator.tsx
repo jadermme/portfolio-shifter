@@ -208,7 +208,7 @@ function getCDIRateForMonth(curve: CDIPoint[], dateISO: string): number {
 }
 function projectWithReinvestCDI(x: CouponEngineInput) {
   // No administrative fees for direct securities
-  const couponDates = genCouponDates(x.startISO, x.endISO, x.freq);
+  const couponDates = genCouponDates(x.startISO, x.endISO, x.freq, x.earningsStartDate);
   const coupons: CouponResult[] = [];
   let basePrincipal = x.principal;
 
@@ -508,7 +508,7 @@ const InvestmentComparator = () => {
     }
   };
   const calcularTaxaReal = (dados: AssetData, ano: number): number => {
-    const anoKey = new Date().getFullYear() + ano;
+    const anoKey = new Date().getFullYear() + (ano - 1);
 
     console.log(`🎯 Calculando taxa real para ${dados.nome} - Ano: ${anoKey}, Taxa base: ${dados.taxa}%`);
     
