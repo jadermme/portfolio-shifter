@@ -72,6 +72,10 @@ interface AssetData {
   feesAA?: number;
   use252?: boolean;
   useCashFlow?: boolean; // Flag to enable new system
+  // NEW FIELDS FOR EARNINGS PERIODS AND ACCRUAL
+  earningsStartDate?: string; // ISO date when earnings begin (e.g., "2025-11-01" for BTDI11)
+  accrualOnly?: boolean; // Show accrual without actual payments (e.g., CRA ZAMP)
+  activePeriods?: { year: number, months: number[] }[]; // Specific months when asset generates earnings
 }
 
 interface Projecoes {
@@ -266,22 +270,40 @@ const InvestmentComparator = () => {
     // Enable cash flow system for CRA with coupons
     useCashFlow: true,
     rateKind: 'PRE',
-    freq: 'SEMIANNUAL'
+    freq: 'SEMIANNUAL',
+    // CRA ZAMP specific: accrual from September to December 2025
+    accrualOnly: true,
+    activePeriods: [
+      { year: 2025, months: [9, 10, 11, 12] }, // Sept-Dec 2025 for accrual
+      { year: 2026, months: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] }, // Full years after 2025
+      { year: 2027, months: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] },
+      { year: 2028, months: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] },
+      { year: 2029, months: [1, 2] } // Jan-Feb 2029 until maturity
+    ]
   });
 
   const [ativo2, setAtivo2] = useState<AssetData>({
     nome: 'BTDI11',
     codigo: 'BTDI11',
-    tipoTaxa: 'percentual-cdi',
-    taxa: 102.5,
+    tipoTaxa: 'cdi-mais', // Changed to cdi-mais for CDI+2.50%
+    taxa: 2.50, // 2.50% above CDI
     vencimento: '2029-02-15',
     valorInvestido: 216268, // Mesmo valor da venda do ativo1
     cupons: 0,
     valorCurva: 216268,
-    tipoCupom: 'nenhum',
+    tipoCupom: 'mensal', // Monthly payments starting Nov 2025
     mesesCupons: '',
     tipoIR: 'isento',
-    aliquotaIR: 0
+    aliquotaIR: 0,
+    // BTDI11 specific: earnings start in November 2025
+    earningsStartDate: '2025-11-01',
+    activePeriods: [
+      { year: 2025, months: [11, 12] }, // Nov-Dec 2025
+      { year: 2026, months: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] }, // Full years
+      { year: 2027, months: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] },
+      { year: 2028, months: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] },
+      { year: 2029, months: [1, 2] } // Jan-Feb 2029 until maturity
+    ]
   });
 
   const [projecoes, setProjecoes] = useState<Projecoes>({
@@ -390,6 +412,15 @@ const InvestmentComparator = () => {
 
   const calcularTaxaReal = (dados: AssetData, ano: number): number => {
     const anoKey = new Date().getFullYear() + ano;
+    
+    // Check if asset has earnings start date and hasn't started yet
+    if (dados.earningsStartDate) {
+      const startDate = new Date(dados.earningsStartDate);
+      const checkDate = new Date(anoKey, 0, 1); // January 1st of the year
+      if (checkDate < startDate) {
+        return 0; // No earnings before start date
+      }
+    }
     
     switch (dados.tipoTaxa) {
       case 'pre-fixada':
@@ -720,41 +751,79 @@ const InvestmentComparator = () => {
     setCalculationTimestamp(0);
   };
 
-  // Função para calcular rendimentos anuais considerando períodos corretos
+  // Enhanced function to calculate annual yields considering specific periods and accrual
   const calcularRendimentosAnuais = (valores: number[], valorInicial: number, asset: AssetData) => {
     const rendimentos: number[] = [];
     const anoAtual = new Date().getFullYear();
-    const nomeUpper = (asset.nome || '').toUpperCase();
     
     for (let i = 0; i < valores.length; i++) {
       const anoRendimento = anoAtual + i;
       
-      if (anoRendimento === 2025) {
-        // Para 2025, calcular o rendimento acumulado específico de cada ativo
-        if (nomeUpper.includes('ZAMP') || nomeUpper.includes('CRA')) {
-          // CRA ZAMP: mostrar toda a valorização/atualização acumulada em 2025
-          const rendimentoAcumulado = valores[i] - valorInicial;
-          rendimentos.push(rendimentoAcumulado > 0 ? rendimentoAcumulado : 0);
-        } else if (nomeUpper.includes('BTDI')) {
-          // BTDI11: rendimento proporcional aos 2 meses ativos (nov/dez 2025)
-          const crescimentoTotal = valores[i] - valorInicial;
-          const rendimentoProporcional = crescimentoTotal * (2 / 12);
-          rendimentos.push(rendimentoProporcional);
+      // Check if asset has defined active periods
+      if (asset.activePeriods) {
+        const periodForYear = asset.activePeriods.find(p => p.year === anoRendimento);
+        
+        if (periodForYear) {
+          // Calculate proportional yield based on active months
+          const mesesAtivos = periodForYear.months.length;
+          const proporcao = mesesAtivos / 12;
+          
+          if (anoRendimento === 2025 && asset.accrualOnly) {
+            // CRA ZAMP: accrual calculation for Sept-Dec 2025
+            const taxaAnual = calcularTaxaReal(asset, i);
+            const rendimentoAcruado = valorInicial * taxaAnual * proporcao;
+            rendimentos.push(Math.max(0, rendimentoAcruado));
+          } else if (asset.earningsStartDate) {
+            // BTDI11: earnings start from specific date
+            const startDate = new Date(asset.earningsStartDate);
+            const yearStart = new Date(anoRendimento, 0, 1);
+            
+            if (startDate <= yearStart || anoRendimento > startDate.getFullYear()) {
+              // Full year or after start year
+              if (i > 0) {
+                const crescimentoAnual = valores[i] - valores[i - 1];
+                rendimentos.push(crescimentoAnual * proporcao);
+              } else {
+                const crescimentoTotal = valores[i] - valorInicial;
+                rendimentos.push(crescimentoTotal * proporcao);
+              }
+            } else if (anoRendimento === startDate.getFullYear()) {
+              // Partial year from start date
+              const startMonth = startDate.getMonth() + 1; // 1-based
+              const mesesAposInicio = periodForYear.months.filter(m => m >= startMonth).length;
+              const proporcaoAjustada = mesesAposInicio / 12;
+              
+              if (i > 0) {
+                const crescimentoAnual = valores[i] - valores[i - 1];
+                rendimentos.push(crescimentoAnual * proporcaoAjustada);
+              } else {
+                const crescimentoTotal = valores[i] - valorInicial;
+                rendimentos.push(crescimentoTotal * proporcaoAjustada);
+              }
+            } else {
+              // Before start date - no earnings
+              rendimentos.push(0);
+            }
+          } else {
+            // Standard proportional calculation
+            if (i > 0) {
+              const crescimentoAnual = valores[i] - valores[i - 1];
+              rendimentos.push(crescimentoAnual * proporcao);
+            } else {
+              const crescimentoTotal = valores[i] - valorInicial;
+              rendimentos.push(crescimentoTotal * proporcao);
+            }
+          }
         } else {
-          // Outros ativos: rendimento completo do ano
-          rendimentos.push(valores[i] - valorInicial);
-        }
-      } else if (anoRendimento === 2030 && nomeUpper.includes('BTDI')) {
-        // BTDI11 em 2030: apenas 4 meses (jan-abr)
-        if (i > 0) {
-          const crescimentoAnual = valores[i] - valores[i - 1];
-          const rendimentoProporcional = crescimentoAnual * (4 / 12);
-          rendimentos.push(rendimentoProporcional);
+          // Year not defined in active periods - no earnings
+          rendimentos.push(0);
         }
       } else {
-        // Anos normais: diferença entre anos consecutivos
+        // Legacy calculation for assets without active periods defined
         if (i > 0) {
           rendimentos.push(valores[i] - valores[i - 1]);
+        } else {
+          rendimentos.push(valores[i] - valorInicial);
         }
       }
     }
@@ -1029,12 +1098,54 @@ const InvestmentComparator = () => {
                 </Label>
               </div>
               
+              {/* Earnings Period Configuration */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                <div className="space-y-2">
+                  <Label htmlFor={`${assetKey}-earningsStartDate`} className="text-sm">
+                    📅 Data Início dos Rendimentos
+                  </Label>
+                  <Input
+                    id={`${assetKey}-earningsStartDate`}
+                    type="date"
+                    value={asset.earningsStartDate || ''}
+                    onChange={(e) => handleAssetChange(assetKey, 'earningsStartDate', e.target.value)}
+                    placeholder="Ex: 2025-11-01 para BTDI11"
+                    className="text-sm"
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      id={`${assetKey}-accrualOnly`}
+                      checked={asset.accrualOnly || false}
+                      onChange={(e) => handleAssetChange(assetKey, 'accrualOnly', e.target.checked)}
+                      className="rounded border-border"
+                    />
+                    <Label htmlFor={`${assetKey}-accrualOnly`} className="text-sm">
+                      💰 Apenas Acúmulo (sem pagamento efetivo)
+                    </Label>
+                  </div>
+                </div>
+              </div>
+              
               {asset.useCashFlow && (
                   <div className="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
                     <p className="text-sm text-blue-800">
                       <strong>Sistema avançado:</strong> Reinvestimento preciso de cupons pela curva CDI projetada 
-                      do momento do pagamento até o vencimento. Ideal para títulos com pagamento de cupons periódicos.
+                      do momento do pagamento até o vencimento. Suporte a períodos específicos de rendimento e acúmulo.
                     </p>
+                    {asset.earningsStartDate && (
+                      <p className="text-sm text-blue-700 mt-2">
+                        <strong>Início rendimentos:</strong> {new Date(asset.earningsStartDate).toLocaleDateString('pt-BR')}
+                      </p>
+                    )}
+                    {asset.accrualOnly && (
+                      <p className="text-sm text-blue-700 mt-1">
+                        <strong>Modo:</strong> Acúmulo de juros sem pagamento efetivo de cupons
+                      </p>
+                    )}
                   </div>
               )}
             </div>
