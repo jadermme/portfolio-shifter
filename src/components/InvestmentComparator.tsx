@@ -368,26 +368,28 @@ const InvestmentComparator = () => {
   const calcularRendimentosAnuais = (valores: number[], valorInicial: number, asset: AssetData) => {
     const rendimentos: number[] = [];
     const anoAtual = new Date().getFullYear();
+    const nomeUpper = (asset.nome || '').toUpperCase();
     
     for (let i = 0; i < valores.length; i++) {
       const anoRendimento = anoAtual + i;
       
       if (anoRendimento === 2025) {
-        // Para 2025, considerar período específico de cada ativo
-        if (asset.nome.includes('ZAMP') || asset.nome.includes('CRA')) {
-          // CRA da Zamp: mostrar atualização do valor (valorização do principal)
-          rendimentos.push(valores[i] - valorInicial);
-        } else if (asset.nome.includes('BTDI11') || asset.nome.includes('BTDI')) {
-          // BTDI11: começou em novembro de 2025 (2 meses de rendimento)
+        // Primeiro ano (2025) com regras específicas por ativo
+        if (nomeUpper.includes('ZAMP') || nomeUpper.includes('CRA')) {
+          // CRA ZAMP: considerar atualização/valorização do principal em 2025, nunca negativa
+          const atualizacao = valores[i] - valorInicial;
+          rendimentos.push(Math.max(atualizacao, 0));
+        } else if (nomeUpper.includes('BTDI')) {
+          // BTDI11: começou a pagar em novembro/2025 (2 meses)
           const rendimentoAnual = valores[i] - valorInicial;
-          const rendimentoProporional = rendimentoAnual * (2/12); // Nov e Dez
-          rendimentos.push(rendimentoProporional);
+          const proporcional = rendimentoAnual * (2 / 12);
+          rendimentos.push(proporcional);
         } else {
-          // Outros ativos: rendimento normal
+          // Demais: diferencial padrão do primeiro ano
           rendimentos.push(valores[i] - valorInicial);
         }
       } else {
-        // Para anos seguintes, diferença entre anos consecutivos
+        // Anos seguintes: diferença entre anos consecutivos
         if (i > 0) {
           rendimentos.push(valores[i] - valores[i - 1]);
         }
