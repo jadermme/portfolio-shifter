@@ -35,6 +35,13 @@ interface CalculationResult {
   impostoAtivo1: number;
   impostoAtivo2: number;
   anosProjecao: number;
+  reinvestimento?: {
+    ativoReinvestido: 'ativo1' | 'ativo2';
+    valorResgatado: number;
+    periodosReinvestimento: number;
+    taxaReinvestimento: number;
+    valorFinalReinvestimento: number;
+  };
 }
 
 const InvestmentComparator = () => {
@@ -171,12 +178,14 @@ const InvestmentComparator = () => {
     }
   };
 
-  const calcularAtivo = (dados: AssetData, anosProjecao: number): { valores: number[]; imposto: number } => {
+  const calcularAtivo = (dados: AssetData, anosProjecao: number, vencimentoReal?: number): { valores: number[]; imposto: number } => {
     const valores = [Math.round(dados.valorCurva)];
+    const periodosAtivo = vencimentoReal || anosProjecao;
     
     let valorCuponsAcumulado = 0;
     
-    for (let ano = 1; ano <= anosProjecao; ano++) {
+    // Calcular apenas até o vencimento real do ativo
+    for (let ano = 1; ano <= periodosAtivo; ano++) {
       const taxaAno = calcularTaxaReal(dados, ano);
       const principalProjetado = dados.valorCurva * Math.pow(1 + taxaAno, ano);
       
@@ -202,11 +211,11 @@ const InvestmentComparator = () => {
       valores.push(Math.round(valorTotalAno));
     }
 
-    // Calcular IR sobre o lucro
+    // Calcular IR sobre o lucro até o vencimento real
     const valorFinal = valores[valores.length - 1];
     const valorInicial = dados.valorCurva;
     const lucro = valorFinal - valorInicial;
-    const aliquotaFinal = calcularAliquotaIR(dados, anosProjecao);
+    const aliquotaFinal = calcularAliquotaIR(dados, periodosAtivo);
     const imposto = lucro > 0 && aliquotaFinal > 0 ? lucro * (aliquotaFinal / 100) : 0;
     
     // Ajustar valor final para líquido de IR
@@ -215,19 +224,44 @@ const InvestmentComparator = () => {
     return { valores, imposto: Math.round(imposto) };
   };
 
+  const calcularReinvestimento = (valorInicial: number, periodosReinvestimento: number, anoInicial: number): { valores: number[]; imposto: number } => {
+    const valores = [];
+    let valorAtual = valorInicial;
+    
+    for (let periodo = 1; periodo <= periodosReinvestimento; periodo++) {
+      const anoKey = new Date().getFullYear() + anoInicial + periodo;
+      const taxaCDI = (projecoes.cdi[anoKey] || projecoes.cdi[Object.keys(projecoes.cdi).pop() as any]) / 100;
+      valorAtual = valorAtual * (1 + taxaCDI);
+      valores.push(Math.round(valorAtual));
+    }
+    
+    // Calcular IR sobre o lucro do reinvestimento (tabela regressiva de renda fixa)
+    const lucroReinvestimento = valorAtual - valorInicial;
+    const aliquotaReinvestimento = periodosReinvestimento >= 2 ? 15 : 
+                                  periodosReinvestimento >= 1 ? 17.5 : 
+                                  periodosReinvestimento >= 0.5 ? 20 : 22.5;
+    const impostoReinvestimento = lucroReinvestimento > 0 ? lucroReinvestimento * (aliquotaReinvestimento / 100) : 0;
+    
+    // Ajustar valor final para líquido de IR
+    if (valores.length > 0) {
+      valores[valores.length - 1] = Math.round(valorAtual - impostoReinvestimento);
+    }
+    
+    return { valores, imposto: Math.round(impostoReinvestimento) };
+  };
+
   const calcular = () => {
     try {
       const hoje = new Date();
       
-      // Usar a data de vencimento mais distante para a comparação
       const vencimento1 = new Date(ativo1.vencimento);
       const vencimento2 = new Date(ativo2.vencimento);
-      const vencimentoFinal = vencimento1 > vencimento2 ? vencimento1 : vencimento2;
       
-      const vencimentoAjustado = new Date(vencimentoFinal.getTime() + (24 * 60 * 60 * 1000));
-      const anosProjecao = Math.ceil((vencimentoAjustado.getTime() - hoje.getTime()) / (1000 * 60 * 60 * 24 * 365.25));
+      // Calcular anos até cada vencimento
+      const anosAtivo1 = Math.ceil((vencimento1.getTime() - hoje.getTime()) / (1000 * 60 * 60 * 24 * 365.25));
+      const anosAtivo2 = Math.ceil((vencimento2.getTime() - hoje.getTime()) / (1000 * 60 * 60 * 24 * 365.25));
 
-      if (anosProjecao <= 0) {
+      if (anosAtivo1 <= 0 || anosAtivo2 <= 0) {
         toast({
           title: "Erro",
           description: "As datas de vencimento devem ser no futuro.",
@@ -236,15 +270,50 @@ const InvestmentComparator = () => {
         return;
       }
 
-      const resultAtivo1 = calcularAtivo(ativo1, anosProjecao);
-      const resultAtivo2 = calcularAtivo(ativo2, anosProjecao);
+      let resultAtivo1, resultAtivo2, reinvestimentoInfo;
+      
+      if (anosAtivo1 < anosAtivo2) {
+        // Ativo 1 vence antes do Ativo 2 - reinvestir Ativo 1
+        resultAtivo1 = calcularAtivo(ativo1, anosAtivo1, anosAtivo1);
+        resultAtivo2 = calcularAtivo(ativo2, anosAtivo2, anosAtivo2);
+        
+        // Calcular reinvestimento do Ativo 1
+        const valorResgatado = resultAtivo1.valores[resultAtivo1.valores.length - 1];
+        const periodosReinvestimento = anosAtivo2 - anosAtivo1;
+        const reinvestimento = calcularReinvestimento(valorResgatado, periodosReinvestimento, anosAtivo1);
+        
+        // Completar array do Ativo 1 com valores de reinvestimento
+        resultAtivo1.valores = [...resultAtivo1.valores, ...reinvestimento.valores];
+        resultAtivo1.imposto += reinvestimento.imposto;
+        
+        reinvestimentoInfo = {
+          ativoReinvestido: 'ativo1' as const,
+          valorResgatado,
+          periodosReinvestimento,
+          taxaReinvestimento: projecoes.cdi[Object.keys(projecoes.cdi).pop() as any],
+          valorFinalReinvestimento: reinvestimento.valores[reinvestimento.valores.length - 1] || valorResgatado
+        };
+        
+      } else if (anosAtivo2 < anosAtivo1) {
+        // Ativo 2 vence antes do Ativo 1 - comparar apenas até vencimento do Ativo 2
+        resultAtivo1 = calcularAtivo(ativo1, anosAtivo2, anosAtivo2);
+        resultAtivo2 = calcularAtivo(ativo2, anosAtivo2, anosAtivo2);
+        
+      } else {
+        // Ambos vencem na mesma data
+        resultAtivo1 = calcularAtivo(ativo1, anosAtivo1, anosAtivo1);
+        resultAtivo2 = calcularAtivo(ativo2, anosAtivo2, anosAtivo2);
+      }
+      
+      const anosProjecao = Math.max(anosAtivo1, anosAtivo2);
       
       setResults({
         ativo1: resultAtivo1.valores,
         ativo2: resultAtivo2.valores,
         impostoAtivo1: resultAtivo1.imposto,
         impostoAtivo2: resultAtivo2.imposto,
-        anosProjecao
+        anosProjecao,
+        reinvestimento: reinvestimentoInfo
       });
       setShowResults(true);
       
@@ -710,6 +779,50 @@ const InvestmentComparator = () => {
                 </div>
               </CardContent>
             </Card>
+
+            {/* Reinvestment Information */}
+            {results.reinvestimento && (
+              <Card className="border-financial-warning/30 shadow-xl bg-gradient-to-br from-yellow-50 to-orange-50">
+                <CardHeader className="bg-gradient-to-r from-yellow-500 to-orange-500 text-white rounded-t-lg">
+                  <CardTitle className="flex items-center gap-2">
+                    <TrendingUp className="h-5 w-5" />
+                    Informações de Reinvestimento
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-6">
+                  <div className="space-y-3 text-sm">
+                    <div className="p-4 bg-yellow-100 rounded-lg">
+                      <p className="font-medium text-yellow-800">
+                        <strong>Estratégia aplicada:</strong> O {results.reinvestimento.ativoReinvestido === 'ativo1' ? ativo1.nome : ativo2.nome} vence antes, 
+                        então seu valor resgatado foi reinvestido na taxa CDI/Selic até o vencimento do outro ativo.
+                      </p>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <div className="flex justify-between">
+                          <span className="font-medium">Valor Resgatado:</span>
+                          <span className="font-mono font-bold">R$ {results.reinvestimento.valorResgatado.toLocaleString('pt-BR')}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="font-medium">Período de Reinvestimento:</span>
+                          <span className="font-mono font-bold">{results.reinvestimento.periodosReinvestimento} {results.reinvestimento.periodosReinvestimento === 1 ? 'ano' : 'anos'}</span>
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <div className="flex justify-between">
+                          <span className="font-medium">Taxa de Reinvestimento:</span>
+                          <span className="font-mono font-bold">{results.reinvestimento.taxaReinvestimento.toFixed(2)}% a.a. (CDI)</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="font-medium">Valor Final Reinvestimento:</span>
+                          <span className="font-mono font-bold">R$ {results.reinvestimento.valorFinalReinvestimento.toLocaleString('pt-BR')}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
 
             {/* Comparison Table */}
             <Card className="border-financial-secondary/30 shadow-xl">
