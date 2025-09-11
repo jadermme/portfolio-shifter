@@ -1766,12 +1766,12 @@ const InvestmentComparator = () => {
                                   Valor após vencimento reaplicado no CDI:
                                 </span>
                                 <span className="font-mono text-lg text-financial-warning font-bold">
-                                  R$ {results.reinvestimento.valorResgatado.toLocaleString('pt-BR')}
+                                  + R$ {(results.reinvestimento.valorFinalReinvestimento - results.reinvestimento.valorResgatado).toLocaleString('pt-BR')}
                                 </span>
                               </div>
                               <div className="text-xs text-muted-foreground px-3 pb-2">
                                 <span className="italic">
-                                  Aplicado por {results.reinvestimento.periodosReinvestimento} {results.reinvestimento.periodosReinvestimento === 1 ? 'ano' : 'anos'} à taxa CDI de {results.reinvestimento.taxaReinvestimento.toFixed(2)}% ao ano
+                                  Rendimento obtido aplicando R$ {results.reinvestimento.valorResgatado.toLocaleString('pt-BR')} por {results.reinvestimento.periodosReinvestimento} {results.reinvestimento.periodosReinvestimento === 1 ? 'ano' : 'anos'} à taxa CDI de {results.reinvestimento.taxaReinvestimento.toFixed(2)}% ao ano
                                 </span>
                               </div>
                             </div>
@@ -1839,12 +1839,12 @@ const InvestmentComparator = () => {
                                   Valor após vencimento reaplicado no CDI:
                                 </span>
                                 <span className="font-mono text-lg text-financial-warning font-bold">
-                                  R$ {results.reinvestimento.valorResgatado.toLocaleString('pt-BR')}
+                                  + R$ {(results.reinvestimento.valorFinalReinvestimento - results.reinvestimento.valorResgatado).toLocaleString('pt-BR')}
                                 </span>
                               </div>
                               <div className="text-xs text-muted-foreground px-3 pb-2">
                                 <span className="italic">
-                                  Aplicado por {results.reinvestimento.periodosReinvestimento} {results.reinvestimento.periodosReinvestimento === 1 ? 'ano' : 'anos'} à taxa CDI de {results.reinvestimento.taxaReinvestimento.toFixed(2)}% ao ano
+                                  Rendimento obtido aplicando R$ {results.reinvestimento.valorResgatado.toLocaleString('pt-BR')} por {results.reinvestimento.periodosReinvestimento} {results.reinvestimento.periodosReinvestimento === 1 ? 'ano' : 'anos'} à taxa CDI de {results.reinvestimento.taxaReinvestimento.toFixed(2)}% ao ano
                                 </span>
                               </div>
                             </div>
