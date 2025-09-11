@@ -413,8 +413,10 @@ const InvestmentComparator = () => {
 
   // Function to invalidate results when data changes
   const invalidateResults = () => {
+    console.log('⚠️ Invalidando resultados - dados foram alterados');
     setHasUnsavedChanges(true);
     if (results) {
+      console.log('🚫 Escondendo resultados existentes');
       setShowResults(false);
       setResults(null);
     }
@@ -467,6 +469,8 @@ const InvestmentComparator = () => {
     invalidateResults();
   };
   const handleProjecaoChange = (tipo: 'cdi' | 'ipca', ano: number, valor: number) => {
+    console.log(`📈 Alterando projeção ${tipo.toUpperCase()} para ${ano}: ${valor}%`);
+    
     setProjecoes(prev => ({
       ...prev,
       [tipo]: {
@@ -477,6 +481,14 @@ const InvestmentComparator = () => {
 
     // Invalidate results whenever projections change
     invalidateResults();
+    
+    console.log('🔄 Resultados invalidados após mudança de projeção');
+    
+    // Show immediate feedback to user
+    toast({
+      title: "Projeção atualizada",
+      description: `${tipo.toUpperCase()} ${ano} alterado para ${valor}%. Recalcule para ver os novos resultados.`,
+    });
   };
   const calcularAliquotaIR = (dados: AssetData, anosInvestimento: number): number => {
     switch (dados.tipoIR) {
@@ -1307,8 +1319,26 @@ const InvestmentComparator = () => {
             </div>
           </div>}
 
-        {/* Results */}
         {showResults && results && <div className="space-y-6">
+            {/* Data freshness check */}
+            {(() => {
+              const currentHash = generateDataHash();
+              const isDataFresh = currentHash === lastCalculationHash;
+              console.log('🔍 Verificando freshness dos dados:', { currentHash, lastCalculationHash, isDataFresh });
+              
+              if (!isDataFresh) {
+                console.log('⚠️ DADOS DESATUALIZADOS DETECTADOS! Forçando recálculo...');
+                // Force hide results if data is stale
+                setTimeout(() => {
+                  setShowResults(false);
+                  setResults(null);
+                  setHasUnsavedChanges(true);
+                }, 0);
+                return null;
+              }
+              return null;
+            })()}
+            
             {/* Executive Summary */}
             <Card className="border-financial-primary/30 shadow-xl">
               <CardHeader className="bg-gradient-to-r from-financial-primary to-financial-secondary text-white rounded-t-lg">
@@ -1415,11 +1445,35 @@ const InvestmentComparator = () => {
                          <th className="p-3 text-left border">Vantagem</th>
                        </tr>
                      </thead>
-                     <tbody>
-                       {(() => {
-                    const rendimentosAtivo1 = calcularRendimentosAnuais(results.ativo1, ativo1.valorInvestido, ativo1);
-                    const rendimentosAtivo2 = calcularRendimentosAnuais(results.ativo2, ativo2.valorInvestido, ativo2);
-                    return rendimentosAtivo1.map((rendimento1, index) => {
+                      <tbody>
+                        {(() => {
+                    // Add data freshness validation for annual table
+                    const currentHash = generateDataHash();
+                    const isTableDataFresh = currentHash === lastCalculationHash;
+                    console.log('📊 Verificando dados para tabela anual:', { 
+                      currentHash, 
+                      lastCalculationHash, 
+                      isTableDataFresh,
+                      hasUnsavedChanges 
+                    });
+                    
+                    if (!isTableDataFresh || hasUnsavedChanges) {
+                      console.log('⚠️ DADOS DA TABELA ANUAL DESATUALIZADOS!');
+                      return (
+                        <tr>
+                          <td colSpan={5} className="p-4 text-center text-yellow-700 bg-yellow-50">
+                            <strong>⚠️ Dados alterados</strong><br/>
+                            Recalcule para ver os rendimentos anuais atualizados
+                          </td>
+                        </tr>
+                      );
+                    }
+                    
+                     const rendimentosAtivo1 = calcularRendimentosAnuais(results.ativo1, ativo1.valorInvestido, ativo1);
+                     const rendimentosAtivo2 = calcularRendimentosAnuais(results.ativo2, ativo2.valorInvestido, ativo2);
+                     console.log('💰 Rendimentos calculados:', { rendimentosAtivo1, rendimentosAtivo2 });
+                     
+                     return rendimentosAtivo1.map((rendimento1, index) => {
                       const rendimento2 = rendimentosAtivo2[index];
                       const diferenca = rendimento1 - rendimento2;
                       const vantagem = diferenca >= 0 ? ativo1.nome : ativo2.nome;
