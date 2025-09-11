@@ -716,6 +716,16 @@ const InvestmentComparator = () => {
                       </tr>
                     </thead>
                     <tbody>
+                      {/* Incluir linha para 2025 */}
+                      <tr className="even:bg-muted/50">
+                        <td className="p-3 border font-semibold">2025</td>
+                        <td className="p-3 border font-mono">R$ {results.ativo1[0].toLocaleString('pt-BR')}</td>
+                        <td className="p-3 border font-mono">R$ {results.ativo2[0].toLocaleString('pt-BR')}</td>
+                        <td className={`p-3 border font-mono font-bold ${(results.ativo1[0] - results.ativo2[0]) >= 0 ? 'text-financial-success' : 'text-financial-danger'}`}>
+                          {(results.ativo1[0] - results.ativo2[0]) >= 0 ? '+' : ''}R$ {(results.ativo1[0] - results.ativo2[0]).toLocaleString('pt-BR')}
+                        </td>
+                        <td className="p-3 border font-semibold">{(results.ativo1[0] - results.ativo2[0]) >= 0 ? ativo1.nome : ativo2.nome}</td>
+                      </tr>
                       {results.ativo1.slice(1).map((valor1, index) => {
                         const valor2 = results.ativo2[index + 1];
                         const diferenca = valor1 - valor2;
