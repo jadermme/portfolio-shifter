@@ -73,7 +73,6 @@ interface AssetData {
   freq?: Freq;
   feesAA?: number;
   use252?: boolean;
-  useCashFlow?: boolean; // Flag to enable new system
   // NEW FIELDS FOR EARNINGS PERIODS AND ACCRUAL
   earningsStartDate?: string; // ISO date when earnings begin (e.g., "2025-11-01" for BTDI11)
   accrualOnly?: boolean; // Show accrual without actual payments (e.g., CRA ZAMP)
@@ -307,8 +306,6 @@ const InvestmentComparator = () => {
     mesesCupons: '2,8', // Fevereiro e Agosto
     tipoIR: 'isento',
     aliquotaIR: 0,
-    // Enable cash flow system for CRA with coupons
-    useCashFlow: true,
     rateKind: 'PRE',
     freq: 'SEMIANNUAL',
     // CRA ZAMP specific: accrual from September to December 2025 (after August payment)
@@ -486,8 +483,8 @@ const InvestmentComparator = () => {
   const calcularAtivo = (dados: AssetData, anosProjecao: number, vencimentoReal?: number): { valores: number[]; imposto: number; couponDetails?: CouponResult[] } => {
     const periodosAtivo = vencimentoReal || anosProjecao;
     
-    // Check if we should use the new cash flow system
-    if (dados.useCashFlow || (dados.tipoCupom !== 'nenhum' && dados.cupons > 0)) {
+    // Always use cash flow system when asset has coupons
+    if (dados.tipoCupom !== 'nenhum') {
       return calcularAtivoComFluxoCaixa(dados, periodosAtivo);
     }
     
@@ -1156,36 +1153,27 @@ const InvestmentComparator = () => {
             </Select>
           </div>
           
-          {/* Advanced Cash Flow Configuration */}
+          {/* Earnings Period Configuration */}
           <div className="col-span-full">
             <div className="bg-muted/30 p-4 rounded-lg border border-dashed">
-              <div className="flex items-center gap-2 mb-3">
-                <input
-                  type="checkbox"
-                  id={`${assetKey}-useCashFlow`}
-                  checked={asset.useCashFlow || false}
-                  onChange={(e) => handleAssetChange(assetKey, 'useCashFlow', e.target.checked)}
-                  className="rounded border-border"
-                />
-                <Label htmlFor={`${assetKey}-useCashFlow`} className="text-sm font-medium">
-                  🧮 Usar Sistema de Fluxo de Caixa Avançado
-                </Label>
-              </div>
+              <h4 className="text-sm font-medium mb-3">⚙️ Configurações Especiais</h4>
               
-              {/* Earnings Period Configuration */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor={`${assetKey}-earningsStartDate`} className="text-sm">
-                    📅 Data Início dos Rendimentos
+                    📅 Data de Início dos Rendimentos
                   </Label>
                   <Input
                     id={`${assetKey}-earningsStartDate`}
                     type="date"
                     value={asset.earningsStartDate || ''}
                     onChange={(e) => handleAssetChange(assetKey, 'earningsStartDate', e.target.value)}
-                    placeholder="Ex: 2025-11-01 para BTDI11"
+                    placeholder="YYYY-MM-DD"
                     className="text-sm"
                   />
+                  <p className="text-xs text-muted-foreground">
+                    Quando o ativo começará a gerar rendimentos (ex: BTDI11)
+                  </p>
                 </div>
                 
                 <div className="space-y-2">
@@ -1204,11 +1192,11 @@ const InvestmentComparator = () => {
                 </div>
               </div>
               
-              {asset.useCashFlow && (
+              {(asset.earningsStartDate || asset.accrualOnly) && (
                   <div className="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
                     <p className="text-sm text-blue-800">
-                      <strong>Sistema avançado:</strong> Reinvestimento preciso de cupons pela curva CDI projetada 
-                      do momento do pagamento até o vencimento. Suporte a períodos específicos de rendimento e acúmulo.
+                      <strong>Sistema automático:</strong> Cupons sempre reinvestidos à taxa CDI projetada 
+                      do momento do pagamento até o vencimento.
                     </p>
                     {asset.earningsStartDate && (
                       <p className="text-sm text-blue-700 mt-2">
