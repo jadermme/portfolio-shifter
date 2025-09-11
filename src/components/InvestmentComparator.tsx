@@ -1677,7 +1677,8 @@ const InvestmentComparator = () => {
                     const cuponsLiquidos = cupomsBrutos - irSobreCupons;
                     
                     // Calculate reinvestment values
-                    const valorFinalBruto = ativo.valorFinal || 0;
+                    // Get final value from the last element of the array (corrected)
+                    const valorFinalBruto = ativo.length > 0 ? ativo[ativo.length - 1] : 0;
                     const principalVencimento = principalInvestido;
                     
                     // Total reinvested amounts (coupon + yield on reinvestment)
@@ -1756,6 +1757,19 @@ const InvestmentComparator = () => {
                             </div>
                           )}
                           
+                          {/* Reinvestment Explanation - Item 3 */}
+                          {results.reinvestimento && results.reinvestimento.ativoReinvestido === 'ativo1' && (
+                            <div className="flex justify-between items-center p-3 bg-financial-warning/10 rounded-lg border border-financial-warning/30">
+                              <span className="font-semibold text-financial-warning flex items-center gap-2">
+                                <TrendingUp className="h-4 w-4" />
+                                Valor após vencimento reaplicado no CDI:
+                              </span>
+                              <span className="font-mono text-lg text-financial-warning">
+                                {results.reinvestimento.periodosReinvestimento} {results.reinvestimento.periodosReinvestimento === 1 ? 'ano' : 'anos'} @ {results.reinvestimento.taxaReinvestimento.toFixed(2)}%
+                              </span>
+                            </div>
+                          )}
+                          
                           <div className="flex justify-between items-center p-4 bg-gradient-to-r from-financial-primary/20 to-financial-secondary/20 rounded-lg border-2 border-financial-primary/50">
                             <span className="font-bold text-financial-primary text-lg">VALOR FINAL:</span>
                             <span className="font-mono text-xl font-bold text-financial-primary">R$ {breakdown1.valorFinal.toLocaleString('pt-BR')}</span>
@@ -1806,6 +1820,19 @@ const InvestmentComparator = () => {
                             <div className="flex justify-between items-center p-3 bg-financial-danger/10 rounded-lg border border-financial-danger/30">
                               <span className="font-semibold text-financial-danger">IR sobre Principal:</span>
                               <span className="font-mono text-lg text-financial-danger">- R$ {breakdown2.irSobrePrincipal.toLocaleString('pt-BR')}</span>
+                            </div>
+                          )}
+                          
+                          {/* Reinvestment Explanation - Item 3 */}
+                          {results.reinvestimento && results.reinvestimento.ativoReinvestido === 'ativo2' && (
+                            <div className="flex justify-between items-center p-3 bg-financial-warning/10 rounded-lg border border-financial-warning/30">
+                              <span className="font-semibold text-financial-warning flex items-center gap-2">
+                                <TrendingUp className="h-4 w-4" />
+                                Valor após vencimento reaplicado no CDI:
+                              </span>
+                              <span className="font-mono text-lg text-financial-warning">
+                                {results.reinvestimento.periodosReinvestimento} {results.reinvestimento.periodosReinvestimento === 1 ? 'ano' : 'anos'} @ {results.reinvestimento.taxaReinvestimento.toFixed(2)}%
+                              </span>
                             </div>
                           )}
                           
