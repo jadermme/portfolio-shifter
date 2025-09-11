@@ -367,12 +367,16 @@ const InvestmentComparator = () => {
   // Função para calcular rendimentos anuais
   const calcularRendimentosAnuais = (valores: number[], valorInicial: number) => {
     const rendimentos: number[] = [];
-    let valorAnterior = valorInicial;
     
-    for (const valorAtual of valores) {
-      const rendimento = valorAtual - valorAnterior;
+    // Para o primeiro ano, mostrar o rendimento líquido (valor final - valor inicial)
+    if (valores.length > 0) {
+      rendimentos.push(valores[0] - valorInicial);
+    }
+    
+    // Para os anos seguintes, mostrar a diferença entre anos consecutivos
+    for (let i = 1; i < valores.length; i++) {
+      const rendimento = valores[i] - valores[i - 1];
       rendimentos.push(rendimento);
-      valorAnterior = valorAtual;
     }
     
     return rendimentos;
