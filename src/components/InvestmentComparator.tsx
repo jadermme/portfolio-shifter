@@ -441,12 +441,64 @@ const InvestmentComparator = () => {
           </div>
           <div className="space-y-2">
             <Label htmlFor={`${assetKey}-mesesCupons`}>Meses Cupons</Label>
-            <Input
-              id={`${assetKey}-mesesCupons`}
-              value={asset.mesesCupons}
-              onChange={(e) => handleAssetChange(assetKey, 'mesesCupons', e.target.value)}
-              placeholder="2,8 (fev,ago)"
-            />
+            {asset.tipoCupom === 'nenhum' ? (
+              <Input
+                id={`${assetKey}-mesesCupons`}
+                value=""
+                disabled
+                placeholder="Não aplicável"
+                className="bg-muted/50 cursor-not-allowed"
+              />
+            ) : asset.tipoCupom === 'semestral' ? (
+              <Select 
+                value={asset.mesesCupons} 
+                onValueChange={(value) => handleAssetChange(assetKey, 'mesesCupons', value)}
+              >
+                <SelectTrigger className="bg-background border-border z-30">
+                  <SelectValue placeholder="Selecione os meses" />
+                </SelectTrigger>
+                <SelectContent className="bg-background border-border shadow-lg z-30">
+                  <SelectItem value="1,7">Janeiro e Julho</SelectItem>
+                  <SelectItem value="2,8">Fevereiro e Agosto</SelectItem>
+                  <SelectItem value="3,9">Março e Setembro</SelectItem>
+                  <SelectItem value="4,10">Abril e Outubro</SelectItem>
+                  <SelectItem value="5,11">Maio e Novembro</SelectItem>
+                  <SelectItem value="6,12">Junho e Dezembro</SelectItem>
+                </SelectContent>
+              </Select>
+            ) : asset.tipoCupom === 'anual' ? (
+              <Select 
+                value={asset.mesesCupons} 
+                onValueChange={(value) => handleAssetChange(assetKey, 'mesesCupons', value)}
+              >
+                <SelectTrigger className="bg-background border-border z-30">
+                  <SelectValue placeholder="Selecione o mês" />
+                </SelectTrigger>
+                <SelectContent className="bg-background border-border shadow-lg z-30">
+                  <SelectItem value="1">Janeiro</SelectItem>
+                  <SelectItem value="2">Fevereiro</SelectItem>
+                  <SelectItem value="3">Março</SelectItem>
+                  <SelectItem value="4">Abril</SelectItem>
+                  <SelectItem value="5">Maio</SelectItem>
+                  <SelectItem value="6">Junho</SelectItem>
+                  <SelectItem value="7">Julho</SelectItem>
+                  <SelectItem value="8">Agosto</SelectItem>
+                  <SelectItem value="9">Setembro</SelectItem>
+                  <SelectItem value="10">Outubro</SelectItem>
+                  <SelectItem value="11">Novembro</SelectItem>
+                  <SelectItem value="12">Dezembro</SelectItem>
+                </SelectContent>
+              </Select>
+            ) : (
+              // Mensal - todos os meses
+              <Input
+                id={`${assetKey}-mesesCupons`}
+                value="1,2,3,4,5,6,7,8,9,10,11,12"
+                disabled
+                className="bg-muted/50 cursor-not-allowed"
+                placeholder="Todos os meses"
+              />
+            )}
           </div>
           <div className="space-y-2">
             <Label htmlFor={`${assetKey}-tipoIR`}>Tipo de Tributação</Label>
