@@ -1389,16 +1389,20 @@ const InvestmentComparator = () => {
                     <span className="font-medium">Valor Final Líquido ({ativo1.nome}):</span>
                     <span className="font-mono font-bold">R$ {results.ativo1[results.ativo1.length - 1].toLocaleString('pt-BR')}</span>
                   </div>
-                  <div className="flex justify-between text-xs text-muted-foreground">
-                    <span>(Após IR de R$ {results.impostoAtivo1.toLocaleString('pt-BR')})</span>
-                  </div>
+                  {ativo1.tipoIR !== 'isento' && (
+                    <div className="flex justify-between text-xs text-muted-foreground">
+                      <span>(Após IR de R$ {results.impostoAtivo1.toLocaleString('pt-BR')})</span>
+                    </div>
+                  )}
                   <div className="flex justify-between">
                     <span className="font-medium">Valor Final Líquido ({ativo2.nome}):</span>
                     <span className="font-mono font-bold">R$ {results.ativo2[results.ativo2.length - 1].toLocaleString('pt-BR')}</span>
                   </div>
-                  <div className="flex justify-between text-xs text-muted-foreground">
-                    <span>(Após IR de R$ {results.impostoAtivo2.toLocaleString('pt-BR')})</span>
-                  </div>
+                  {ativo2.tipoIR !== 'isento' && (
+                    <div className="flex justify-between text-xs text-muted-foreground">
+                      <span>(Após IR de R$ {results.impostoAtivo2.toLocaleString('pt-BR')})</span>
+                    </div>
+                  )}
                   <Separator />
                   <div className="flex justify-between items-center">
                     <span className="font-bold text-lg">Vantagem Final:</span>
