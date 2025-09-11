@@ -287,7 +287,7 @@ const InvestmentComparator = () => {
   const [projecoes, setProjecoes] = useState<Projecoes>({
     cdi: {
       2025: 10.5,
-      2026: 9.5,
+      2026: 13.3,
       2027: 9.0,
       2028: 9.0,
       2029: 9.0,
