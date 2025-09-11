@@ -1545,9 +1545,43 @@ const InvestmentComparator = () => {
                                </td>
                                <td className="p-3 border font-semibold">{vantagem}</td>
                              </tr>;
-                    });
-                  })()}
-                     </tbody>
+                     });
+                   })()}
+                      </tbody>
+                      {(() => {
+                        // Calculate totals row when data is fresh
+                        const currentHash = generateDataHash();
+                        const isTableDataFresh = currentHash === lastCalculationHash;
+                        
+                        if (isTableDataFresh && !hasUnsavedChanges && currentHash === lastCalculationHash) {
+                          const rendimentosAtivo1 = calcularRendimentosAnuais(results.ativo1, ativo1.valorInvestido, ativo1);
+                          const rendimentosAtivo2 = calcularRendimentosAnuais(results.ativo2, ativo2.valorInvestido, ativo2);
+                          
+                          const totalAtivo1 = rendimentosAtivo1.reduce((acc, val) => acc + val, 0);
+                          const totalAtivo2 = rendimentosAtivo2.reduce((acc, val) => acc + val, 0);
+                          const diferencaTotal = totalAtivo1 - totalAtivo2;
+                          const vantagemTotal = diferencaTotal >= 0 ? ativo1.nome : ativo2.nome;
+                          
+                          return (
+                            <tfoot>
+                              <tr className="bg-gradient-to-r from-financial-primary/20 to-financial-secondary/20 border-t-2 border-financial-primary">
+                                <td className="p-4 border font-bold text-financial-primary">TOTAL ACUMULADO</td>
+                                <td className={`p-4 border font-mono font-bold text-lg ${totalAtivo1 >= 0 ? 'text-financial-success' : 'text-financial-danger'}`}>
+                                  {totalAtivo1 >= 0 ? '+' : ''}R$ {totalAtivo1.toLocaleString('pt-BR')}
+                                </td>
+                                <td className={`p-4 border font-mono font-bold text-lg ${totalAtivo2 >= 0 ? 'text-financial-success' : 'text-financial-danger'}`}>
+                                  {totalAtivo2 >= 0 ? '+' : ''}R$ {totalAtivo2.toLocaleString('pt-BR')}
+                                </td>
+                                <td className={`p-4 border font-mono font-bold text-lg ${diferencaTotal >= 0 ? 'text-financial-success' : 'text-financial-danger'}`}>
+                                  {diferencaTotal >= 0 ? '+' : ''}R$ {diferencaTotal.toLocaleString('pt-BR')}
+                                </td>
+                                <td className="p-4 border font-bold text-financial-primary">{vantagemTotal}</td>
+                              </tr>
+                            </tfoot>
+                          );
+                        }
+                        return null;
+                      })()}
                    </table>
                  </div>
               </CardContent>
