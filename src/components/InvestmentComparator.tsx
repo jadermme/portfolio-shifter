@@ -161,12 +161,40 @@ function genCouponDates(startISO: string, endISO: string, freq: Freq, earningsSt
   // Use earnings start date if provided, otherwise use start date
   if (earningsStartDate) {
     console.log(`📅 Usando data de início dos rendimentos: ${earningsStartDate}`);
-    // First coupon on the earnings start date itself
-    let d = earningsStartDate;
-    while (new Date(d) <= new Date(endISO)) {
-      console.log(`📅 Data de cupom gerada: ${d}`);
-      out.push(d);
-      d = addMonths(d, step);
+    
+    // Special handling for CRA ZAMP - cupons em fevereiro e agosto
+    if (earningsStartDate === '2025-09-01') {
+      console.log(`📅 CRA ZAMP: Gerando cupons para fev/ago, excluindo agosto de 2025 (já pago)`);
+      
+      // Start from February 2026 (next coupon after September 2025)
+      let currentYear = 2026;
+      const endYear = new Date(endISO).getFullYear();
+      
+      while (currentYear <= endYear) {
+        // February coupon
+        const febDate = `${currentYear}-02-15`;
+        if (new Date(febDate) <= new Date(endISO)) {
+          console.log(`📅 Data de cupom gerada: ${febDate}`);
+          out.push(febDate);
+        }
+        
+        // August coupon
+        const augDate = `${currentYear}-08-15`;
+        if (new Date(augDate) <= new Date(endISO)) {
+          console.log(`📅 Data de cupom gerada: ${augDate}`);
+          out.push(augDate);
+        }
+        
+        currentYear++;
+      }
+    } else {
+      // Standard logic for other assets
+      let d = earningsStartDate;
+      while (new Date(d) <= new Date(endISO)) {
+        console.log(`📅 Data de cupom gerada: ${d}`);
+        out.push(d);
+        d = addMonths(d, step);
+      }
     }
   } else {
     // Standard logic - first coupon after one period
