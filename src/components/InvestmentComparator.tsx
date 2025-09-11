@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
-import { Calculator, Trash2, Printer, TrendingUp, BarChart3, ArrowRight } from 'lucide-react';
+import { Calculator, Trash2, Printer, TrendingUp, BarChart3, ArrowRight, AlertTriangle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 // ===================== NEW CASH FLOW SYSTEM TYPES =====================
@@ -1638,6 +1638,183 @@ const InvestmentComparator = () => {
                     </span>
                   </div>
                 </div>
+              </CardContent>
+            </Card>
+            
+            {/* Decomposição Detalhada dos Valores Finais */}
+            <Card className="border-financial-primary/30 shadow-xl">
+              <CardHeader className="bg-gradient-to-r from-financial-primary to-financial-secondary text-white rounded-t-lg">
+                <CardTitle className="flex items-center gap-2">
+                  <Calculator className="h-5 w-5" />
+                  Decomposição Detalhada dos Valores Finais
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-6">
+                {(() => {
+                  const currentHash = generateDataHash();
+                  const isDataFresh = currentHash === lastCalculationHash;
+                  
+                  if (!isDataFresh || hasUnsavedChanges || !results.ativo1 || !results.ativo2) {
+                    return (
+                      <div className="text-center py-8 text-muted-foreground">
+                        <AlertTriangle className="mx-auto h-12 w-12 mb-4 opacity-50" />
+                        <p>Execute o cálculo para ver a decomposição detalhada dos valores finais</p>
+                      </div>
+                    );
+                  }
+
+                  // Calculate detailed breakdown for each asset
+                  const calculateDetailedBreakdown = (ativo: any, couponDetails: any[], valorInvestido: number) => {
+                    const principalInvestido = valorInvestido;
+                    
+                    // Sum all gross coupons
+                    const cupomsBrutos = couponDetails?.reduce((sum, coupon) => sum + (coupon.couponBruto || 0), 0) || 0;
+                    
+                    // Sum all IR on coupons
+                    const irSobreCupons = couponDetails?.reduce((sum, coupon) => sum + (coupon.ir || 0), 0) || 0;
+                    
+                    // Net coupons
+                    const cuponsLiquidos = cupomsBrutos - irSobreCupons;
+                    
+                    // Calculate reinvestment values
+                    const valorFinalBruto = ativo.valorFinal || 0;
+                    const principalVencimento = principalInvestido;
+                    
+                    // Reinvestments = final value - principal - net coupons received
+                    const reinvestimentos = Math.max(0, valorFinalBruto - principalVencimento - cuponsLiquidos);
+                    
+                    // IR on reinvestments (estimated based on final value calculations)
+                    const irSobreReinvestimentos = couponDetails?.reduce((sum, coupon) => sum + (coupon.irReinvestimento || 0), 0) || 0;
+                    
+                    // IR on principal (if any)
+                    const irSobrePrincipal = Math.max(0, (ativo.valorFinal || 0) - valorInvestido - cuponsLiquidos - reinvestimentos);
+                    
+                    return {
+                      principalInvestido,
+                      cupomsBrutos,
+                      irSobreCupons,
+                      cuponsLiquidos,
+                      reinvestimentos,
+                      irSobreReinvestimentos,
+                      principalVencimento,
+                      irSobrePrincipal,
+                      valorFinal: valorFinalBruto
+                    };
+                  };
+
+                  const breakdown1 = calculateDetailedBreakdown(results.ativo1, results.couponDetails?.ativo1 || [], ativo1.valorInvestido);
+                  const breakdown2 = calculateDetailedBreakdown(results.ativo2, results.couponDetails?.ativo2 || [], ativo2.valorInvestido);
+
+                  return (
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                      {/* Ativo 1 Breakdown */}
+                      <div className="space-y-4">
+                        <h3 className="text-xl font-bold text-financial-primary border-b border-financial-primary/30 pb-2">
+                          {ativo1.nome}
+                        </h3>
+                        
+                        <div className="space-y-3">
+                          <div className="flex justify-between items-center p-3 bg-muted/50 rounded-lg">
+                            <span className="font-semibold">Principal Investido:</span>
+                            <span className="font-mono text-lg">R$ {breakdown1.principalInvestido.toLocaleString('pt-BR')}</span>
+                          </div>
+                          
+                          <div className="flex justify-between items-center p-3 bg-financial-success/10 rounded-lg border border-financial-success/30">
+                            <span className="font-semibold text-financial-success">Cupons Brutos Recebidos:</span>
+                            <span className="font-mono text-lg text-financial-success">+ R$ {breakdown1.cupomsBrutos.toLocaleString('pt-BR')}</span>
+                          </div>
+                          
+                          <div className="flex justify-between items-center p-3 bg-financial-danger/10 rounded-lg border border-financial-danger/30">
+                            <span className="font-semibold text-financial-danger">IR sobre Cupons:</span>
+                            <span className="font-mono text-lg text-financial-danger">- R$ {breakdown1.irSobreCupons.toLocaleString('pt-BR')}</span>
+                          </div>
+                          
+                          <div className="flex justify-between items-center p-3 bg-financial-success/10 rounded-lg border border-financial-success/30">
+                            <span className="font-semibold text-financial-success">Cupons Líquidos:</span>
+                            <span className="font-mono text-lg text-financial-success">= R$ {breakdown1.cuponsLiquidos.toLocaleString('pt-BR')}</span>
+                          </div>
+                          
+                          <div className="flex justify-between items-center p-3 bg-financial-info/10 rounded-lg border border-financial-info/30">
+                            <span className="font-semibold text-financial-info">Reinvestimentos:</span>
+                            <span className="font-mono text-lg text-financial-info">R$ {breakdown1.reinvestimentos.toLocaleString('pt-BR')}</span>
+                          </div>
+                          
+                          {breakdown1.irSobreReinvestimentos > 0 && (
+                            <div className="flex justify-between items-center p-3 bg-financial-danger/10 rounded-lg border border-financial-danger/30">
+                              <span className="font-semibold text-financial-danger">IR sobre Reinvestimentos:</span>
+                              <span className="font-mono text-lg text-financial-danger">- R$ {breakdown1.irSobreReinvestimentos.toLocaleString('pt-BR')}</span>
+                            </div>
+                          )}
+                          
+                          {breakdown1.irSobrePrincipal > 0 && (
+                            <div className="flex justify-between items-center p-3 bg-financial-danger/10 rounded-lg border border-financial-danger/30">
+                              <span className="font-semibold text-financial-danger">IR sobre Principal:</span>
+                              <span className="font-mono text-lg text-financial-danger">- R$ {breakdown1.irSobrePrincipal.toLocaleString('pt-BR')}</span>
+                            </div>
+                          )}
+                          
+                          <div className="flex justify-between items-center p-4 bg-gradient-to-r from-financial-primary/20 to-financial-secondary/20 rounded-lg border-2 border-financial-primary/50">
+                            <span className="font-bold text-financial-primary text-lg">VALOR FINAL:</span>
+                            <span className="font-mono text-xl font-bold text-financial-primary">R$ {breakdown1.valorFinal.toLocaleString('pt-BR')}</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Ativo 2 Breakdown */}
+                      <div className="space-y-4">
+                        <h3 className="text-xl font-bold text-financial-primary border-b border-financial-primary/30 pb-2">
+                          {ativo2.nome}
+                        </h3>
+                        
+                        <div className="space-y-3">
+                          <div className="flex justify-between items-center p-3 bg-muted/50 rounded-lg">
+                            <span className="font-semibold">Principal Investido:</span>
+                            <span className="font-mono text-lg">R$ {breakdown2.principalInvestido.toLocaleString('pt-BR')}</span>
+                          </div>
+                          
+                          <div className="flex justify-between items-center p-3 bg-financial-success/10 rounded-lg border border-financial-success/30">
+                            <span className="font-semibold text-financial-success">Cupons Brutos Recebidos:</span>
+                            <span className="font-mono text-lg text-financial-success">+ R$ {breakdown2.cupomsBrutos.toLocaleString('pt-BR')}</span>
+                          </div>
+                          
+                          <div className="flex justify-between items-center p-3 bg-financial-danger/10 rounded-lg border border-financial-danger/30">
+                            <span className="font-semibold text-financial-danger">IR sobre Cupons:</span>
+                            <span className="font-mono text-lg text-financial-danger">- R$ {breakdown2.irSobreCupons.toLocaleString('pt-BR')}</span>
+                          </div>
+                          
+                          <div className="flex justify-between items-center p-3 bg-financial-success/10 rounded-lg border border-financial-success/30">
+                            <span className="font-semibold text-financial-success">Cupons Líquidos:</span>
+                            <span className="font-mono text-lg text-financial-success">= R$ {breakdown2.cuponsLiquidos.toLocaleString('pt-BR')}</span>
+                          </div>
+                          
+                          <div className="flex justify-between items-center p-3 bg-financial-info/10 rounded-lg border border-financial-info/30">
+                            <span className="font-semibold text-financial-info">Reinvestimentos:</span>
+                            <span className="font-mono text-lg text-financial-info">R$ {breakdown2.reinvestimentos.toLocaleString('pt-BR')}</span>
+                          </div>
+                          
+                          {breakdown2.irSobreReinvestimentos > 0 && (
+                            <div className="flex justify-between items-center p-3 bg-financial-danger/10 rounded-lg border border-financial-danger/30">
+                              <span className="font-semibold text-financial-danger">IR sobre Reinvestimentos:</span>
+                              <span className="font-mono text-lg text-financial-danger">- R$ {breakdown2.irSobreReinvestimentos.toLocaleString('pt-BR')}</span>
+                            </div>
+                          )}
+                          
+                          {breakdown2.irSobrePrincipal > 0 && (
+                            <div className="flex justify-between items-center p-3 bg-financial-danger/10 rounded-lg border border-financial-danger/30">
+                              <span className="font-semibold text-financial-danger">IR sobre Principal:</span>
+                              <span className="font-mono text-lg text-financial-danger">- R$ {breakdown2.irSobrePrincipal.toLocaleString('pt-BR')}</span>
+                            </div>
+                          )}
+                          
+                          <div className="flex justify-between items-center p-4 bg-gradient-to-r from-financial-primary/20 to-financial-secondary/20 rounded-lg border-2 border-financial-primary/50">
+                            <span className="font-bold text-financial-primary text-lg">VALOR FINAL:</span>
+                            <span className="font-mono text-xl font-bold text-financial-primary">R$ {breakdown2.valorFinal.toLocaleString('pt-BR')}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })()}
               </CardContent>
             </Card>
             
