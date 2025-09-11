@@ -1680,21 +1680,24 @@ const InvestmentComparator = () => {
                     const valorFinalBruto = ativo.valorFinal || 0;
                     const principalVencimento = principalInvestido;
                     
-                    // Reinvestments = sum of reinvested amounts from coupons
-                    const reinvestimentos = couponDetails?.reduce((sum, coupon) => sum + (coupon.reinvested || 0), 0) || 0;
+                    // Total reinvested amounts (coupon + yield on reinvestment)
+                    const totalReinvestido = couponDetails?.reduce((sum, coupon) => sum + (coupon.reinvested || 0), 0) || 0;
+                    
+                    // Rendimento sobre cupons = total reinvestido - cupons líquidos originais
+                    const rendimentoSobreCupons = totalReinvestido - cuponsLiquidos;
                     
                     // IR on reinvestments (estimated based on final value calculations)
                     const irSobreReinvestimentos = 0; // This needs more complex calculation
                     
                     // IR on principal (if any)
-                    const irSobrePrincipal = Math.max(0, (ativo.valorFinal || 0) - valorInvestido - cuponsLiquidos - reinvestimentos);
+                    const irSobrePrincipal = Math.max(0, (ativo.valorFinal || 0) - valorInvestido - cuponsLiquidos - rendimentoSobreCupons);
                     
                     return {
                       principalInvestido,
                       cupomsBrutos,
                       irSobreCupons,
                       cuponsLiquidos,
-                      reinvestimentos,
+                      rendimentoSobreCupons,
                       irSobreReinvestimentos,
                       principalVencimento,
                       irSobrePrincipal,
@@ -1735,8 +1738,8 @@ const InvestmentComparator = () => {
                           </div>
                           
                           <div className="flex justify-between items-center p-3 bg-financial-info/10 rounded-lg border border-financial-info/30">
-                            <span className="font-semibold text-financial-info">Reinvestimentos:</span>
-                            <span className="font-mono text-lg text-financial-info">R$ {breakdown1.reinvestimentos.toLocaleString('pt-BR')}</span>
+                            <span className="font-semibold text-financial-info">Rendimento sobre cupons:</span>
+                            <span className="font-mono text-lg text-financial-info">R$ {breakdown1.rendimentoSobreCupons.toLocaleString('pt-BR')}</span>
                           </div>
                           
                           {breakdown1.irSobreReinvestimentos > 0 && (
@@ -1788,8 +1791,8 @@ const InvestmentComparator = () => {
                           </div>
                           
                           <div className="flex justify-between items-center p-3 bg-financial-info/10 rounded-lg border border-financial-info/30">
-                            <span className="font-semibold text-financial-info">Reinvestimentos:</span>
-                            <span className="font-mono text-lg text-financial-info">R$ {breakdown2.reinvestimentos.toLocaleString('pt-BR')}</span>
+                            <span className="font-semibold text-financial-info">Rendimento sobre cupons:</span>
+                            <span className="font-mono text-lg text-financial-info">R$ {breakdown2.rendimentoSobreCupons.toLocaleString('pt-BR')}</span>
                           </div>
                           
                           {breakdown2.irSobreReinvestimentos > 0 && (
