@@ -343,7 +343,11 @@ const InvestmentComparator = () => {
     }, {
       year: 2029,
       months: [1, 2]
-    } // Jan-Feb 2029 until maturity (including February payment)
+    }, // Jan-Feb 2029 until maturity (including February payment)
+    {
+      year: 2030,
+      months: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
+    } // 2030: CRA ZAMP reaplicado a 100% CDI após vencimento em fev/2029
     ]
   });
   const [ativo2, setAtivo2] = useState<AssetData>({
@@ -353,7 +357,7 @@ const InvestmentComparator = () => {
     // Changed to cdi-mais for CDI+2.50%
     taxa: 2.50,
     // 2.50% above CDI
-    vencimento: '2029-02-15',
+    vencimento: '2030-04-30',
     valorInvestido: 216268,
     // Mesmo valor da venda do ativo1
     cupons: 0,
@@ -383,8 +387,11 @@ const InvestmentComparator = () => {
       months: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
     }, {
       year: 2029,
-      months: [1, 2]
-    } // Jan-Feb 2029 until maturity
+      months: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
+    }, {
+      year: 2030,
+      months: [1, 2, 3, 4]
+    } // Jan-Apr 2030 until maturity
     ]
   });
   const [projecoes, setProjecoes] = useState<Projecoes>({
@@ -896,17 +903,31 @@ const InvestmentComparator = () => {
         console.log(`🎯 Processando ano ${anoRendimento} - Taxa anual completa`);
         
         if (asset.nome === 'CRA ZAMP') {
-          // CRA ZAMP: sempre 12,03% a.a. fixo
+          // CRA ZAMP: 12,03% a.a. fixo até fev/2029, depois reaplicado a 100% CDI
           const taxaAnual = calcularTaxaReal(asset, i + 1);
+          if (anoRendimento >= 2030) {
+            // A partir de 2030: CRA ZAMP foi reaplicado a 100% CDI
+            console.log(`💰 CRA ZAMP ${anoRendimento}: reaplicado a 100% CDI = ${taxaAnual * 100}% a.a.`);
+          } else {
+            console.log(`💰 CRA ZAMP ${anoRendimento}: ${taxaAnual * 100}% a.a. (pré-fixado)`);
+          }
           const rendimentoAnual = valorInicial * Math.pow(1 + taxaAnual, i) * taxaAnual;
-          console.log(`💰 CRA ZAMP ${anoRendimento}: ${taxaAnual * 100}% a.a. = R$ ${rendimentoAnual.toLocaleString('pt-BR')}`);
           rendimentos.push(rendimentoAnual);
         } else if (asset.nome === 'BTDI11') {
           // BTDI11: CDI projetado + 2.5% (deve ser ~15.8% em 2026)
+          // Em 2030, calcular apenas 4 meses (jan-abr) até vencimento em abril
           const taxaAnual = calcularTaxaReal(asset, i + 1);
-          const rendimentoAnual = valorInicial * Math.pow(1 + taxaAnual, i) * taxaAnual;
-          console.log(`💰 BTDI11 ${anoRendimento}: ${taxaAnual * 100}% a.a. (CDI+2.5%) = R$ ${rendimentoAnual.toLocaleString('pt-BR')}`);
-          rendimentos.push(rendimentoAnual);
+          if (anoRendimento === 2030) {
+            const mesesAtivos = 4; // janeiro a abril
+            const proporcao = mesesAtivos / 12;
+            const rendimentoProporcional = valorInicial * Math.pow(1 + taxaAnual, i - 1) * taxaAnual * proporcao;
+            console.log(`💰 BTDI11 ${anoRendimento}: ${mesesAtivos} meses × ${taxaAnual * 100}% = R$ ${rendimentoProporcional.toLocaleString('pt-BR')}`);
+            rendimentos.push(rendimentoProporcional);
+          } else {
+            const rendimentoAnual = valorInicial * Math.pow(1 + taxaAnual, i) * taxaAnual;
+            console.log(`💰 BTDI11 ${anoRendimento}: ${taxaAnual * 100}% a.a. (CDI+2.5%) = R$ ${rendimentoAnual.toLocaleString('pt-BR')}`);
+            rendimentos.push(rendimentoAnual);
+          }
         } else {
           // Outros ativos: usar diferença dos valores
           if (i > 0) {
