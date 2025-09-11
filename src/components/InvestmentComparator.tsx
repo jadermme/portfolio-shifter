@@ -11,6 +11,7 @@ import { useToast } from '@/hooks/use-toast';
 interface AssetData {
   nome: string;
   codigo: string;
+  tipoTaxa: 'pre-fixada' | 'percentual-cdi' | 'cdi-mais' | 'ipca-mais';
   taxa: number;
   vencimento: string;
   valorInvestido: number;
@@ -19,7 +20,12 @@ interface AssetData {
   valorCurva: number;
   tipoCupom: string;
   mesesCupons: string;
-  aliquotaIR: number; // Alíquota de IR (0 a 22.5%)
+  aliquotaIR: number;
+}
+
+interface Projecoes {
+  cdi: { [key: number]: number };
+  ipca: { [key: number]: number };
 }
 
 interface CalculationResult {
@@ -36,6 +42,7 @@ const InvestmentComparator = () => {
   const [ativo1, setAtivo1] = useState<AssetData>({
     nome: 'CRA ZAMP',
     codigo: 'CRA024001Q9',
+    tipoTaxa: 'pre-fixada',
     taxa: 12.03,
     vencimento: '2029-02-15',
     valorInvestido: 236792,
@@ -50,7 +57,8 @@ const InvestmentComparator = () => {
   const [ativo2, setAtivo2] = useState<AssetData>({
     nome: 'BTDI11',
     codigo: 'BTDI11',
-    taxa: 12.5,
+    tipoTaxa: 'percentual-cdi',
+    taxa: 102.5,
     vencimento: '2029-02-15',
     valorInvestido: 216268,
     valorVenda: 216268,
@@ -59,6 +67,25 @@ const InvestmentComparator = () => {
     tipoCupom: 'nenhum',
     mesesCupons: '',
     aliquotaIR: 15.0
+  });
+
+  const [projecoes, setProjecoes] = useState<Projecoes>({
+    cdi: {
+      2025: 10.5,
+      2026: 9.5,
+      2027: 9.0,
+      2028: 9.0,
+      2029: 9.0,
+      2030: 9.0
+    },
+    ipca: {
+      2025: 4.0,
+      2026: 3.5,
+      2027: 3.25,
+      2028: 3.25,
+      2029: 3.25,
+      2030: 3.25
+    }
   });
 
   const [results, setResults] = useState<CalculationResult | null>(null);
@@ -72,16 +99,53 @@ const InvestmentComparator = () => {
     }
   };
 
+  const handleProjecaoChange = (tipo: 'cdi' | 'ipca', ano: number, valor: number) => {
+    setProjecoes(prev => ({
+      ...prev,
+      [tipo]: {
+        ...prev[tipo],
+        [ano]: valor
+      }
+    }));
+  };
+
+  const calcularTaxaReal = (dados: AssetData, ano: number): number => {
+    const anoKey = new Date().getFullYear() + ano;
+    
+    switch (dados.tipoTaxa) {
+      case 'pre-fixada':
+        return dados.taxa / 100;
+      
+      case 'percentual-cdi':
+        const cdiAno = (projecoes.cdi[anoKey] || projecoes.cdi[Object.keys(projecoes.cdi).pop() as any]) / 100;
+        return cdiAno * (dados.taxa / 100);
+      
+      case 'cdi-mais':
+        const cdiBase = (projecoes.cdi[anoKey] || projecoes.cdi[Object.keys(projecoes.cdi).pop() as any]) / 100;
+        return cdiBase + (dados.taxa / 100);
+      
+      case 'ipca-mais':
+        const ipcaAno = (projecoes.ipca[anoKey] || projecoes.ipca[Object.keys(projecoes.ipca).pop() as any]) / 100;
+        return ipcaAno + (dados.taxa / 100);
+      
+      default:
+        return dados.taxa / 100;
+    }
+  };
+
   const calcularAtivo = (dados: AssetData, anosProjecao: number): { valores: number[]; imposto: number } => {
     const valores = [Math.round(dados.valorCurva)];
     
     let valorTotalCuponsAno = 0;
     if (dados.tipoCupom !== 'nenhum') {
-      valorTotalCuponsAno = dados.valorInvestido * (dados.taxa / 100);
+      // Para cupons, usar a taxa do primeiro ano como base
+      const taxaBase = calcularTaxaReal(dados, 1);
+      valorTotalCuponsAno = dados.valorInvestido * taxaBase;
     }
 
     for (let ano = 1; ano <= anosProjecao; ano++) {
-      const principalProjetado = dados.valorCurva * Math.pow(1 + dados.taxa / 100, ano);
+      const taxaAno = calcularTaxaReal(dados, ano);
+      const principalProjetado = dados.valorCurva * Math.pow(1 + taxaAno, ano);
       const totalCuponsRecebidos = valorTotalCuponsAno * ano;
       const valorTotalAno = principalProjetado + totalCuponsRecebidos;
       valores.push(Math.round(valorTotalAno));
@@ -149,6 +213,7 @@ const InvestmentComparator = () => {
     setAtivo1({
       nome: '',
       codigo: '',
+      tipoTaxa: 'pre-fixada',
       taxa: 0,
       vencimento: '',
       valorInvestido: 0,
@@ -162,6 +227,7 @@ const InvestmentComparator = () => {
     setAtivo2({
       nome: '',
       codigo: '',
+      tipoTaxa: 'pre-fixada',
       taxa: 0,
       vencimento: '',
       valorInvestido: 0,
@@ -174,6 +240,46 @@ const InvestmentComparator = () => {
     });
     setShowResults(false);
     setResults(null);
+  };
+
+  const getTaxaLabel = (tipoTaxa: string) => {
+    switch (tipoTaxa) {
+      case 'pre-fixada': return 'Taxa Anual (%)';
+      case 'percentual-cdi': return '% do CDI';
+      case 'cdi-mais': return 'Taxa + CDI (%)';
+      case 'ipca-mais': return 'Taxa + IPCA (%)';
+      default: return 'Taxa (%)';
+    }
+  };
+
+  const getTaxaPlaceholder = (tipoTaxa: string) => {
+    switch (tipoTaxa) {
+      case 'pre-fixada': return '12.03';
+      case 'percentual-cdi': return '102.5';
+      case 'cdi-mais': return '2.5';
+      case 'ipca-mais': return '5.0';
+      default: return '12.03';
+    }
+  };
+
+  const getTaxaDisplay = (asset: AssetData) => {
+    switch (asset.tipoTaxa) {
+      case 'pre-fixada': return `${asset.taxa.toFixed(2)}% a.a.`;
+      case 'percentual-cdi': return `${asset.taxa.toFixed(2)}% do CDI`;
+      case 'cdi-mais': return `CDI + ${asset.taxa.toFixed(2)}%`;
+      case 'ipca-mais': return `IPCA + ${asset.taxa.toFixed(2)}%`;
+      default: return `${asset.taxa.toFixed(2)}%`;
+    }
+  };
+
+  const getTipoTaxaDisplay = (tipoTaxa: string) => {
+    switch (tipoTaxa) {
+      case 'pre-fixada': return 'Pré-fixada';
+      case 'percentual-cdi': return '% CDI';
+      case 'cdi-mais': return 'CDI + Taxa';
+      case 'ipca-mais': return 'IPCA + Taxa';
+      default: return tipoTaxa;
+    }
   };
 
   const renderAssetForm = (asset: AssetData, assetKey: 'ativo1' | 'ativo2', title: string, color: string) => (
@@ -205,14 +311,28 @@ const InvestmentComparator = () => {
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor={`${assetKey}-taxa`}>Taxa Anual (%)</Label>
+            <Label htmlFor={`${assetKey}-tipoTaxa`}>Tipo de Taxa</Label>
+            <Select value={asset.tipoTaxa} onValueChange={(value) => handleAssetChange(assetKey, 'tipoTaxa', value)}>
+              <SelectTrigger className="bg-background border-border z-50">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent className="bg-background border-border shadow-lg z-50">
+                <SelectItem value="pre-fixada">Pré-fixada</SelectItem>
+                <SelectItem value="percentual-cdi">% CDI</SelectItem>
+                <SelectItem value="cdi-mais">CDI + Taxa Pré</SelectItem>
+                <SelectItem value="ipca-mais">IPCA + Taxa Pré</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor={`${assetKey}-taxa`}>{getTaxaLabel(asset.tipoTaxa)}</Label>
             <Input
               id={`${assetKey}-taxa`}
               type="number"
               step="0.01"
               value={asset.taxa}
               onChange={(e) => handleAssetChange(assetKey, 'taxa', parseFloat(e.target.value) || 0)}
-              placeholder="12.03"
+              placeholder={getTaxaPlaceholder(asset.tipoTaxa)}
             />
           </div>
           <div className="space-y-2">
@@ -267,10 +387,10 @@ const InvestmentComparator = () => {
           <div className="space-y-2">
             <Label htmlFor={`${assetKey}-tipoCupom`}>Tipo de Cupom</Label>
             <Select value={asset.tipoCupom} onValueChange={(value) => handleAssetChange(assetKey, 'tipoCupom', value)}>
-              <SelectTrigger>
+              <SelectTrigger className="bg-background border-border z-40">
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="bg-background border-border shadow-lg z-40">
                 <SelectItem value="semestral">Semestral</SelectItem>
                 <SelectItem value="anual">Anual</SelectItem>
                 <SelectItem value="nenhum">Sem Cupons</SelectItem>
@@ -336,6 +456,55 @@ const InvestmentComparator = () => {
           {renderAssetForm(ativo2, 'ativo2', '📈 Ativo 2', 'financial-secondary')}
         </div>
 
+        {/* Projections */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+          {/* CDI Projections */}
+          <Card className="border-financial-secondary/20 shadow-lg">
+            <CardHeader className="bg-gradient-to-r from-financial-secondary to-financial-primary text-white rounded-t-lg">
+              <CardTitle>📈 Projeção CDI (%)</CardTitle>
+            </CardHeader>
+            <CardContent className="p-6">
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                {Object.entries(projecoes.cdi).map(([year, value]) => (
+                  <div key={year} className="space-y-2">
+                    <Label htmlFor={`cdi${year}`}>{year}</Label>
+                    <Input
+                      id={`cdi${year}`}
+                      type="number"
+                      step="0.1"
+                      value={value}
+                      onChange={(e) => handleProjecaoChange('cdi', parseInt(year), parseFloat(e.target.value) || 0)}
+                    />
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* IPCA Projections */}
+          <Card className="border-financial-primary/20 shadow-lg">
+            <CardHeader className="bg-gradient-to-r from-financial-primary to-financial-secondary text-white rounded-t-lg">
+              <CardTitle>📊 Projeção IPCA (%)</CardTitle>
+            </CardHeader>
+            <CardContent className="p-6">
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                {Object.entries(projecoes.ipca).map(([year, value]) => (
+                  <div key={year} className="space-y-2">
+                    <Label htmlFor={`ipca${year}`}>{year}</Label>
+                    <Input
+                      id={`ipca${year}`}
+                      type="number"
+                      step="0.1"
+                      value={value}
+                      onChange={(e) => handleProjecaoChange('ipca', parseInt(year), parseFloat(e.target.value) || 0)}
+                    />
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
         {/* Action Buttons */}
         <div className="flex flex-wrap justify-center gap-4 mb-8">
           <Button
@@ -380,6 +549,7 @@ const InvestmentComparator = () => {
                     <thead>
                       <tr className="bg-gradient-to-r from-financial-secondary to-financial-primary text-white">
                         <th className="p-3 text-left border">Ativo</th>
+                        <th className="p-3 text-left border">Tipo Taxa</th>
                         <th className="p-3 text-left border">Taxa</th>
                         <th className="p-3 text-left border">Vencimento</th>
                         <th className="p-3 text-left border">Valor Investido</th>
@@ -391,7 +561,8 @@ const InvestmentComparator = () => {
                     <tbody>
                       <tr className="even:bg-muted/50">
                         <td className="p-3 border font-semibold">{ativo1.nome}</td>
-                        <td className="p-3 border font-mono">{ativo1.taxa.toFixed(2)}% a.a.</td>
+                        <td className="p-3 border font-mono">{getTipoTaxaDisplay(ativo1.tipoTaxa)}</td>
+                        <td className="p-3 border font-mono">{getTaxaDisplay(ativo1)}</td>
                         <td className="p-3 border font-mono">{new Date(ativo1.vencimento).toLocaleDateString('pt-BR')}</td>
                         <td className="p-3 border font-mono">R$ {ativo1.valorInvestido.toLocaleString('pt-BR')}</td>
                         <td className="p-3 border font-mono">R$ {ativo1.valorVenda.toLocaleString('pt-BR')}</td>
@@ -400,7 +571,8 @@ const InvestmentComparator = () => {
                       </tr>
                       <tr className="even:bg-muted/50">
                         <td className="p-3 border font-semibold">{ativo2.nome}</td>
-                        <td className="p-3 border font-mono">{ativo2.taxa.toFixed(2)}% a.a.</td>
+                        <td className="p-3 border font-mono">{getTipoTaxaDisplay(ativo2.tipoTaxa)}</td>
+                        <td className="p-3 border font-mono">{getTaxaDisplay(ativo2)}</td>
                         <td className="p-3 border font-mono">{new Date(ativo2.vencimento).toLocaleDateString('pt-BR')}</td>
                         <td className="p-3 border font-mono">R$ {ativo2.valorInvestido.toLocaleString('pt-BR')}</td>
                         <td className="p-3 border font-mono">R$ {ativo2.valorVenda.toLocaleString('pt-BR')}</td>
