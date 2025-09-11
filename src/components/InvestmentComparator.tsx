@@ -1759,14 +1759,21 @@ const InvestmentComparator = () => {
                           
                           {/* Reinvestment Explanation - Item 3 */}
                           {results.reinvestimento && results.reinvestimento.ativoReinvestido === 'ativo1' && (
-                            <div className="flex justify-between items-center p-3 bg-financial-warning/10 rounded-lg border border-financial-warning/30">
-                              <span className="font-semibold text-financial-warning flex items-center gap-2">
-                                <TrendingUp className="h-4 w-4" />
-                                Valor após vencimento reaplicado no CDI:
-                              </span>
-                              <span className="font-mono text-lg text-financial-warning">
-                                {results.reinvestimento.periodosReinvestimento} {results.reinvestimento.periodosReinvestimento === 1 ? 'ano' : 'anos'} @ {results.reinvestimento.taxaReinvestimento.toFixed(2)}%
-                              </span>
+                            <div className="space-y-2">
+                              <div className="flex justify-between items-center p-3 bg-financial-warning/10 rounded-lg border border-financial-warning/30">
+                                <span className="font-semibold text-financial-warning flex items-center gap-2">
+                                  <TrendingUp className="h-4 w-4" />
+                                  Valor após vencimento reaplicado no CDI:
+                                </span>
+                                <span className="font-mono text-lg text-financial-warning font-bold">
+                                  R$ {results.reinvestimento.valorResgatado.toLocaleString('pt-BR')}
+                                </span>
+                              </div>
+                              <div className="text-xs text-muted-foreground px-3 pb-2">
+                                <span className="italic">
+                                  Aplicado por {results.reinvestimento.periodosReinvestimento} {results.reinvestimento.periodosReinvestimento === 1 ? 'ano' : 'anos'} à taxa CDI de {results.reinvestimento.taxaReinvestimento.toFixed(2)}% ao ano
+                                </span>
+                              </div>
                             </div>
                           )}
                           
@@ -1825,14 +1832,21 @@ const InvestmentComparator = () => {
                           
                           {/* Reinvestment Explanation - Item 3 */}
                           {results.reinvestimento && results.reinvestimento.ativoReinvestido === 'ativo2' && (
-                            <div className="flex justify-between items-center p-3 bg-financial-warning/10 rounded-lg border border-financial-warning/30">
-                              <span className="font-semibold text-financial-warning flex items-center gap-2">
-                                <TrendingUp className="h-4 w-4" />
-                                Valor após vencimento reaplicado no CDI:
-                              </span>
-                              <span className="font-mono text-lg text-financial-warning">
-                                {results.reinvestimento.periodosReinvestimento} {results.reinvestimento.periodosReinvestimento === 1 ? 'ano' : 'anos'} @ {results.reinvestimento.taxaReinvestimento.toFixed(2)}%
-                              </span>
+                            <div className="space-y-2">
+                              <div className="flex justify-between items-center p-3 bg-financial-warning/10 rounded-lg border border-financial-warning/30">
+                                <span className="font-semibold text-financial-warning flex items-center gap-2">
+                                  <TrendingUp className="h-4 w-4" />
+                                  Valor após vencimento reaplicado no CDI:
+                                </span>
+                                <span className="font-mono text-lg text-financial-warning font-bold">
+                                  R$ {results.reinvestimento.valorResgatado.toLocaleString('pt-BR')}
+                                </span>
+                              </div>
+                              <div className="text-xs text-muted-foreground px-3 pb-2">
+                                <span className="italic">
+                                  Aplicado por {results.reinvestimento.periodosReinvestimento} {results.reinvestimento.periodosReinvestimento === 1 ? 'ano' : 'anos'} à taxa CDI de {results.reinvestimento.taxaReinvestimento.toFixed(2)}% ao ano
+                                </span>
+                              </div>
                             </div>
                           )}
                           
