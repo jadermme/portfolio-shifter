@@ -364,19 +364,42 @@ const InvestmentComparator = () => {
     setResults(null);
   };
 
-  // Função para calcular rendimentos anuais
-  const calcularRendimentosAnuais = (valores: number[], valorInicial: number) => {
+  // Função para calcular rendimentos anuais considerando períodos corretos
+  const calcularRendimentosAnuais = (valores: number[], valorInicial: number, asset: AssetData) => {
     const rendimentos: number[] = [];
+    const anoAtual = new Date().getFullYear();
+    const vencimento = new Date(asset.vencimento);
+    const anoVencimento = vencimento.getFullYear();
     
-    // Para o primeiro ano, mostrar o rendimento líquido (valor final - valor inicial)
-    if (valores.length > 0) {
-      rendimentos.push(valores[0] - valorInicial);
-    }
-    
-    // Para os anos seguintes, mostrar a diferença entre anos consecutivos
-    for (let i = 1; i < valores.length; i++) {
-      const rendimento = valores[i] - valores[i - 1];
-      rendimentos.push(rendimento);
+    for (let i = 0; i < valores.length; i++) {
+      const anoRendimento = anoAtual + i;
+      
+      if (anoRendimento === anoAtual) {
+        // Para 2025, considerar apenas o período que o ativo está ativo
+        if (anoVencimento === anoAtual) {
+          // Se vence em 2025, pode não ter rendimento dependendo da data
+          const mesVencimento = vencimento.getMonth();
+          if (mesVencimento <= 0) { // Janeiro ou antes
+            rendimentos.push(0); // Sem rendimento
+          } else {
+            rendimentos.push(valores[i] - valorInicial);
+          }
+        } else {
+          // Se o ativo está ativo todo o ano de 2025
+          const mesAtual = new Date().getMonth();
+          if (mesAtual >= 10) { // Novembro (índice 10) ou dezembro
+            rendimentos.push(valores[i] - valorInicial);
+          } else {
+            // Se ainda não começou a render em 2025
+            rendimentos.push(0);
+          }
+        }
+      } else {
+        // Para anos seguintes, diferença entre anos consecutivos
+        if (i > 0) {
+          rendimentos.push(valores[i] - valores[i - 1]);
+        }
+      }
     }
     
     return rendimentos;
@@ -861,8 +884,8 @@ const InvestmentComparator = () => {
                      </thead>
                      <tbody>
                        {(() => {
-                         const rendimentosAtivo1 = calcularRendimentosAnuais(results.ativo1, ativo1.valorInvestido);
-                         const rendimentosAtivo2 = calcularRendimentosAnuais(results.ativo2, ativo2.valorInvestido);
+                         const rendimentosAtivo1 = calcularRendimentosAnuais(results.ativo1, ativo1.valorInvestido, ativo1);
+                         const rendimentosAtivo2 = calcularRendimentosAnuais(results.ativo2, ativo2.valorInvestido, ativo2);
                          
                          return rendimentosAtivo1.map((rendimento1, index) => {
                            const rendimento2 = rendimentosAtivo2[index];
