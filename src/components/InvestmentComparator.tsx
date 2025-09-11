@@ -98,10 +98,23 @@ const InvestmentComparator = () => {
       setAtivo1(prev => ({ ...prev, [field]: value }));
       // Se mudou o valor de venda do ativo1, atualiza o valor investido do ativo2
       if (field === 'valorVenda') {
-        setAtivo2(prev => ({ ...prev, valorInvestido: Number(value) }));
+        setAtivo2(prev => ({ 
+          ...prev, 
+          valorInvestido: Number(value),
+          valorCurva: Number(value) // Para aplicação nova, valor de curva = valor investido
+        }));
       }
     } else {
-      setAtivo2(prev => ({ ...prev, [field]: value }));
+      // Para ativo2, valor de curva sempre igual ao valor investido (aplicação nova)
+      if (field === 'valorInvestido') {
+        setAtivo2(prev => ({ 
+          ...prev, 
+          valorInvestido: Number(value),
+          valorCurva: Number(value)
+        }));
+      } else {
+        setAtivo2(prev => ({ ...prev, [field]: value }));
+      }
     }
   };
 
@@ -403,13 +416,18 @@ const InvestmentComparator = () => {
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor={`${assetKey}-valorCurva`}>Valor de Curva (R$)</Label>
+            <Label htmlFor={`${assetKey}-valorCurva`}>
+              {assetKey === 'ativo2' ? 'Valor de Curva (R$) - Aplicação Nova' : 'Valor de Curva (R$)'}
+            </Label>
             <Input
               id={`${assetKey}-valorCurva`}
               type="number"
               step="0.01"
-              value={asset.valorCurva}
+              value={assetKey === 'ativo2' ? asset.valorInvestido : asset.valorCurva}
               onChange={(e) => handleAssetChange(assetKey, 'valorCurva', parseFloat(e.target.value) || 0)}
+              disabled={assetKey === 'ativo2'}
+              className={assetKey === 'ativo2' ? 'bg-muted/50 cursor-not-allowed' : ''}
+              placeholder={assetKey === 'ativo2' ? 'Igual ao valor investido' : ''}
             />
           </div>
           {assetKey === 'ativo1' && (
