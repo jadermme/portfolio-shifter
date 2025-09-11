@@ -374,22 +374,29 @@ const InvestmentComparator = () => {
       const anoRendimento = anoAtual + i;
       
       if (anoRendimento === 2025) {
-        // Primeiro ano (2025) com regras específicas por ativo
+        // Para 2025, calcular o rendimento acumulado específico de cada ativo
         if (nomeUpper.includes('ZAMP') || nomeUpper.includes('CRA')) {
-          // CRA ZAMP: considerar atualização/valorização do principal em 2025, nunca negativa
-          const atualizacao = valores[i] - valorInicial;
-          rendimentos.push(Math.max(atualizacao, 0));
+          // CRA ZAMP: mostrar toda a valorização/atualização acumulada em 2025
+          const rendimentoAcumulado = valores[i] - valorInicial;
+          rendimentos.push(rendimentoAcumulado > 0 ? rendimentoAcumulado : 0);
         } else if (nomeUpper.includes('BTDI')) {
-          // BTDI11: começou a pagar em novembro/2025 (2 meses)
-          const rendimentoAnual = valores[i] - valorInicial;
-          const proporcional = rendimentoAnual * (2 / 12);
-          rendimentos.push(proporcional);
+          // BTDI11: rendimento proporcional aos 2 meses ativos (nov/dez 2025)
+          const crescimentoTotal = valores[i] - valorInicial;
+          const rendimentoProporcional = crescimentoTotal * (2 / 12);
+          rendimentos.push(rendimentoProporcional);
         } else {
-          // Demais: diferencial padrão do primeiro ano
+          // Outros ativos: rendimento completo do ano
           rendimentos.push(valores[i] - valorInicial);
         }
+      } else if (anoRendimento === 2030 && nomeUpper.includes('BTDI')) {
+        // BTDI11 em 2030: apenas 4 meses (jan-abr)
+        if (i > 0) {
+          const crescimentoAnual = valores[i] - valores[i - 1];
+          const rendimentoProporcional = crescimentoAnual * (4 / 12);
+          rendimentos.push(rendimentoProporcional);
+        }
       } else {
-        // Anos seguintes: diferença entre anos consecutivos
+        // Anos normais: diferença entre anos consecutivos
         if (i > 0) {
           rendimentos.push(valores[i] - valores[i - 1]);
         }
