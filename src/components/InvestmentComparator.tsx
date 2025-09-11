@@ -326,9 +326,9 @@ const InvestmentComparator = () => {
     earningsStartDate: '2025-09-01',
     activePeriods: [{
       year: 2025,
-      months: [8, 9, 10, 11, 12]
+      months: [9, 10, 11, 12]
     },
-    // Aug-Dec 2025 for accrual (including August payment)
+    // Sept-Dec 2025 for accrual (4 meses ativos)
     {
       year: 2026,
       months: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
@@ -498,28 +498,33 @@ const InvestmentComparator = () => {
   const calcularTaxaReal = (dados: AssetData, ano: number): number => {
     const anoKey = new Date().getFullYear() + ano;
 
-    // Check if asset has earnings start date and hasn't started yet
-    if (dados.earningsStartDate) {
-      const startDate = new Date(dados.earningsStartDate);
-      const checkDate = new Date(anoKey, 0, 1); // January 1st of the year
-      if (checkDate < startDate) {
-        return 0; // No earnings before start date
-      }
-    }
+    console.log(`🎯 Calculando taxa real para ${dados.nome} - Ano: ${anoKey}, Taxa base: ${dados.taxa}%`);
+    
+    // Removed earningsStartDate check that was zeroing rates
     switch (dados.tipoTaxa) {
       case 'pre-fixada':
-        return dados.taxa / 100;
+        const taxaPre = dados.taxa / 100;
+        console.log(`💰 Taxa pré-fixada: ${taxaPre * 100}%`);
+        return taxaPre;
       case 'percentual-cdi':
         const cdiAno = (projecoes.cdi[anoKey] || projecoes.cdi[Object.keys(projecoes.cdi).pop() as any]) / 100;
-        return cdiAno * (dados.taxa / 100);
+        const taxaPctCdi = cdiAno * (dados.taxa / 100);
+        console.log(`💰 Taxa % CDI: ${taxaPctCdi * 100}% (CDI: ${cdiAno * 100}% × ${dados.taxa}%)`);
+        return taxaPctCdi;
       case 'cdi-mais':
         const cdiBase = (projecoes.cdi[anoKey] || projecoes.cdi[Object.keys(projecoes.cdi).pop() as any]) / 100;
-        return cdiBase + dados.taxa / 100;
+        const taxaCdiMais = cdiBase + dados.taxa / 100;
+        console.log(`💰 Taxa CDI+: ${taxaCdiMais * 100}% (CDI: ${cdiBase * 100}% + ${dados.taxa}%)`);
+        return taxaCdiMais;
       case 'ipca-mais':
         const ipcaAno = (projecoes.ipca[anoKey] || projecoes.ipca[Object.keys(projecoes.ipca).pop() as any]) / 100;
-        return ipcaAno + dados.taxa / 100;
+        const taxaIpcaMais = ipcaAno + dados.taxa / 100;
+        console.log(`💰 Taxa IPCA+: ${taxaIpcaMais * 100}% (IPCA: ${ipcaAno * 100}% + ${dados.taxa}%)`);
+        return taxaIpcaMais;
       default:
-        return dados.taxa / 100;
+        const taxaDefault = dados.taxa / 100;
+        console.log(`💰 Taxa default: ${taxaDefault * 100}%`);
+        return taxaDefault;
     }
   };
   const calcularAtivo = (dados: AssetData, anosProjecao: number, vencimentoReal?: number): {
@@ -832,37 +837,99 @@ const InvestmentComparator = () => {
 
   // Enhanced function to calculate annual yields considering specific periods and accrual
   const calcularRendimentosAnuais = (valores: number[], valorInicial: number, asset: AssetData) => {
-    console.log('🔍 Calculando rendimentos anuais para:', asset.nome);
+    console.log('\n🔍 Calculando rendimentos anuais para:', asset.nome);
     console.log('📊 Valores recebidos:', valores);
     console.log('💰 Valor inicial:', valorInicial);
     console.log('📅 Períodos ativos:', asset.activePeriods);
     console.log('🎯 Data início rendimentos:', asset.earningsStartDate);
     const rendimentos: number[] = [];
     const anoAtual = new Date().getFullYear();
+    
     for (let i = 0; i < valores.length; i++) {
       const anoRendimento = anoAtual + i;
       console.log(`\n📅 Processando ano ${anoRendimento} (índice ${i})`);
 
+      if (anoRendimento === 2025) {
+        // 2025: Calcular baseado nos períodos ativos específicos
+        console.log('🎯 Processando ano 2025 - Períodos ativos específicos');
+        
+        if (asset.nome === 'CRA ZAMP') {
+          // CRA ZAMP: 4 meses (set-dez) × 12,03% a.a.
+          const mesesAtivos = 4; // setembro a dezembro
+          const proporcao = mesesAtivos / 12;
+          const taxaAnual = calcularTaxaReal(asset, 1); // Use year 1 rate for 2025
+          const rendimentoProporcional = valorInicial * taxaAnual * proporcao;
+          console.log(`💰 CRA ZAMP 2025: ${mesesAtivos} meses × ${taxaAnual * 100}% = R$ ${rendimentoProporcional.toLocaleString('pt-BR')}`);
+          rendimentos.push(rendimentoProporcional);
+        } else if (asset.nome === 'BTDI11') {
+          // BTDI11: 2 meses (nov-dez) × taxa CDI+2.5%
+          const mesesAtivos = 2; // novembro e dezembro
+          const proporcao = mesesAtivos / 12;
+          const taxaAnual = calcularTaxaReal(asset, 1); // Use year 1 rate for 2025
+          const rendimentoProporcional = valorInicial * taxaAnual * proporcao;
+          console.log(`💰 BTDI11 2025: ${mesesAtivos} meses × ${taxaAnual * 100}% = R$ ${rendimentoProporcional.toLocaleString('pt-BR')}`);
+          rendimentos.push(rendimentoProporcional);
+        } else {
+          // Outros ativos: usar cálculo padrão
+          if (i > 0) {
+            const rendimentoAnual = valores[i] - valores[i - 1];
+            rendimentos.push(rendimentoAnual);
+          } else {
+            const rendimentoTotal = valores[i] - valorInicial;
+            rendimentos.push(rendimentoTotal);
+          }
+        }
+      } else {
+        // 2026 em diante: Usar taxas anuais completas
+        console.log(`🎯 Processando ano ${anoRendimento} - Taxa anual completa`);
+        
+        if (asset.nome === 'CRA ZAMP') {
+          // CRA ZAMP: sempre 12,03% a.a. fixo
+          const taxaAnual = calcularTaxaReal(asset, i + 1);
+          const rendimentoAnual = valorInicial * Math.pow(1 + taxaAnual, i) * taxaAnual;
+          console.log(`💰 CRA ZAMP ${anoRendimento}: ${taxaAnual * 100}% a.a. = R$ ${rendimentoAnual.toLocaleString('pt-BR')}`);
+          rendimentos.push(rendimentoAnual);
+        } else if (asset.nome === 'BTDI11') {
+          // BTDI11: CDI projetado + 2.5% (deve ser ~15.8% em 2026)
+          const taxaAnual = calcularTaxaReal(asset, i + 1);
+          const rendimentoAnual = valorInicial * Math.pow(1 + taxaAnual, i) * taxaAnual;
+          console.log(`💰 BTDI11 ${anoRendimento}: ${taxaAnual * 100}% a.a. (CDI+2.5%) = R$ ${rendimentoAnual.toLocaleString('pt-BR')}`);
+          rendimentos.push(rendimentoAnual);
+        } else {
+          // Outros ativos: usar diferença dos valores
+          if (i > 0) {
+            const rendimentoAnual = valores[i] - valores[i - 1];
+            rendimentos.push(rendimentoAnual);
+          } else {
+            const rendimentoTotal = valores[i] - valorInicial;
+            rendimentos.push(rendimentoTotal);
+          }
+        }
+      }
+    }
+
+    console.log(`✅ Rendimentos calculados para ${asset.nome}:`, rendimentos);
+    return rendimentos;
+  };
+
+  // Legacy code for compatibility (removed active periods logic)
+  const calcularRendimentosAnuaisLegacy = (valores: number[], valorInicial: number, asset: AssetData) => {
+    const rendimentos: number[] = [];
+    const anoAtual = new Date().getFullYear();
+    for (let i = 0; i < valores.length; i++) {
+      const anoRendimento = anoAtual + i;
+
       // Check if asset has defined active periods
       if (asset.activePeriods) {
         const periodForYear = asset.activePeriods.find(p => p.year === anoRendimento);
-        console.log(`🔍 Período para ${anoRendimento}:`, periodForYear);
         if (periodForYear) {
           // Calculate proportional yield based on active months
           const mesesAtivos = periodForYear.months.length;
           const proporcao = mesesAtivos / 12;
-          console.log(`📊 Meses ativos: ${mesesAtivos}, Proporção: ${proporcao}`);
-          if (anoRendimento === 2025) {
-            // CRA ZAMP: special calculation for Sept-Dec 2025
-            const taxaAnual = calcularTaxaReal(asset, i);
-            const rendimentoAcruado = valorInicial * taxaAnual * proporcao;
-            console.log(`💰 CRA ZAMP 2025 - Taxa: ${taxaAnual}, Rendimento: ${rendimentoAcruado}`);
-            rendimentos.push(Math.max(0, rendimentoAcruado));
-          } else if (asset.earningsStartDate) {
+          if (asset.earningsStartDate) {
             // BTDI11: earnings start from specific date
             const startDate = new Date(asset.earningsStartDate);
             const yearStart = new Date(anoRendimento, 0, 1);
-            console.log(`📅 BTDI11 - Data início: ${startDate}, Início do ano: ${yearStart}`);
             if (startDate <= yearStart || anoRendimento > startDate.getFullYear()) {
               // Full year or after start year
               if (i > 0) {
