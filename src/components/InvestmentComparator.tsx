@@ -1175,18 +1175,6 @@ const InvestmentComparator = () => {
                 </div>
                 
               </div>
-              
-              {asset.earningsStartDate && (
-                  <div className="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
-                    <p className="text-sm text-blue-800">
-                      <strong>Sistema automático:</strong> Cupons sempre reinvestidos à taxa CDI projetada 
-                      do momento do pagamento até o vencimento.
-                    </p>
-                    <p className="text-sm text-blue-700 mt-2">
-                      📅 <strong>Período especial:</strong> Rendimentos iniciando em {new Date(asset.earningsStartDate + 'T00:00:00').toLocaleDateString('pt-BR')}
-                    </p>
-                  </div>
-                )}
             </div>
           </div>
         </div>
