@@ -170,7 +170,7 @@ function cdiFactor(curve: CDIPoint[], fromISO: string, toISO: string, use252=fal
 }
 
 function projectWithReinvestCDI(x: CouponEngineInput) {
-  const feesM = x.feesAA ? aaToMonthly(x.feesAA) : 0;
+  // No administrative fees for direct securities
   const couponDates = genCouponDates(x.startISO, x.endISO, x.freq);
 
   const coupons: CouponResult[] = [];
@@ -183,9 +183,9 @@ function projectWithReinvestCDI(x: CouponEngineInput) {
     const cdiAA = x.cdiAABase ?? (x.cdiCurve[0]?.cdiAA ?? 0);
     const rAssetMonthly = rateOfAssetForPeriod(x.rateKind, {
       taxaPreAA: x.taxaPreAA, taxaRealAA: x.taxaRealAA, ipcaAA: x.ipcaCurve?.[0]?.ipcaAA ?? 0,
-      percCDI: x.percCDI, cdiAA, spreadPreAA: x.spreadPreAA, use252: x.use252
+      percCDI: x.percCDI, cdiAA, spreadPreAA: x.spreadPreAA, use252: false
     });
-    const rPeriodGross = Math.pow(1 + (rAssetMonthly - feesM), months) - 1;
+    const rPeriodGross = Math.pow(1 + rAssetMonthly, months) - 1;
 
     const couponGross = Math.max(0, basePrincipal * rPeriodGross);
 
@@ -195,7 +195,7 @@ function projectWithReinvestCDI(x: CouponEngineInput) {
     const couponNet = couponGross * (1 - aliq);
 
     // fator de reinvestimento CDI do pagamento até o fim
-    const fReinv = cdiFactor(x.cdiCurve, dt, x.endISO, x.use252);
+    const fReinv = cdiFactor(x.cdiCurve, dt, x.endISO, false);
     const couponReinv = couponNet * fReinv;
 
     coupons.push({ couponDate: dt, gross: couponGross, net: couponNet, reinvestFactor: fReinv, reinvested: couponReinv });
@@ -266,9 +266,7 @@ const InvestmentComparator = () => {
     // Enable cash flow system for CRA with coupons
     useCashFlow: true,
     rateKind: 'PRE',
-    freq: 'SEMIANNUAL',
-    feesAA: 0.3,
-    use252: false
+    freq: 'SEMIANNUAL'
   });
 
   const [ativo2, setAtivo2] = useState<AssetData>({
@@ -466,9 +464,9 @@ const InvestmentComparator = () => {
       cdiAABase: projecoes.cdi[new Date().getFullYear()] || 10,
       cdiCurve,
       ipcaCurve: projecoes.ipcaCurve,
-      feesAA: dados.feesAA || 0,
+      feesAA: 0, // Removed - not applicable for direct securities
       irRegressivo: dados.tipoIR === 'renda-fixa',
-      use252: dados.use252 || false
+      use252: false // Removed - not applicable for direct securities
     };
     
     // Calculate cash flows
@@ -952,40 +950,12 @@ const InvestmentComparator = () => {
               </div>
               
               {asset.useCashFlow && (
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
-                  <div className="space-y-2">
-                    <Label htmlFor={`${assetKey}-feesAA`}>Taxa Adm/Custódia (% a.a.)</Label>
-                    <Input
-                      id={`${assetKey}-feesAA`}
-                      type="number"
-                      step="0.01"
-                      value={asset.feesAA || 0}
-                      onChange={(e) => handleAssetChange(assetKey, 'feesAA', parseFloat(e.target.value) || 0)}
-                      placeholder="0.30"
-                    />
+                  <div className="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                    <p className="text-sm text-blue-800">
+                      <strong>Sistema avançado:</strong> Reinvestimento preciso de cupons pela curva CDI projetada 
+                      do momento do pagamento até o vencimento. Ideal para títulos com pagamento de cupons periódicos.
+                    </p>
                   </div>
-                  
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="checkbox"
-                        id={`${assetKey}-use252`}
-                        checked={asset.use252 || false}
-                        onChange={(e) => handleAssetChange(assetKey, 'use252', e.target.checked)}
-                        className="rounded border-border"
-                      />
-                      <Label htmlFor={`${assetKey}-use252`} className="text-sm">
-                        Usar base 252 dias úteis
-                      </Label>
-                    </div>
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label className="text-xs text-muted-foreground">
-                      Sistema avançado com reinvestimento preciso de cupons pela curva CDI
-                    </Label>
-                  </div>
-                </div>
               )}
             </div>
           </div>
@@ -1432,7 +1402,7 @@ const InvestmentComparator = () => {
                   <div className="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
                     <p className="text-sm text-blue-800">
                       <strong>Sistema de Fluxo de Caixa:</strong> Os cupons são calculados com IR regressivo baseado no tempo de aplicação 
-                      e reinvestidos pela curva CDI projetada do momento do pagamento até o vencimento do ativo.
+                      e reinvestidos pela curva CDI projetada do momento do pagamento até o vencimento. Otimizado para títulos diretos.
                     </p>
                   </div>
                 </CardContent>
