@@ -1523,8 +1523,8 @@ const InvestmentComparator = () => {
                       );
                     }
                     
-                     const rendimentosAtivo1 = calcularRendimentosAnuais(results.ativo1, ativo1.valorInvestido, ativo1);
-                     const rendimentosAtivo2 = calcularRendimentosAnuais(results.ativo2, ativo2.valorInvestido, ativo2);
+                     const rendimentosAtivo1 = calcularRendimentosAnuais(results.ativo1, ativo1.valorCurva, ativo1);
+                     const rendimentosAtivo2 = calcularRendimentosAnuais(results.ativo2, ativo2.valorCurva, ativo2);
                      console.log('💰 Rendimentos calculados:', { rendimentosAtivo1, rendimentosAtivo2 });
                      
                      return rendimentosAtivo1.map((rendimento1, index) => {
@@ -1554,8 +1554,8 @@ const InvestmentComparator = () => {
                         const isTableDataFresh = currentHash === lastCalculationHash;
                         
                         if (isTableDataFresh && !hasUnsavedChanges && currentHash === lastCalculationHash) {
-                          const rendimentosAtivo1 = calcularRendimentosAnuais(results.ativo1, ativo1.valorInvestido, ativo1);
-                          const rendimentosAtivo2 = calcularRendimentosAnuais(results.ativo2, ativo2.valorInvestido, ativo2);
+                          const rendimentosAtivo1 = calcularRendimentosAnuais(results.ativo1, ativo1.valorCurva, ativo1);
+                          const rendimentosAtivo2 = calcularRendimentosAnuais(results.ativo2, ativo2.valorCurva, ativo2);
                           
                           const totalAtivo1 = rendimentosAtivo1.reduce((acc, val) => acc + val, 0);
                           const totalAtivo2 = rendimentosAtivo2.reduce((acc, val) => acc + val, 0);
