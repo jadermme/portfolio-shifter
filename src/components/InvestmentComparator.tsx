@@ -19,6 +19,7 @@ interface AssetData {
   valorCurva: number;
   tipoCupom: string;
   mesesCupons: string;
+  tipoIR: 'isento' | 'renda-fixa' | 'fixo-15';
   aliquotaIR: number;
 }
 
@@ -49,7 +50,8 @@ const InvestmentComparator = () => {
     valorCurva: 231039,
     tipoCupom: 'semestral',
     mesesCupons: '2,8',
-    aliquotaIR: 15.0
+    tipoIR: 'isento',
+    aliquotaIR: 0
   });
 
   const [ativo2, setAtivo2] = useState<AssetData>({
@@ -63,7 +65,8 @@ const InvestmentComparator = () => {
     valorCurva: 216268,
     tipoCupom: 'nenhum',
     mesesCupons: '',
-    aliquotaIR: 15.0
+    tipoIR: 'isento',
+    aliquotaIR: 0
   });
 
   const [projecoes, setProjecoes] = useState<Projecoes>({
@@ -104,6 +107,23 @@ const InvestmentComparator = () => {
         [ano]: valor
       }
     }));
+  };
+
+  const calcularAliquotaIR = (dados: AssetData, anosInvestimento: number): number => {
+    switch (dados.tipoIR) {
+      case 'isento':
+        return 0;
+      case 'fixo-15':
+        return 15;
+      case 'renda-fixa':
+        // Tabela regressiva de renda fixa
+        if (anosInvestimento >= 2) return 15; // Mais de 2 anos: 15%
+        if (anosInvestimento >= 1) return 17.5; // 1 a 2 anos: 17,5%
+        if (anosInvestimento >= 0.5) return 20; // 6 meses a 1 ano: 20%
+        return 22.5; // Até 6 meses: 22,5%
+      default:
+        return dados.aliquotaIR;
+    }
   };
 
   const calcularTaxaReal = (dados: AssetData, ano: number): number => {
@@ -152,7 +172,8 @@ const InvestmentComparator = () => {
     const valorFinal = valores[valores.length - 1];
     const valorInicial = dados.valorCurva;
     const lucro = valorFinal - valorInicial;
-    const imposto = lucro > 0 ? lucro * (dados.aliquotaIR / 100) : 0;
+    const aliquotaFinal = calcularAliquotaIR(dados, anosProjecao);
+    const imposto = lucro > 0 && aliquotaFinal > 0 ? lucro * (aliquotaFinal / 100) : 0;
     
     // Ajustar valor final para líquido de IR
     valores[valores.length - 1] = Math.round(valorFinal - imposto);
@@ -218,7 +239,8 @@ const InvestmentComparator = () => {
       valorCurva: 0,
       tipoCupom: 'semestral',
       mesesCupons: '',
-      aliquotaIR: 15.0
+      tipoIR: 'isento',
+      aliquotaIR: 0
     });
     setAtivo2({
       nome: '',
@@ -231,7 +253,8 @@ const InvestmentComparator = () => {
       valorCurva: 0,
       tipoCupom: 'semestral',
       mesesCupons: '',
-      aliquotaIR: 15.0
+      tipoIR: 'isento',
+      aliquotaIR: 0
     });
     setShowResults(false);
     setResults(null);
@@ -274,6 +297,15 @@ const InvestmentComparator = () => {
       case 'cdi-mais': return 'CDI + Taxa';
       case 'ipca-mais': return 'IPCA + Taxa';
       default: return tipoTaxa;
+    }
+  };
+
+  const getIRDisplay = (asset: AssetData, anosProjecao: number) => {
+    switch (asset.tipoIR) {
+      case 'isento': return 'Isento';
+      case 'fixo-15': return '15%';
+      case 'renda-fixa': return `${calcularAliquotaIR(asset, anosProjecao)}% (Tabela)`;
+      default: return `${asset.aliquotaIR}%`;
     }
   };
 
@@ -392,17 +424,17 @@ const InvestmentComparator = () => {
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor={`${assetKey}-aliquotaIR`}>Alíquota IR (%)</Label>
-            <Input
-              id={`${assetKey}-aliquotaIR`}
-              type="number"
-              step="0.1"
-              min="0"
-              max="22.5"
-              value={asset.aliquotaIR}
-              onChange={(e) => handleAssetChange(assetKey, 'aliquotaIR', parseFloat(e.target.value) || 0)}
-              placeholder="15.0"
-            />
+            <Label htmlFor={`${assetKey}-tipoIR`}>Tipo de Tributação</Label>
+            <Select value={asset.tipoIR} onValueChange={(value) => handleAssetChange(assetKey, 'tipoIR', value)}>
+              <SelectTrigger className="bg-background border-border z-30">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent className="bg-background border-border shadow-lg z-30">
+                <SelectItem value="isento">Isento de IR</SelectItem>
+                <SelectItem value="renda-fixa">Tabela Renda Fixa (22,5% a 15%)</SelectItem>
+                <SelectItem value="fixo-15">Fixo 15% (ETFs/Ações)</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </div>
       </CardContent>
@@ -540,7 +572,7 @@ const InvestmentComparator = () => {
                         <th className="p-3 text-left border">Valor Investido</th>
                         <th className="p-3 text-left border">Valor de Curva</th>
                         <th className="p-3 text-left border">Cupons Recebidos</th>
-                        <th className="p-3 text-left border">Alíquota IR</th>
+                        <th className="p-3 text-left border">Tributação IR</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -552,7 +584,7 @@ const InvestmentComparator = () => {
                         <td className="p-3 border font-mono">R$ {ativo1.valorInvestido.toLocaleString('pt-BR')}</td>
                         <td className="p-3 border font-mono">R$ {ativo1.valorCurva.toLocaleString('pt-BR')}</td>
                         <td className="p-3 border font-mono">R$ {ativo1.cupons.toLocaleString('pt-BR')}</td>
-                        <td className="p-3 border font-mono">{ativo1.aliquotaIR}%</td>
+                        <td className="p-3 border font-mono">{getIRDisplay(ativo1, results.anosProjecao)}</td>
                       </tr>
                       <tr className="even:bg-muted/50">
                         <td className="p-3 border font-semibold">{ativo2.nome}</td>
@@ -562,7 +594,7 @@ const InvestmentComparator = () => {
                         <td className="p-3 border font-mono">R$ {ativo2.valorInvestido.toLocaleString('pt-BR')}</td>
                         <td className="p-3 border font-mono">R$ {ativo2.valorCurva.toLocaleString('pt-BR')}</td>
                         <td className="p-3 border font-mono">R$ {ativo2.cupons.toLocaleString('pt-BR')}</td>
-                        <td className="p-3 border font-mono">{ativo2.aliquotaIR}%</td>
+                        <td className="p-3 border font-mono">{getIRDisplay(ativo2, results.anosProjecao)}</td>
                       </tr>
                     </tbody>
                   </table>
