@@ -598,9 +598,9 @@ const InvestmentComparator = () => {
       // Calcular cupons do ano atual se houver
       let cupomAnoAtual = 0;
       if (dados.tipoCupom !== 'nenhum') {
-        // Usar valor investido como base para cálculo dos cupons
+        // Usar valor de curva como base para cálculo dos cupons
         const taxaBaseCupom = calcularTaxaReal(dados, 1);
-        cupomAnoAtual = dados.valorInvestido * taxaBaseCupom;
+        cupomAnoAtual = dados.valorCurva * taxaBaseCupom;
       }
 
       // Reinvestir cupons acumulados dos anos anteriores na taxa CDI (Selic)
