@@ -73,9 +73,8 @@ interface AssetData {
   freq?: Freq;
   feesAA?: number;
   use252?: boolean;
-  // NEW FIELDS FOR EARNINGS PERIODS AND ACCRUAL
+  // NEW FIELDS FOR EARNINGS PERIODS
   earningsStartDate?: string; // ISO date when earnings begin (e.g., "2025-11-01" for BTDI11)
-  accrualOnly?: boolean; // Show accrual without actual payments (e.g., CRA ZAMP)
   activePeriods?: { year: number, months: number[] }[]; // Specific months when asset generates earnings
 }
 
@@ -308,8 +307,8 @@ const InvestmentComparator = () => {
     aliquotaIR: 0,
     rateKind: 'PRE',
     freq: 'SEMIANNUAL',
-    // CRA ZAMP specific: accrual from September to December 2025 (after August payment)
-    accrualOnly: true,
+    // CRA ZAMP specific: earnings from September to December 2025 (after August payment)
+    earningsStartDate: '2025-09-01',
     activePeriods: [
       { year: 2025, months: [8, 9, 10, 11, 12] }, // Aug-Dec 2025 for accrual (including August payment)
       { year: 2026, months: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] }, // Full years after 2025
@@ -796,7 +795,6 @@ const InvestmentComparator = () => {
     console.log('💰 Valor inicial:', valorInicial);
     console.log('📅 Períodos ativos:', asset.activePeriods);
     console.log('🎯 Data início rendimentos:', asset.earningsStartDate);
-    console.log('💡 Apenas acúmulo:', asset.accrualOnly);
     
     const rendimentos: number[] = [];
     const anoAtual = new Date().getFullYear();
@@ -816,11 +814,11 @@ const InvestmentComparator = () => {
           const proporcao = mesesAtivos / 12;
           console.log(`📊 Meses ativos: ${mesesAtivos}, Proporção: ${proporcao}`);
           
-          if (anoRendimento === 2025 && asset.accrualOnly) {
-            // CRA ZAMP: accrual calculation for Sept-Dec 2025
+          if (anoRendimento === 2025) {
+            // CRA ZAMP: special calculation for Sept-Dec 2025
             const taxaAnual = calcularTaxaReal(asset, i);
             const rendimentoAcruado = valorInicial * taxaAnual * proporcao;
-            console.log(`💰 CRA ZAMP 2025 - Taxa: ${taxaAnual}, Rendimento acruado: ${rendimentoAcruado}`);
+            console.log(`💰 CRA ZAMP 2025 - Taxa: ${taxaAnual}, Rendimento: ${rendimentoAcruado}`);
             rendimentos.push(Math.max(0, rendimentoAcruado));
           } else if (asset.earningsStartDate) {
             // BTDI11: earnings start from specific date
@@ -1176,40 +1174,19 @@ const InvestmentComparator = () => {
                   </p>
                 </div>
                 
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="checkbox"
-                      id={`${assetKey}-accrualOnly`}
-                      checked={asset.accrualOnly || false}
-                      onChange={(e) => handleAssetChange(assetKey, 'accrualOnly', e.target.checked)}
-                      className="rounded border-border"
-                    />
-                    <Label htmlFor={`${assetKey}-accrualOnly`} className="text-sm">
-                      💰 Apenas Acúmulo (sem pagamento efetivo)
-                    </Label>
-                  </div>
-                </div>
               </div>
               
-              {(asset.earningsStartDate || asset.accrualOnly) && (
+              {asset.earningsStartDate && (
                   <div className="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
                     <p className="text-sm text-blue-800">
                       <strong>Sistema automático:</strong> Cupons sempre reinvestidos à taxa CDI projetada 
                       do momento do pagamento até o vencimento.
                     </p>
-                    {asset.earningsStartDate && (
-                      <p className="text-sm text-blue-700 mt-2">
-                        <strong>Início rendimentos:</strong> {new Date(asset.earningsStartDate + 'T00:00:00').toLocaleDateString('pt-BR')}
-                      </p>
-                    )}
-                    {asset.accrualOnly && (
-                      <p className="text-sm text-blue-700 mt-1">
-                        <strong>Modo:</strong> Acúmulo de juros sem pagamento efetivo de cupons
-                      </p>
-                    )}
+                    <p className="text-sm text-blue-700 mt-2">
+                      📅 <strong>Período especial:</strong> Rendimentos iniciando em {new Date(asset.earningsStartDate + 'T00:00:00').toLocaleDateString('pt-BR')}
+                    </p>
                   </div>
-              )}
+                )}
             </div>
           </div>
         </div>
