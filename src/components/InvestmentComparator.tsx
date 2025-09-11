@@ -906,13 +906,17 @@ const InvestmentComparator = () => {
           // CRA ZAMP: 12,03% a.a. fixo até fev/2029, depois reaplicado a 100% CDI
           const taxaAnual = calcularTaxaReal(asset, i + 1);
           if (anoRendimento >= 2030) {
-            // A partir de 2030: CRA ZAMP foi reaplicado a 100% CDI
-            console.log(`💰 CRA ZAMP ${anoRendimento}: reaplicado a 100% CDI = ${taxaAnual * 100}% a.a.`);
+            // 2030: CRA ZAMP reaplicado a 100% CDI, calcular apenas 4 meses (jan-abr) para comparação justa
+            const mesesAtivos = 4; // janeiro a abril
+            const proporcao = mesesAtivos / 12;
+            const rendimentoProporcional = valorInicial * Math.pow(1 + taxaAnual, i - 1) * taxaAnual * proporcao;
+            console.log(`💰 CRA ZAMP ${anoRendimento}: reaplicado a 100% CDI, ${mesesAtivos} meses × ${taxaAnual * 100}% = R$ ${rendimentoProporcional.toLocaleString('pt-BR')}`);
+            rendimentos.push(rendimentoProporcional);
           } else {
             console.log(`💰 CRA ZAMP ${anoRendimento}: ${taxaAnual * 100}% a.a. (pré-fixado)`);
+            const rendimentoAnual = valorInicial * Math.pow(1 + taxaAnual, i) * taxaAnual;
+            rendimentos.push(rendimentoAnual);
           }
-          const rendimentoAnual = valorInicial * Math.pow(1 + taxaAnual, i) * taxaAnual;
-          rendimentos.push(rendimentoAnual);
         } else if (asset.nome === 'BTDI11') {
           // BTDI11: CDI projetado + 2.5% (deve ser ~15.8% em 2026)
           // Em 2030, calcular apenas 4 meses (jan-abr) até vencimento em abril
