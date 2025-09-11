@@ -1157,7 +1157,7 @@ const InvestmentComparator = () => {
                     </p>
                     {asset.earningsStartDate && (
                       <p className="text-sm text-blue-700 mt-2">
-                        <strong>Início rendimentos:</strong> {new Date(asset.earningsStartDate).toLocaleDateString('pt-BR')}
+                        <strong>Início rendimentos:</strong> {new Date(asset.earningsStartDate + 'T00:00:00').toLocaleDateString('pt-BR')}
                       </p>
                     )}
                     {asset.accrualOnly && (
