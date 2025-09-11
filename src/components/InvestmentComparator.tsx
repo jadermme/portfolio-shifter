@@ -101,18 +101,20 @@ const InvestmentComparator = () => {
         setAtivo2(prev => ({ 
           ...prev, 
           valorInvestido: Number(value),
-          valorCurva: Number(value) // Para aplicação nova, valor de curva = valor investido
+          valorCurva: Number(value), // Para aplicação nova, valor de curva = valor investido
+          cupons: 0 // Aplicação nova não tem cupons recebidos
         }));
       }
     } else {
-      // Para ativo2, valor de curva sempre igual ao valor investido (aplicação nova)
+      // Para ativo2, valor de curva sempre igual ao valor investido e cupons sempre zero (aplicação nova)
       if (field === 'valorInvestido') {
         setAtivo2(prev => ({ 
           ...prev, 
           valorInvestido: Number(value),
-          valorCurva: Number(value)
+          valorCurva: Number(value),
+          cupons: 0
         }));
-      } else {
+      } else if (field !== 'cupons' && field !== 'valorCurva') { // Impede alteração de cupons e valorCurva
         setAtivo2(prev => ({ ...prev, [field]: value }));
       }
     }
@@ -406,13 +408,18 @@ const InvestmentComparator = () => {
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor={`${assetKey}-cupons`}>Cupons Recebidos (R$)</Label>
+            <Label htmlFor={`${assetKey}-cupons`}>
+              {assetKey === 'ativo2' ? 'Cupons Recebidos (R$) - Aplicação Nova' : 'Cupons Recebidos (R$)'}
+            </Label>
             <Input
               id={`${assetKey}-cupons`}
               type="number"
               step="0.01"
-              value={asset.cupons}
+              value={assetKey === 'ativo2' ? 0 : asset.cupons}
               onChange={(e) => handleAssetChange(assetKey, 'cupons', parseFloat(e.target.value) || 0)}
+              disabled={assetKey === 'ativo2'}
+              className={assetKey === 'ativo2' ? 'bg-muted/50 cursor-not-allowed' : ''}
+              placeholder={assetKey === 'ativo2' ? 'Nenhum cupom recebido ainda' : ''}
             />
           </div>
           <div className="space-y-2">
