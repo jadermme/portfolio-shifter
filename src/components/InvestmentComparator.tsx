@@ -1702,8 +1702,8 @@ const InvestmentComparator = () => {
                     };
                   };
 
-                  const breakdown1 = calculateDetailedBreakdown(results.ativo1, results.couponDetails?.ativo1 || [], ativo1.valorInvestido);
-                  const breakdown2 = calculateDetailedBreakdown(results.ativo2, results.couponDetails?.ativo2 || [], ativo2.valorInvestido);
+                  const breakdown1 = calculateDetailedBreakdown(results.ativo1, results.couponDetails?.ativo1 || [], ativo1.valorCurva);
+                  const breakdown2 = calculateDetailedBreakdown(results.ativo2, results.couponDetails?.ativo2 || [], ativo2.valorCurva);
 
                   return (
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
