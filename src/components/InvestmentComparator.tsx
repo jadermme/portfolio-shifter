@@ -122,7 +122,7 @@ function rateOfAssetForPeriod(kind: RateKind, p: {
   taxaPreAA?: number; taxaRealAA?: number; ipcaAA?: number;
   percCDI?: number; cdiAA?: number; spreadPreAA?: number;
   use252?: boolean;
-}): number {
+}, monthlyIndex?: number): number {
   const { taxaPreAA=0, taxaRealAA=0, ipcaAA=0, percCDI=0, cdiAA=0, spreadPreAA=0, use252=false } = p;
   switch (kind) {
     case "PRE":      return aaToMonthly(taxaPreAA);
@@ -173,6 +173,13 @@ function cdiFactor(curve: CDIPoint[], fromISO: string, toISO: string, use252=fal
   return factor;
 }
 
+// Get CDI rate for a specific month from curve
+function getCDIRateForMonth(curve: CDIPoint[], dateISO: string): number {
+  const key = dateISO.slice(0,7); // YYYY-MM
+  const pt = curve.find(p => p.date.slice(0,7) === key);
+  return pt ? pt.cdiAA : curve[curve.length-1]?.cdiAA || 10;
+}
+
 function projectWithReinvestCDI(x: CouponEngineInput) {
   // No administrative fees for direct securities
   const couponDates = genCouponDates(x.startISO, x.endISO, x.freq);
@@ -184,11 +191,17 @@ function projectWithReinvestCDI(x: CouponEngineInput) {
   let last = x.startISO;
   for (const dt of couponDates) {
     const months = x.freq === "MONTHLY" ? 1 : 6;
-    const cdiAA = x.cdiAABase ?? (x.cdiCurve[0]?.cdiAA ?? 0);
+    
+    // Get CDI rate specific for this coupon period
+    const couponMonth = dt.slice(0,7); // YYYY-MM
+    const cdiAA = getCDIRateForMonth(x.cdiCurve, dt);
+    
     const rAssetMonthly = rateOfAssetForPeriod(x.rateKind, {
-      taxaPreAA: x.taxaPreAA, taxaRealAA: x.taxaRealAA, ipcaAA: x.ipcaCurve?.[0]?.ipcaAA ?? 0,
+      taxaPreAA: x.taxaPreAA, taxaRealAA: x.taxaRealAA, 
+      ipcaAA: x.ipcaCurve?.[0]?.ipcaAA ?? 0,
       percCDI: x.percCDI, cdiAA, spreadPreAA: x.spreadPreAA, use252: false
     });
+    
     const rPeriodGross = Math.pow(1 + rAssetMonthly, months) - 1;
 
     const couponGross = Math.max(0, basePrincipal * rPeriodGross);
@@ -202,7 +215,13 @@ function projectWithReinvestCDI(x: CouponEngineInput) {
     const fReinv = cdiFactor(x.cdiCurve, dt, x.endISO, false);
     const couponReinv = couponNet * fReinv;
 
-    coupons.push({ couponDate: dt, gross: couponGross, net: couponNet, reinvestFactor: fReinv, reinvested: couponReinv });
+    coupons.push({ 
+      couponDate: dt, 
+      gross: couponGross, 
+      net: couponNet, 
+      reinvestFactor: fReinv, 
+      reinvested: couponReinv 
+    });
 
     last = dt;
   }
