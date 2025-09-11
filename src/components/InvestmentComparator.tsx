@@ -1457,13 +1457,14 @@ const InvestmentComparator = () => {
                       hasUnsavedChanges 
                     });
                     
-                    if (!isTableDataFresh || hasUnsavedChanges) {
-                      console.log('⚠️ DADOS DA TABELA ANUAL DESATUALIZADOS!');
+                    // CRITICAL: Always force recalculation if data changed or results are stale
+                    if (!isTableDataFresh || hasUnsavedChanges || currentHash !== lastCalculationHash) {
+                      console.log('⚠️ DADOS DA TABELA ANUAL DESATUALIZADOS! Forçando recálculo...');
                       return (
                         <tr>
                           <td colSpan={5} className="p-4 text-center text-yellow-700 bg-yellow-50">
                             <strong>⚠️ Dados alterados</strong><br/>
-                            Recalcule para ver os rendimentos anuais atualizados
+                            Recalcule para ver os rendimentos anuais com as novas projeções CDI/IPCA
                           </td>
                         </tr>
                       );
