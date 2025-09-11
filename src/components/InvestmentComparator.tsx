@@ -1668,10 +1668,10 @@ const InvestmentComparator = () => {
                     const principalInvestido = valorInvestido;
                     
                     // Sum all gross coupons
-                    const cupomsBrutos = couponDetails?.reduce((sum, coupon) => sum + (coupon.couponBruto || 0), 0) || 0;
+                    const cupomsBrutos = couponDetails?.reduce((sum, coupon) => sum + (coupon.gross || 0), 0) || 0;
                     
-                    // Sum all IR on coupons
-                    const irSobreCupons = couponDetails?.reduce((sum, coupon) => sum + (coupon.ir || 0), 0) || 0;
+                    // Sum all IR on coupons (difference between gross and net)
+                    const irSobreCupons = couponDetails?.reduce((sum, coupon) => sum + ((coupon.gross || 0) - (coupon.net || 0)), 0) || 0;
                     
                     // Net coupons
                     const cuponsLiquidos = cupomsBrutos - irSobreCupons;
@@ -1680,11 +1680,11 @@ const InvestmentComparator = () => {
                     const valorFinalBruto = ativo.valorFinal || 0;
                     const principalVencimento = principalInvestido;
                     
-                    // Reinvestments = final value - principal - net coupons received
-                    const reinvestimentos = Math.max(0, valorFinalBruto - principalVencimento - cuponsLiquidos);
+                    // Reinvestments = sum of reinvested amounts from coupons
+                    const reinvestimentos = couponDetails?.reduce((sum, coupon) => sum + (coupon.reinvested || 0), 0) || 0;
                     
                     // IR on reinvestments (estimated based on final value calculations)
-                    const irSobreReinvestimentos = couponDetails?.reduce((sum, coupon) => sum + (coupon.irReinvestimento || 0), 0) || 0;
+                    const irSobreReinvestimentos = 0; // This needs more complex calculation
                     
                     // IR on principal (if any)
                     const irSobrePrincipal = Math.max(0, (ativo.valorFinal || 0) - valorInvestido - cuponsLiquidos - reinvestimentos);
