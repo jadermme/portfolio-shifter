@@ -368,31 +368,23 @@ const InvestmentComparator = () => {
   const calcularRendimentosAnuais = (valores: number[], valorInicial: number, asset: AssetData) => {
     const rendimentos: number[] = [];
     const anoAtual = new Date().getFullYear();
-    const vencimento = new Date(asset.vencimento);
-    const anoVencimento = vencimento.getFullYear();
     
     for (let i = 0; i < valores.length; i++) {
       const anoRendimento = anoAtual + i;
       
-      if (anoRendimento === anoAtual) {
-        // Para 2025, considerar apenas o período que o ativo está ativo
-        if (anoVencimento === anoAtual) {
-          // Se vence em 2025, pode não ter rendimento dependendo da data
-          const mesVencimento = vencimento.getMonth();
-          if (mesVencimento <= 0) { // Janeiro ou antes
-            rendimentos.push(0); // Sem rendimento
-          } else {
-            rendimentos.push(valores[i] - valorInicial);
-          }
+      if (anoRendimento === 2025) {
+        // Para 2025, considerar período específico de cada ativo
+        if (asset.nome.includes('ZAMP') || asset.nome.includes('CRA')) {
+          // CRA da Zamp: mostrar atualização do valor (valorização do principal)
+          rendimentos.push(valores[i] - valorInicial);
+        } else if (asset.nome.includes('BTDI11') || asset.nome.includes('BTDI')) {
+          // BTDI11: começou em novembro de 2025 (2 meses de rendimento)
+          const rendimentoAnual = valores[i] - valorInicial;
+          const rendimentoProporional = rendimentoAnual * (2/12); // Nov e Dez
+          rendimentos.push(rendimentoProporional);
         } else {
-          // Se o ativo está ativo todo o ano de 2025
-          const mesAtual = new Date().getMonth();
-          if (mesAtual >= 10) { // Novembro (índice 10) ou dezembro
-            rendimentos.push(valores[i] - valorInicial);
-          } else {
-            // Se ainda não começou a render em 2025
-            rendimentos.push(0);
-          }
+          // Outros ativos: rendimento normal
+          rendimentos.push(valores[i] - valorInicial);
         }
       } else {
         // Para anos seguintes, diferença entre anos consecutivos
