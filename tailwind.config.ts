@@ -57,6 +57,13 @@ export default {
           border: "hsl(var(--sidebar-border))",
           ring: "hsl(var(--sidebar-ring))",
         },
+        financial: {
+          primary: "hsl(var(--financial-primary))",
+          secondary: "hsl(var(--financial-secondary))",
+          success: "hsl(var(--financial-success))",
+          danger: "hsl(var(--financial-danger))",
+          light: "hsl(var(--financial-light))",
+        },
       },
       borderRadius: {
         lg: "var(--radius)",
