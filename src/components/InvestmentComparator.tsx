@@ -264,21 +264,21 @@ const InvestmentComparator = () => {
     valorCurva: 231039,
     valorVenda: 216268,
     tipoCupom: 'semestral',
-    mesesCupons: '2,8',
+    mesesCupons: '2,8', // Fevereiro e Agosto
     tipoIR: 'isento',
     aliquotaIR: 0,
     // Enable cash flow system for CRA with coupons
     useCashFlow: true,
     rateKind: 'PRE',
     freq: 'SEMIANNUAL',
-    // CRA ZAMP specific: accrual from September to December 2025
+    // CRA ZAMP specific: accrual from September to December 2025 (after August payment)
     accrualOnly: true,
     activePeriods: [
-      { year: 2025, months: [9, 10, 11, 12] }, // Sept-Dec 2025 for accrual
+      { year: 2025, months: [8, 9, 10, 11, 12] }, // Aug-Dec 2025 for accrual (including August payment)
       { year: 2026, months: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] }, // Full years after 2025
       { year: 2027, months: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] },
       { year: 2028, months: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] },
-      { year: 2029, months: [1, 2] } // Jan-Feb 2029 until maturity
+      { year: 2029, months: [1, 2] } // Jan-Feb 2029 until maturity (including February payment)
     ]
   });
 
