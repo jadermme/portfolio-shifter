@@ -772,81 +772,114 @@ const InvestmentComparator = () => {
 
   // Enhanced function to calculate annual yields considering specific periods and accrual
   const calcularRendimentosAnuais = (valores: number[], valorInicial: number, asset: AssetData) => {
+    console.log('🔍 Calculando rendimentos anuais para:', asset.nome);
+    console.log('📊 Valores recebidos:', valores);
+    console.log('💰 Valor inicial:', valorInicial);
+    console.log('📅 Períodos ativos:', asset.activePeriods);
+    console.log('🎯 Data início rendimentos:', asset.earningsStartDate);
+    console.log('💡 Apenas acúmulo:', asset.accrualOnly);
+    
     const rendimentos: number[] = [];
     const anoAtual = new Date().getFullYear();
     
     for (let i = 0; i < valores.length; i++) {
       const anoRendimento = anoAtual + i;
+      console.log(`\n📅 Processando ano ${anoRendimento} (índice ${i})`);
       
       // Check if asset has defined active periods
       if (asset.activePeriods) {
         const periodForYear = asset.activePeriods.find(p => p.year === anoRendimento);
+        console.log(`🔍 Período para ${anoRendimento}:`, periodForYear);
         
         if (periodForYear) {
           // Calculate proportional yield based on active months
           const mesesAtivos = periodForYear.months.length;
           const proporcao = mesesAtivos / 12;
+          console.log(`📊 Meses ativos: ${mesesAtivos}, Proporção: ${proporcao}`);
           
           if (anoRendimento === 2025 && asset.accrualOnly) {
             // CRA ZAMP: accrual calculation for Sept-Dec 2025
             const taxaAnual = calcularTaxaReal(asset, i);
             const rendimentoAcruado = valorInicial * taxaAnual * proporcao;
+            console.log(`💰 CRA ZAMP 2025 - Taxa: ${taxaAnual}, Rendimento acruado: ${rendimentoAcruado}`);
             rendimentos.push(Math.max(0, rendimentoAcruado));
           } else if (asset.earningsStartDate) {
             // BTDI11: earnings start from specific date
             const startDate = new Date(asset.earningsStartDate);
             const yearStart = new Date(anoRendimento, 0, 1);
+            console.log(`📅 BTDI11 - Data início: ${startDate}, Início do ano: ${yearStart}`);
             
             if (startDate <= yearStart || anoRendimento > startDate.getFullYear()) {
               // Full year or after start year
               if (i > 0) {
                 const crescimentoAnual = valores[i] - valores[i - 1];
-                rendimentos.push(crescimentoAnual * proporcao);
+                const rendimentoCalculado = crescimentoAnual * proporcao;
+                console.log(`📈 Crescimento anual: ${crescimentoAnual}, Rendimento: ${rendimentoCalculado}`);
+                rendimentos.push(rendimentoCalculado);
               } else {
                 const crescimentoTotal = valores[i] - valorInicial;
-                rendimentos.push(crescimentoTotal * proporcao);
+                const rendimentoCalculado = crescimentoTotal * proporcao;
+                console.log(`📈 Crescimento total: ${crescimentoTotal}, Rendimento: ${rendimentoCalculado}`);
+                rendimentos.push(rendimentoCalculado);
               }
             } else if (anoRendimento === startDate.getFullYear()) {
               // Partial year from start date
               const startMonth = startDate.getMonth() + 1; // 1-based
               const mesesAposInicio = periodForYear.months.filter(m => m >= startMonth).length;
               const proporcaoAjustada = mesesAposInicio / 12;
+              console.log(`📅 Ano parcial - Mês início: ${startMonth}, Meses após início: ${mesesAposInicio}, Proporção ajustada: ${proporcaoAjustada}`);
               
               if (i > 0) {
                 const crescimentoAnual = valores[i] - valores[i - 1];
-                rendimentos.push(crescimentoAnual * proporcaoAjustada);
+                const rendimentoCalculado = crescimentoAnual * proporcaoAjustada;
+                console.log(`📈 Crescimento anual: ${crescimentoAnual}, Rendimento: ${rendimentoCalculado}`);
+                rendimentos.push(rendimentoCalculado);
               } else {
                 const crescimentoTotal = valores[i] - valorInicial;
-                rendimentos.push(crescimentoTotal * proporcaoAjustada);
+                const rendimentoCalculado = crescimentoTotal * proporcaoAjustada;
+                console.log(`📈 Crescimento total: ${crescimentoTotal}, Rendimento: ${rendimentoCalculado}`);
+                rendimentos.push(rendimentoCalculado);
               }
             } else {
               // Before start date - no earnings
+              console.log(`❌ Antes da data de início - sem rendimentos`);
               rendimentos.push(0);
             }
           } else {
             // Standard proportional calculation
             if (i > 0) {
               const crescimentoAnual = valores[i] - valores[i - 1];
-              rendimentos.push(crescimentoAnual * proporcao);
+              const rendimentoCalculado = crescimentoAnual * proporcao;
+              console.log(`📊 Cálculo padrão - Crescimento: ${crescimentoAnual}, Rendimento: ${rendimentoCalculado}`);
+              rendimentos.push(rendimentoCalculado);
             } else {
               const crescimentoTotal = valores[i] - valorInicial;
+              const rendimentoCalculado = crescimentoTotal * proporcao;
+              console.log(`📊 Cálculo padrão total - Crescimento: ${crescimentoTotal}, Rendimento: ${rendimentoCalculado}`);
               rendimentos.push(crescimentoTotal * proporcao);
             }
           }
         } else {
           // Year not defined in active periods - no earnings
+          console.log(`❌ Ano não definido nos períodos ativos - sem rendimentos`);
           rendimentos.push(0);
         }
       } else {
         // Legacy calculation for assets without active periods defined
+        console.log(`🔄 Cálculo legado sem períodos definidos`);
         if (i > 0) {
-          rendimentos.push(valores[i] - valores[i - 1]);
+          const rendimentoLegacy = valores[i] - valores[i - 1];
+          console.log(`📊 Rendimento legacy: ${rendimentoLegacy}`);
+          rendimentos.push(rendimentoLegacy);
         } else {
-          rendimentos.push(valores[i] - valorInicial);
+          const rendimentoLegacy = valores[i] - valorInicial;
+          console.log(`📊 Rendimento legacy inicial: ${rendimentoLegacy}`);
+          rendimentos.push(rendimentoLegacy);
         }
       }
     }
     
+    console.log('✅ Rendimentos finais calculados:', rendimentos);
     return rendimentos;
   };
 
