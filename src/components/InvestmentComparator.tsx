@@ -1701,7 +1701,7 @@ const InvestmentComparator = () => {
                       irSobreReinvestimentos,
                       principalVencimento,
                       irSobrePrincipal,
-                      valorFinal: valorFinalBruto
+                      valorFinal: principalInvestido + cuponsLiquidos + rendimentoSobreCupons
                     };
                   };
 
