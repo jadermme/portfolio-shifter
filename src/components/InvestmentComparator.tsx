@@ -322,7 +322,7 @@ const InvestmentComparator = () => {
     aliquotaIR: 0,
     rateKind: 'PRE',
     freq: 'SEMIANNUAL',
-    // CRA ZAMP specific: earnings from September to December 2025 (after August payment)
+    // CRA ZAMP specific: earnings from September 2025 onwards (August 2025 cupom already paid)
     earningsStartDate: '2025-09-01',
     activePeriods: [{
       year: 2025,
