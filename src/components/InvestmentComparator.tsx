@@ -17,6 +17,7 @@ interface AssetData {
   valorInvestido: number;
   cupons: number;
   valorCurva: number;
+  valorVenda?: number;
   tipoCupom: string;
   mesesCupons: string;
   tipoIR: 'isento' | 'renda-fixa' | 'fixo-15';
@@ -48,6 +49,7 @@ const InvestmentComparator = () => {
     valorInvestido: 236792,
     cupons: 41194,
     valorCurva: 231039,
+    valorVenda: 216268,
     tipoCupom: 'semestral',
     mesesCupons: '2,8',
     tipoIR: 'isento',
@@ -60,7 +62,7 @@ const InvestmentComparator = () => {
     tipoTaxa: 'percentual-cdi',
     taxa: 102.5,
     vencimento: '2029-02-15',
-    valorInvestido: 216268,
+    valorInvestido: 216268, // Mesmo valor da venda do ativo1
     cupons: 0,
     valorCurva: 216268,
     tipoCupom: 'nenhum',
@@ -94,6 +96,10 @@ const InvestmentComparator = () => {
   const handleAssetChange = (asset: 'ativo1' | 'ativo2', field: keyof AssetData, value: string | number) => {
     if (asset === 'ativo1') {
       setAtivo1(prev => ({ ...prev, [field]: value }));
+      // Se mudou o valor de venda do ativo1, atualiza o valor investido do ativo2
+      if (field === 'valorVenda') {
+        setAtivo2(prev => ({ ...prev, valorInvestido: Number(value) }));
+      }
     } else {
       setAtivo2(prev => ({ ...prev, [field]: value }));
     }
@@ -237,6 +243,7 @@ const InvestmentComparator = () => {
       valorInvestido: 0,
       cupons: 0,
       valorCurva: 0,
+      valorVenda: 0,
       tipoCupom: 'semestral',
       mesesCupons: '',
       tipoIR: 'isento',
@@ -372,13 +379,17 @@ const InvestmentComparator = () => {
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor={`${assetKey}-valorInvestido`}>Valor Investido (R$)</Label>
+            <Label htmlFor={`${assetKey}-valorInvestido`}>
+              {assetKey === 'ativo2' ? 'Valor Investido (R$) - Valor da Venda do Ativo 1' : 'Valor Investido (R$)'}
+            </Label>
             <Input
               id={`${assetKey}-valorInvestido`}
               type="number"
               step="0.01"
               value={asset.valorInvestido}
               onChange={(e) => handleAssetChange(assetKey, 'valorInvestido', parseFloat(e.target.value) || 0)}
+              disabled={assetKey === 'ativo2'}
+              className={assetKey === 'ativo2' ? 'bg-muted/50 cursor-not-allowed' : ''}
             />
           </div>
           <div className="space-y-2">
@@ -401,6 +412,19 @@ const InvestmentComparator = () => {
               onChange={(e) => handleAssetChange(assetKey, 'valorCurva', parseFloat(e.target.value) || 0)}
             />
           </div>
+          {assetKey === 'ativo1' && (
+            <div className="space-y-2">
+              <Label htmlFor={`${assetKey}-valorVenda`}>Valor de Venda (R$)</Label>
+              <Input
+                id={`${assetKey}-valorVenda`}
+                type="number"
+                step="0.01"
+                value={asset.valorVenda || 0}
+                onChange={(e) => handleAssetChange(assetKey, 'valorVenda', parseFloat(e.target.value) || 0)}
+                placeholder="Valor recebido na venda"
+              />
+            </div>
+          )}
           <div className="space-y-2">
             <Label htmlFor={`${assetKey}-tipoCupom`}>Tipo de Cupom</Label>
             <Select value={asset.tipoCupom} onValueChange={(value) => handleAssetChange(assetKey, 'tipoCupom', value)}>
