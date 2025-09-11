@@ -432,6 +432,7 @@ const InvestmentComparator = () => {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent className="bg-background border-border shadow-lg z-40">
+                <SelectItem value="mensal">Mensal</SelectItem>
                 <SelectItem value="semestral">Semestral</SelectItem>
                 <SelectItem value="anual">Anual</SelectItem>
                 <SelectItem value="nenhum">Sem Cupons</SelectItem>
