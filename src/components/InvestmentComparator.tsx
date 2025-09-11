@@ -49,6 +49,8 @@ interface CouponEngineInput {
   feesAA?: number;
   irRegressivo?: boolean;
   use252?: boolean;
+  // NEW: earnings start date
+  earningsStartDate?: string;
 }
 
 // ===================== EXPANDED EXISTING INTERFACES =====================
@@ -143,14 +145,33 @@ function daysBetween(aISO: string, bISO: string) {
   return Math.max(0, Math.floor((b-a)/(1000*60*60*24)));
 }
 
-function genCouponDates(startISO: string, endISO: string, freq: Freq): string[] {
+function genCouponDates(startISO: string, endISO: string, freq: Freq, earningsStartDate?: string): string[] {
   const step = freq === "MONTHLY" ? 1 : 6;
   const out: string[] = [];
-  let d = addMonths(startISO, step);
-  while (new Date(d) <= new Date(endISO)) {
-    out.push(d);
-    d = addMonths(d, step);
+  
+  // Use earnings start date if provided, otherwise use start date
+  if (earningsStartDate) {
+    console.log(`📅 Usando data de início dos rendimentos: ${earningsStartDate}`);
+    // First coupon on the earnings start date itself
+    let d = earningsStartDate;
+    
+    while (new Date(d) <= new Date(endISO)) {
+      console.log(`📅 Data de cupom gerada: ${d}`);
+      out.push(d);
+      d = addMonths(d, step);
+    }
+  } else {
+    // Standard logic - first coupon after one period
+    let d = addMonths(startISO, step);
+    
+    while (new Date(d) <= new Date(endISO)) {
+      console.log(`📅 Data de cupom gerada: ${d}`);
+      out.push(d);
+      d = addMonths(d, step);
+    }
   }
+  
+  console.log(`✅ Datas de cupom finais:`, out);
   return out;
 }
 
@@ -544,7 +565,8 @@ const InvestmentComparator = () => {
       ipcaCurve: projecoes.ipcaCurve,
       feesAA: 0, // Removed - not applicable for direct securities
       irRegressivo: dados.tipoIR === 'renda-fixa',
-      use252: false // Removed - not applicable for direct securities
+      use252: false, // Removed - not applicable for direct securities
+      earningsStartDate: dados.earningsStartDate // Add earnings start date
     };
     
     // Calculate cash flows
