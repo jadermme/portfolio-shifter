@@ -15,7 +15,6 @@ interface AssetData {
   taxa: number;
   vencimento: string;
   valorInvestido: number;
-  valorVenda: number;
   cupons: number;
   valorCurva: number;
   tipoCupom: string;
@@ -46,7 +45,6 @@ const InvestmentComparator = () => {
     taxa: 12.03,
     vencimento: '2029-02-15',
     valorInvestido: 236792,
-    valorVenda: 216268,
     cupons: 41194,
     valorCurva: 231039,
     tipoCupom: 'semestral',
@@ -61,7 +59,6 @@ const InvestmentComparator = () => {
     taxa: 102.5,
     vencimento: '2029-02-15',
     valorInvestido: 216268,
-    valorVenda: 216268,
     cupons: 0,
     valorCurva: 216268,
     tipoCupom: 'nenhum',
@@ -217,7 +214,6 @@ const InvestmentComparator = () => {
       taxa: 0,
       vencimento: '',
       valorInvestido: 0,
-      valorVenda: 0,
       cupons: 0,
       valorCurva: 0,
       tipoCupom: 'semestral',
@@ -231,7 +227,6 @@ const InvestmentComparator = () => {
       taxa: 0,
       vencimento: '',
       valorInvestido: 0,
-      valorVenda: 0,
       cupons: 0,
       valorCurva: 0,
       tipoCupom: 'semestral',
@@ -352,16 +347,6 @@ const InvestmentComparator = () => {
               step="0.01"
               value={asset.valorInvestido}
               onChange={(e) => handleAssetChange(assetKey, 'valorInvestido', parseFloat(e.target.value) || 0)}
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor={`${assetKey}-valorVenda`}>Valor Atual (R$)</Label>
-            <Input
-              id={`${assetKey}-valorVenda`}
-              type="number"
-              step="0.01"
-              value={asset.valorVenda}
-              onChange={(e) => handleAssetChange(assetKey, 'valorVenda', parseFloat(e.target.value) || 0)}
             />
           </div>
           <div className="space-y-2">
@@ -553,7 +538,7 @@ const InvestmentComparator = () => {
                         <th className="p-3 text-left border">Taxa</th>
                         <th className="p-3 text-left border">Vencimento</th>
                         <th className="p-3 text-left border">Valor Investido</th>
-                        <th className="p-3 text-left border">Valor Atual</th>
+                        <th className="p-3 text-left border">Valor de Curva</th>
                         <th className="p-3 text-left border">Cupons Recebidos</th>
                         <th className="p-3 text-left border">Alíquota IR</th>
                       </tr>
@@ -565,7 +550,7 @@ const InvestmentComparator = () => {
                         <td className="p-3 border font-mono">{getTaxaDisplay(ativo1)}</td>
                         <td className="p-3 border font-mono">{new Date(ativo1.vencimento).toLocaleDateString('pt-BR')}</td>
                         <td className="p-3 border font-mono">R$ {ativo1.valorInvestido.toLocaleString('pt-BR')}</td>
-                        <td className="p-3 border font-mono">R$ {ativo1.valorVenda.toLocaleString('pt-BR')}</td>
+                        <td className="p-3 border font-mono">R$ {ativo1.valorCurva.toLocaleString('pt-BR')}</td>
                         <td className="p-3 border font-mono">R$ {ativo1.cupons.toLocaleString('pt-BR')}</td>
                         <td className="p-3 border font-mono">{ativo1.aliquotaIR}%</td>
                       </tr>
@@ -575,7 +560,7 @@ const InvestmentComparator = () => {
                         <td className="p-3 border font-mono">{getTaxaDisplay(ativo2)}</td>
                         <td className="p-3 border font-mono">{new Date(ativo2.vencimento).toLocaleDateString('pt-BR')}</td>
                         <td className="p-3 border font-mono">R$ {ativo2.valorInvestido.toLocaleString('pt-BR')}</td>
-                        <td className="p-3 border font-mono">R$ {ativo2.valorVenda.toLocaleString('pt-BR')}</td>
+                        <td className="p-3 border font-mono">R$ {ativo2.valorCurva.toLocaleString('pt-BR')}</td>
                         <td className="p-3 border font-mono">R$ {ativo2.cupons.toLocaleString('pt-BR')}</td>
                         <td className="p-3 border font-mono">{ativo2.aliquotaIR}%</td>
                       </tr>
