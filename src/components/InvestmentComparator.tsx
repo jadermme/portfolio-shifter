@@ -174,18 +174,31 @@ const InvestmentComparator = () => {
   const calcularAtivo = (dados: AssetData, anosProjecao: number): { valores: number[]; imposto: number } => {
     const valores = [Math.round(dados.valorCurva)];
     
-    let valorTotalCuponsAno = 0;
-    if (dados.tipoCupom !== 'nenhum') {
-      // Para cupons, usar a taxa do primeiro ano como base
-      const taxaBase = calcularTaxaReal(dados, 1);
-      valorTotalCuponsAno = dados.valorInvestido * taxaBase;
-    }
-
+    let valorCuponsAcumulado = 0;
+    
     for (let ano = 1; ano <= anosProjecao; ano++) {
       const taxaAno = calcularTaxaReal(dados, ano);
       const principalProjetado = dados.valorCurva * Math.pow(1 + taxaAno, ano);
-      const totalCuponsRecebidos = valorTotalCuponsAno * ano;
-      const valorTotalAno = principalProjetado + totalCuponsRecebidos;
+      
+      // Calcular cupons do ano atual se houver
+      let cupomAnoAtual = 0;
+      if (dados.tipoCupom !== 'nenhum') {
+        // Usar valor investido como base para cálculo dos cupons
+        const taxaBaseCupom = calcularTaxaReal(dados, 1);
+        cupomAnoAtual = dados.valorInvestido * taxaBaseCupom;
+      }
+      
+      // Reinvestir cupons acumulados dos anos anteriores na taxa CDI (Selic)
+      if (valorCuponsAcumulado > 0) {
+        const anoKey = new Date().getFullYear() + ano;
+        const taxaCDI = (projecoes.cdi[anoKey] || projecoes.cdi[Object.keys(projecoes.cdi).pop() as any]) / 100;
+        valorCuponsAcumulado = valorCuponsAcumulado * (1 + taxaCDI);
+      }
+      
+      // Adicionar cupom do ano atual
+      valorCuponsAcumulado += cupomAnoAtual;
+      
+      const valorTotalAno = principalProjetado + valorCuponsAcumulado;
       valores.push(Math.round(valorTotalAno));
     }
 
