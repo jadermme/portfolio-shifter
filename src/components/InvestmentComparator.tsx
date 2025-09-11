@@ -8,6 +8,50 @@ import { Separator } from '@/components/ui/separator';
 import { Calculator, Trash2, Printer, TrendingUp, BarChart3, ArrowRight } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
+// ===================== NEW CASH FLOW SYSTEM TYPES =====================
+type RateKind = "PRE" | "IPCA+PRE" | "%CDI" | "CDI+PRE";
+type Freq = "MONTHLY" | "SEMIANNUAL";
+
+interface CDIPoint { 
+  date: string; 
+  cdiAA: number; // a.a. em %
+}
+
+interface IPCAPoint { 
+  date: string; 
+  ipcaAA: number; // opcional, se IPCA+PRE
+}
+
+interface CouponResult {
+  couponDate: string;
+  gross: number;
+  net: number;
+  reinvestFactor: number;
+  reinvested: number;
+}
+
+interface CouponEngineInput {
+  principal: number;
+  startISO: string;
+  endISO: string;
+  freq: Freq;
+  rateKind: RateKind;
+  // parâmetros da taxa:
+  taxaPreAA?: number; 
+  taxaRealAA?: number; 
+  spreadPreAA?: number;
+  percCDI?: number; 
+  cdiAABase?: number;
+  // curvas:
+  cdiCurve: CDIPoint[];
+  ipcaCurve?: IPCAPoint[];
+  // custos/IR
+  feesAA?: number;
+  irRegressivo?: boolean;
+  use252?: boolean;
+}
+
+// ===================== EXPANDED EXISTING INTERFACES =====================
 interface AssetData {
   nome: string;
   codigo: string;
@@ -22,11 +66,20 @@ interface AssetData {
   mesesCupons: string;
   tipoIR: 'isento' | 'renda-fixa' | 'fixo-15';
   aliquotaIR: number;
+  // NEW FIELDS FOR CASH FLOW SYSTEM
+  rateKind?: RateKind;
+  freq?: Freq;
+  feesAA?: number;
+  use252?: boolean;
+  useCashFlow?: boolean; // Flag to enable new system
 }
 
 interface Projecoes {
   cdi: { [key: number]: number };
   ipca: { [key: number]: number };
+  // NEW FIELDS FOR DETAILED CURVES
+  cdiCurve?: CDIPoint[];
+  ipcaCurve?: IPCAPoint[];
 }
 
 interface CalculationResult {
@@ -42,6 +95,155 @@ interface CalculationResult {
     taxaReinvestimento: number;
     valorFinalReinvestimento: number;
   };
+  // NEW FIELDS FOR CASH FLOW DETAILS
+  couponDetails?: {
+    ativo1?: CouponResult[];
+    ativo2?: CouponResult[];
+  };
+}
+
+// ===================== CASH FLOW CALCULATION FUNCTIONS =====================
+const irAliquotaRegressivo = (dias: number) =>
+  dias <= 180 ? 0.225 : dias <= 360 ? 0.20 : dias <= 720 ? 0.175 : 0.15;
+
+const aaToMonthly = (aaPct: number) => Math.pow(1 + aaPct/100, 1/12) - 1;
+const aaToDaily252 = (aaPct: number) => Math.pow(1 + aaPct/100, 1/252) - 1;
+
+function monthlyRateFromCDI(cdiAA: number, use252: boolean, duPerMonth=21) {
+  if (use252) return Math.pow(1 + aaToDaily252(cdiAA), duPerMonth) - 1;
+  return aaToMonthly(cdiAA);
+}
+
+function rateOfAssetForPeriod(kind: RateKind, p: {
+  taxaPreAA?: number; taxaRealAA?: number; ipcaAA?: number;
+  percCDI?: number; cdiAA?: number; spreadPreAA?: number;
+  use252?: boolean;
+}): number {
+  const { taxaPreAA=0, taxaRealAA=0, ipcaAA=0, percCDI=0, cdiAA=0, spreadPreAA=0, use252=false } = p;
+  switch (kind) {
+    case "PRE":      return aaToMonthly(taxaPreAA);
+    case "IPCA+PRE": return ((1+aaToMonthly(taxaRealAA))*(1+aaToMonthly(ipcaAA)) - 1);
+    case "%CDI":     return monthlyRateFromCDI(cdiAA, use252) * (percCDI/100);
+    case "CDI+PRE":  return monthlyRateFromCDI(cdiAA, use252) + aaToMonthly(spreadPreAA);
+  }
+}
+
+function addMonths(dateISO: string, n: number) {
+  const d = new Date(dateISO);
+  d.setMonth(d.getMonth()+n);
+  return d.toISOString().slice(0,10);
+}
+
+function daysBetween(aISO: string, bISO: string) {
+  const a = new Date(aISO).getTime(), b = new Date(bISO).getTime();
+  return Math.max(0, Math.floor((b-a)/(1000*60*60*24)));
+}
+
+function genCouponDates(startISO: string, endISO: string, freq: Freq): string[] {
+  const step = freq === "MONTHLY" ? 1 : 6;
+  const out: string[] = [];
+  let d = addMonths(startISO, step);
+  while (new Date(d) <= new Date(endISO)) {
+    out.push(d);
+    d = addMonths(d, step);
+  }
+  return out;
+}
+
+// Fator CDI acumulado entre duas datas, usando curva mensal
+function cdiFactor(curve: CDIPoint[], fromISO: string, toISO: string, use252=false): number {
+  if (new Date(fromISO) >= new Date(toISO)) return 1;
+  let factor = 1;
+  let cursor = new Date(fromISO);
+  cursor.setDate(1); // normaliza para início do mês
+  const to = new Date(toISO);
+  to.setDate(1);
+  while (cursor <= to) {
+    // acha o ponto CDI do mês de 'cursor'
+    const key = cursor.toISOString().slice(0,7); // YYYY-MM
+    const pt = curve.find(p => p.date.slice(0,7) === key) ?? curve[curve.length-1];
+    const rm = monthlyRateFromCDI(pt.cdiAA, use252);
+    factor *= (1 + rm);
+    cursor.setMonth(cursor.getMonth()+1);
+  }
+  return factor;
+}
+
+function projectWithReinvestCDI(x: CouponEngineInput) {
+  const feesM = x.feesAA ? aaToMonthly(x.feesAA) : 0;
+  const couponDates = genCouponDates(x.startISO, x.endISO, x.freq);
+
+  const coupons: CouponResult[] = [];
+  let basePrincipal = x.principal;
+
+  // percorre cada período
+  let last = x.startISO;
+  for (const dt of couponDates) {
+    const months = x.freq === "MONTHLY" ? 1 : 6;
+    const cdiAA = x.cdiAABase ?? (x.cdiCurve[0]?.cdiAA ?? 0);
+    const rAssetMonthly = rateOfAssetForPeriod(x.rateKind, {
+      taxaPreAA: x.taxaPreAA, taxaRealAA: x.taxaRealAA, ipcaAA: x.ipcaCurve?.[0]?.ipcaAA ?? 0,
+      percCDI: x.percCDI, cdiAA, spreadPreAA: x.spreadPreAA, use252: x.use252
+    });
+    const rPeriodGross = Math.pow(1 + (rAssetMonthly - feesM), months) - 1;
+
+    const couponGross = Math.max(0, basePrincipal * rPeriodGross);
+
+    // IR regressivo sobre o cupom pelo tempo desde a aplicação
+    const dias = daysBetween(x.startISO, dt);
+    const aliq = x.irRegressivo !== false ? irAliquotaRegressivo(dias) : 0;
+    const couponNet = couponGross * (1 - aliq);
+
+    // fator de reinvestimento CDI do pagamento até o fim
+    const fReinv = cdiFactor(x.cdiCurve, dt, x.endISO, x.use252);
+    const couponReinv = couponNet * fReinv;
+
+    coupons.push({ couponDate: dt, gross: couponGross, net: couponNet, reinvestFactor: fReinv, reinvested: couponReinv });
+
+    last = dt;
+  }
+
+  // principal no fim (resgate a par)
+  const principalGrossFinal = basePrincipal;
+  const diasTotal = daysBetween(x.startISO, x.endISO);
+  const aliqFinal = x.irRegressivo !== false ? irAliquotaRegressivo(diasTotal) : 0;
+  const gainPrincipal = Math.max(0, principalGrossFinal - x.principal);
+  const irPrincipal = gainPrincipal * aliqFinal;
+  const principalNetFinal = principalGrossFinal - irPrincipal;
+
+  const totalVF = principalNetFinal + coupons.reduce((s,c)=>s + c.reinvested, 0);
+  return { coupons, principalNetFinal, totalVF };
+}
+
+// ===================== LEGACY COMPATIBILITY MAPPING =====================
+function mapLegacyToNewFormat(asset: AssetData): RateKind {
+  switch (asset.tipoTaxa) {
+    case 'pre-fixada': return 'PRE';
+    case 'percentual-cdi': return '%CDI';
+    case 'cdi-mais': return 'CDI+PRE';
+    case 'ipca-mais': return 'IPCA+PRE';
+    default: return 'PRE';
+  }
+}
+
+function mapCoupomFreq(tipoCupom: string): Freq {
+  if (tipoCupom?.toLowerCase().includes('mensal')) return 'MONTHLY';
+  return 'SEMIANNUAL'; // Default to semiannual
+}
+
+// Generate monthly CDI curve from annual projections
+function generateCDICurve(projecoes: Projecoes): CDIPoint[] {
+  const curve: CDIPoint[] = [];
+  const currentYear = new Date().getFullYear();
+  
+  for (let year = currentYear; year <= currentYear + 10; year++) {
+    const cdiAA = projecoes.cdi[year] || projecoes.cdi[Object.keys(projecoes.cdi).pop() as any] || 10;
+    for (let month = 1; month <= 12; month++) {
+      const date = `${year}-${month.toString().padStart(2, '0')}-01`;
+      curve.push({ date, cdiAA });
+    }
+  }
+  return curve;
 }
 
 const InvestmentComparator = () => {
@@ -60,7 +262,13 @@ const InvestmentComparator = () => {
     tipoCupom: 'semestral',
     mesesCupons: '2,8',
     tipoIR: 'isento',
-    aliquotaIR: 0
+    aliquotaIR: 0,
+    // Enable cash flow system for CRA with coupons
+    useCashFlow: true,
+    rateKind: 'PRE',
+    freq: 'SEMIANNUAL',
+    feesAA: 0.3,
+    use252: false
   });
 
   const [ativo2, setAtivo2] = useState<AssetData>({
@@ -100,7 +308,7 @@ const InvestmentComparator = () => {
   const [results, setResults] = useState<CalculationResult | null>(null);
   const [showResults, setShowResults] = useState(false);
 
-  const handleAssetChange = (asset: 'ativo1' | 'ativo2', field: keyof AssetData, value: string | number) => {
+  const handleAssetChange = (asset: 'ativo1' | 'ativo2', field: keyof AssetData, value: string | number | boolean) => {
     if (asset === 'ativo1') {
       setAtivo1(prev => ({ ...prev, [field]: value }));
       // Se mudou o valor de venda do ativo1, atualiza o valor investido do ativo2
@@ -178,10 +386,16 @@ const InvestmentComparator = () => {
     }
   };
 
-  const calcularAtivo = (dados: AssetData, anosProjecao: number, vencimentoReal?: number): { valores: number[]; imposto: number } => {
-    const valores = [Math.round(dados.valorCurva)];
+  const calcularAtivo = (dados: AssetData, anosProjecao: number, vencimentoReal?: number): { valores: number[]; imposto: number; couponDetails?: CouponResult[] } => {
     const periodosAtivo = vencimentoReal || anosProjecao;
     
+    // Check if we should use the new cash flow system
+    if (dados.useCashFlow || (dados.tipoCupom !== 'nenhum' && dados.cupons > 0)) {
+      return calcularAtivoComFluxoCaixa(dados, periodosAtivo);
+    }
+    
+    // Legacy calculation for backward compatibility
+    const valores = [Math.round(dados.valorCurva)];
     let valorCuponsAcumulado = 0;
     
     // Calcular apenas até o vencimento real do ativo
@@ -222,6 +436,66 @@ const InvestmentComparator = () => {
     valores[valores.length - 1] = Math.round(valorFinal - imposto);
     
     return { valores, imposto: Math.round(imposto) };
+  };
+
+  // New cash flow calculation method
+  const calcularAtivoComFluxoCaixa = (dados: AssetData, anosProjecao: number): { valores: number[]; imposto: number; couponDetails: CouponResult[] } => {
+    const hoje = new Date();
+    const startISO = hoje.toISOString().slice(0, 10);
+    const endDate = new Date(dados.vencimento);
+    const endISO = endDate.toISOString().slice(0, 10);
+    
+    // Generate CDI curve from projections
+    const cdiCurve = projecoes.cdiCurve || generateCDICurve(projecoes);
+    
+    // Map legacy data to new format
+    const rateKind = mapLegacyToNewFormat(dados);
+    const freq = mapCoupomFreq(dados.tipoCupom);
+    
+    // Setup cash flow input
+    const cashFlowInput: CouponEngineInput = {
+      principal: dados.valorCurva,
+      startISO,
+      endISO,
+      freq,
+      rateKind,
+      taxaPreAA: rateKind === 'PRE' ? dados.taxa : undefined,
+      taxaRealAA: rateKind === 'IPCA+PRE' ? dados.taxa : undefined,
+      spreadPreAA: rateKind === 'CDI+PRE' ? dados.taxa : undefined,
+      percCDI: rateKind === '%CDI' ? dados.taxa : undefined,
+      cdiAABase: projecoes.cdi[new Date().getFullYear()] || 10,
+      cdiCurve,
+      ipcaCurve: projecoes.ipcaCurve,
+      feesAA: dados.feesAA || 0,
+      irRegressivo: dados.tipoIR === 'renda-fixa',
+      use252: dados.use252 || false
+    };
+    
+    // Calculate cash flows
+    const result = projectWithReinvestCDI(cashFlowInput);
+    
+    // Build annual values array for compatibility
+    const valores = [Math.round(dados.valorCurva)];
+    const valorPorAno = result.totalVF / anosProjecao;
+    
+    for (let ano = 1; ano <= anosProjecao; ano++) {
+      const valorProjetado = dados.valorCurva + (valorPorAno * ano);
+      valores.push(Math.round(valorProjetado));
+    }
+    
+    // Final value adjustment
+    valores[valores.length - 1] = Math.round(result.totalVF);
+    
+    // Calculate total IR from coupons and principal
+    const totalIR = result.coupons.reduce((sum, c) => sum + (c.gross - c.net), 0) + 
+                   Math.max(0, result.principalNetFinal - dados.valorCurva) * 
+                   (dados.tipoIR === 'renda-fixa' ? irAliquotaRegressivo(daysBetween(startISO, endISO)) : 0);
+    
+    return { 
+      valores, 
+      imposto: Math.round(totalIR),
+      couponDetails: result.coupons 
+    };
   };
 
   const calcularReinvestimento = (valorInicial: number, periodosReinvestimento: number, anoInicial: number): { valores: number[]; imposto: number } => {
@@ -313,7 +587,11 @@ const InvestmentComparator = () => {
         impostoAtivo1: resultAtivo1.imposto,
         impostoAtivo2: resultAtivo2.imposto,
         anosProjecao,
-        reinvestimento: reinvestimentoInfo
+        reinvestimento: reinvestimentoInfo,
+        couponDetails: {
+          ativo1: resultAtivo1.couponDetails,
+          ativo2: resultAtivo2.couponDetails
+        }
       });
       setShowResults(true);
       
@@ -656,6 +934,61 @@ const InvestmentComparator = () => {
               </SelectContent>
             </Select>
           </div>
+          
+          {/* Advanced Cash Flow Configuration */}
+          <div className="col-span-full">
+            <div className="bg-muted/30 p-4 rounded-lg border border-dashed">
+              <div className="flex items-center gap-2 mb-3">
+                <input
+                  type="checkbox"
+                  id={`${assetKey}-useCashFlow`}
+                  checked={asset.useCashFlow || false}
+                  onChange={(e) => handleAssetChange(assetKey, 'useCashFlow', e.target.checked)}
+                  className="rounded border-border"
+                />
+                <Label htmlFor={`${assetKey}-useCashFlow`} className="text-sm font-medium">
+                  🧮 Usar Sistema de Fluxo de Caixa Avançado
+                </Label>
+              </div>
+              
+              {asset.useCashFlow && (
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+                  <div className="space-y-2">
+                    <Label htmlFor={`${assetKey}-feesAA`}>Taxa Adm/Custódia (% a.a.)</Label>
+                    <Input
+                      id={`${assetKey}-feesAA`}
+                      type="number"
+                      step="0.01"
+                      value={asset.feesAA || 0}
+                      onChange={(e) => handleAssetChange(assetKey, 'feesAA', parseFloat(e.target.value) || 0)}
+                      placeholder="0.30"
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        id={`${assetKey}-use252`}
+                        checked={asset.use252 || false}
+                        onChange={(e) => handleAssetChange(assetKey, 'use252', e.target.checked)}
+                        className="rounded border-border"
+                      />
+                      <Label htmlFor={`${assetKey}-use252`} className="text-sm">
+                        Usar base 252 dias úteis
+                      </Label>
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label className="text-xs text-muted-foreground">
+                      Sistema avançado com reinvestimento preciso de cupons pela curva CDI
+                    </Label>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       </CardContent>
     </Card>
@@ -970,6 +1303,141 @@ const InvestmentComparator = () => {
                 </div>
               </CardContent>
             </Card>
+            
+            {/* Coupon Details Section - New Cash Flow System */}
+            {(results.couponDetails?.ativo1?.length || results.couponDetails?.ativo2?.length) && (
+              <Card className="border-blue-500/30 shadow-xl">
+                <CardHeader className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-t-lg">
+                  <CardTitle className="flex items-center gap-2">
+                    <TrendingUp className="h-5 w-5" />
+                    Detalhamento dos Cupons e Reinvestimentos
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-6">
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    
+                    {/* Ativo 1 Coupons */}
+                    {results.couponDetails?.ativo1?.length > 0 && (
+                      <div>
+                        <h4 className="font-bold text-lg mb-3 text-financial-primary">
+                          {ativo1.nome} - Fluxo de Cupons
+                        </h4>
+                        <div className="overflow-x-auto">
+                          <table className="w-full border-collapse text-sm">
+                            <thead>
+                              <tr className="bg-financial-primary/10">
+                                <th className="p-2 text-left border text-xs">Data Pagto</th>
+                                <th className="p-2 text-right border text-xs">Cupom Bruto</th>
+                                <th className="p-2 text-right border text-xs">Cupom Líq.</th>
+                                <th className="p-2 text-right border text-xs">Fator CDI</th>
+                                <th className="p-2 text-right border text-xs">Reinvestido</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {results.couponDetails.ativo1.map((coupon, index) => (
+                                <tr key={index} className="even:bg-muted/50">
+                                  <td className="p-2 border text-xs">
+                                    {new Date(coupon.couponDate).toLocaleDateString('pt-BR')}
+                                  </td>
+                                  <td className="p-2 border text-right font-mono text-xs">
+                                    R$ {coupon.gross.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                                  </td>
+                                  <td className="p-2 border text-right font-mono text-xs text-financial-success">
+                                    R$ {coupon.net.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                                  </td>
+                                  <td className="p-2 border text-right font-mono text-xs">
+                                    {coupon.reinvestFactor.toFixed(4)}
+                                  </td>
+                                  <td className="p-2 border text-right font-mono text-xs font-bold text-blue-600">
+                                    R$ {coupon.reinvested.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                                  </td>
+                                </tr>
+                              ))}
+                              <tr className="bg-financial-primary/20 font-bold">
+                                <td className="p-2 border text-xs">TOTAL</td>
+                                <td className="p-2 border text-right font-mono text-xs">
+                                  R$ {results.couponDetails.ativo1.reduce((sum, c) => sum + c.gross, 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                                </td>
+                                <td className="p-2 border text-right font-mono text-xs">
+                                  R$ {results.couponDetails.ativo1.reduce((sum, c) => sum + c.net, 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                                </td>
+                                <td className="p-2 border text-right font-mono text-xs">-</td>
+                                <td className="p-2 border text-right font-mono text-xs">
+                                  R$ {results.couponDetails.ativo1.reduce((sum, c) => sum + c.reinvested, 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                                </td>
+                              </tr>
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    )}
+                    
+                    {/* Ativo 2 Coupons */}
+                    {results.couponDetails?.ativo2?.length > 0 && (
+                      <div>
+                        <h4 className="font-bold text-lg mb-3 text-financial-secondary">
+                          {ativo2.nome} - Fluxo de Cupons
+                        </h4>
+                        <div className="overflow-x-auto">
+                          <table className="w-full border-collapse text-sm">
+                            <thead>
+                              <tr className="bg-financial-secondary/10">
+                                <th className="p-2 text-left border text-xs">Data Pagto</th>
+                                <th className="p-2 text-right border text-xs">Cupom Bruto</th>
+                                <th className="p-2 text-right border text-xs">Cupom Líq.</th>
+                                <th className="p-2 text-right border text-xs">Fator CDI</th>
+                                <th className="p-2 text-right border text-xs">Reinvestido</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {results.couponDetails.ativo2.map((coupon, index) => (
+                                <tr key={index} className="even:bg-muted/50">
+                                  <td className="p-2 border text-xs">
+                                    {new Date(coupon.couponDate).toLocaleDateString('pt-BR')}
+                                  </td>
+                                  <td className="p-2 border text-right font-mono text-xs">
+                                    R$ {coupon.gross.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                                  </td>
+                                  <td className="p-2 border text-right font-mono text-xs text-financial-success">
+                                    R$ {coupon.net.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                                  </td>
+                                  <td className="p-2 border text-right font-mono text-xs">
+                                    {coupon.reinvestFactor.toFixed(4)}
+                                  </td>
+                                  <td className="p-2 border text-right font-mono text-xs font-bold text-blue-600">
+                                    R$ {coupon.reinvested.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                                  </td>
+                                </tr>
+                              ))}
+                              <tr className="bg-financial-secondary/20 font-bold">
+                                <td className="p-2 border text-xs">TOTAL</td>
+                                <td className="p-2 border text-right font-mono text-xs">
+                                  R$ {results.couponDetails.ativo2.reduce((sum, c) => sum + c.gross, 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                                </td>
+                                <td className="p-2 border text-right font-mono text-xs">
+                                  R$ {results.couponDetails.ativo2.reduce((sum, c) => sum + c.net, 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                                </td>
+                                <td className="p-2 border text-right font-mono text-xs">-</td>
+                                <td className="p-2 border text-right font-mono text-xs">
+                                  R$ {results.couponDetails.ativo2.reduce((sum, c) => sum + c.reinvested, 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                                </td>
+                              </tr>
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                  
+                  <div className="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                    <p className="text-sm text-blue-800">
+                      <strong>Sistema de Fluxo de Caixa:</strong> Os cupons são calculados com IR regressivo baseado no tempo de aplicação 
+                      e reinvestidos pela curva CDI projetada do momento do pagamento até o vencimento do ativo.
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
           </div>
         )}
       </div>
