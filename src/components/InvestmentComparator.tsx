@@ -305,6 +305,28 @@ const InvestmentComparator = () => {
 
   const [results, setResults] = useState<CalculationResult | null>(null);
   const [showResults, setShowResults] = useState(false);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [lastCalculationHash, setLastCalculationHash] = useState<string>('');
+  const [calculationTimestamp, setCalculationTimestamp] = useState<number>(0);
+
+  // Function to invalidate results when data changes
+  const invalidateResults = () => {
+    setHasUnsavedChanges(true);
+    if (results) {
+      setShowResults(false);
+      setResults(null);
+    }
+  };
+
+  // Function to generate hash of current data for consistency checking
+  const generateDataHash = () => {
+    const dataString = JSON.stringify({
+      ativo1,
+      ativo2,
+      projecoes
+    });
+    return btoa(dataString).slice(0, 20); // Simple hash for validation
+  };
 
   const handleAssetChange = (asset: 'ativo1' | 'ativo2', field: keyof AssetData, value: string | number | boolean) => {
     if (asset === 'ativo1') {
@@ -331,6 +353,9 @@ const InvestmentComparator = () => {
         setAtivo2(prev => ({ ...prev, [field]: value }));
       }
     }
+    
+    // Invalidate results whenever asset data changes
+    invalidateResults();
   };
 
   const handleProjecaoChange = (tipo: 'cdi' | 'ipca', ano: number, valor: number) => {
@@ -341,6 +366,9 @@ const InvestmentComparator = () => {
         [ano]: valor
       }
     }));
+    
+    // Invalidate results whenever projections change
+    invalidateResults();
   };
 
   const calcularAliquotaIR = (dados: AssetData, anosInvestimento: number): number => {
@@ -522,8 +550,50 @@ const InvestmentComparator = () => {
     return { valores, imposto: Math.round(impostoReinvestimento) };
   };
 
+  // Validation function to check if data is complete
+  const validateDataForCalculation = (): { isValid: boolean; errors: string[] } => {
+    const errors: string[] = [];
+
+    // Validate Ativo1
+    if (!ativo1.nome.trim()) errors.push('Nome do Ativo 1 é obrigatório');
+    if (!ativo1.vencimento) errors.push('Data de vencimento do Ativo 1 é obrigatória');
+    if (ativo1.valorInvestido <= 0) errors.push('Valor investido do Ativo 1 deve ser maior que zero');
+    if (ativo1.taxa <= 0) errors.push('Taxa do Ativo 1 deve ser maior que zero');
+
+    // Validate Ativo2
+    if (!ativo2.nome.trim()) errors.push('Nome do Ativo 2 é obrigatório');
+    if (!ativo2.vencimento) errors.push('Data de vencimento do Ativo 2 é obrigatória');
+    if (ativo2.valorInvestido <= 0) errors.push('Valor investido do Ativo 2 deve ser maior que zero');
+    if (ativo2.taxa <= 0) errors.push('Taxa do Ativo 2 deve ser maior que zero');
+
+    // Validate dates are in the future
+    const hoje = new Date();
+    const venc1 = new Date(ativo1.vencimento);
+    const venc2 = new Date(ativo2.vencimento);
+    
+    if (venc1 <= hoje) errors.push('Data de vencimento do Ativo 1 deve ser no futuro');
+    if (venc2 <= hoje) errors.push('Data de vencimento do Ativo 2 deve ser no futuro');
+
+    // Validate projections cover necessary years
+    const maxYear = Math.max(venc1.getFullYear(), venc2.getFullYear());
+    const currentYear = hoje.getFullYear();
+    
+    for (let year = currentYear; year <= maxYear; year++) {
+      if (!projecoes.cdi[year]) errors.push(`Projeção CDI para ${year} é necessária`);
+      if (!projecoes.ipca[year]) errors.push(`Projeção IPCA para ${year} é necessária`);
+    }
+
+    return { isValid: errors.length === 0, errors };
+  };
+
   const calcular = () => {
     try {
+      // Validate data before calculation
+      const validation = validateDataForCalculation();
+      if (!validation.isValid) {
+        alert('Dados incompletos:\n' + validation.errors.join('\n'));
+        return;
+      }
       const hoje = new Date();
       
       const vencimento1 = new Date(ativo1.vencimento);
@@ -593,6 +663,11 @@ const InvestmentComparator = () => {
       });
       setShowResults(true);
       
+      // Update calculation state tracking
+      setHasUnsavedChanges(false);
+      setLastCalculationHash(generateDataHash());
+      setCalculationTimestamp(Date.now());
+      
       toast({
         title: "Cálculo concluído",
         description: "Comparação gerada com sucesso!"
@@ -638,6 +713,11 @@ const InvestmentComparator = () => {
     });
     setShowResults(false);
     setResults(null);
+    
+    // Reset calculation state tracking
+    setHasUnsavedChanges(false);
+    setLastCalculationHash('');
+    setCalculationTimestamp(0);
   };
 
   // Função para calcular rendimentos anuais considerando períodos corretos
@@ -1045,7 +1125,7 @@ const InvestmentComparator = () => {
           </Card>
         </div>
 
-        {/* Action Buttons */}
+         {/* Action Buttons */}
         <div className="flex flex-wrap justify-center gap-4 mb-8">
           <Button
             onClick={calcular}
@@ -1054,6 +1134,9 @@ const InvestmentComparator = () => {
           >
             <Calculator className="h-5 w-5 mr-2" />
             🔄 Calcular Comparação
+            {hasUnsavedChanges && (
+              <span className="ml-2 text-yellow-300 animate-pulse">●</span>
+            )}
           </Button>
           <Button
             variant="outline"
@@ -1074,6 +1157,23 @@ const InvestmentComparator = () => {
             🖨️ Gerar PDF
           </Button>
         </div>
+
+        {/* Warning for unsaved changes */}
+        {hasUnsavedChanges && (
+          <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6">
+            <div className="flex">
+              <div className="flex-shrink-0">
+                <span className="text-yellow-400 text-xl">⚠️</span>
+              </div>
+              <div className="ml-3">
+                <p className="text-sm text-yellow-700">
+                  <strong>Dados alterados!</strong> Os resultados mostrados podem estar desatualizados. 
+                  Clique em "Calcular Comparação" para atualizar com os dados mais recentes.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Results */}
         {showResults && results && (
