@@ -364,6 +364,20 @@ const InvestmentComparator = () => {
     setResults(null);
   };
 
+  // Função para calcular rendimentos anuais
+  const calcularRendimentosAnuais = (valores: number[], valorInicial: number) => {
+    const rendimentos: number[] = [];
+    let valorAnterior = valorInicial;
+    
+    for (const valorAtual of valores) {
+      const rendimento = valorAtual - valorAnterior;
+      rendimentos.push(rendimento);
+      valorAnterior = valorAtual;
+    }
+    
+    return rendimentos;
+  };
+
   const getTaxaLabel = (tipoTaxa: string) => {
     switch (tipoTaxa) {
       case 'pre-fixada': return 'Taxa Anual (%)';
@@ -830,48 +844,48 @@ const InvestmentComparator = () => {
                 <CardTitle>Comparação Ano a Ano</CardTitle>
               </CardHeader>
               <CardContent className="p-6">
-                <div className="overflow-x-auto">
-                  <table className="w-full border-collapse">
-                    <thead>
-                      <tr className="bg-gradient-to-r from-financial-primary to-financial-secondary text-white">
-                        <th className="p-3 text-left border">Ano</th>
-                        <th className="p-3 text-left border">{ativo1.nome}</th>
-                        <th className="p-3 text-left border">{ativo2.nome}</th>
-                        <th className="p-3 text-left border">Diferença</th>
-                        <th className="p-3 text-left border">Vantagem</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {/* Incluir linha para 2025 */}
-                      <tr className="even:bg-muted/50">
-                        <td className="p-3 border font-semibold">2025</td>
-                        <td className="p-3 border font-mono">R$ {results.ativo1[0].toLocaleString('pt-BR')}</td>
-                        <td className="p-3 border font-mono">R$ {results.ativo2[0].toLocaleString('pt-BR')}</td>
-                        <td className={`p-3 border font-mono font-bold ${(results.ativo1[0] - results.ativo2[0]) >= 0 ? 'text-financial-success' : 'text-financial-danger'}`}>
-                          {(results.ativo1[0] - results.ativo2[0]) >= 0 ? '+' : ''}R$ {(results.ativo1[0] - results.ativo2[0]).toLocaleString('pt-BR')}
-                        </td>
-                        <td className="p-3 border font-semibold">{(results.ativo1[0] - results.ativo2[0]) >= 0 ? ativo1.nome : ativo2.nome}</td>
-                      </tr>
-                      {results.ativo1.slice(1).map((valor1, index) => {
-                        const valor2 = results.ativo2[index + 1];
-                        const diferenca = valor1 - valor2;
-                        const vantagem = diferenca >= 0 ? ativo1.nome : ativo2.nome;
-                        const isUltimoAno = index === results.ativo1.length - 2;
-                        return (
-                          <tr key={index} className={`even:bg-muted/50 ${isUltimoAno ? 'bg-gradient-to-r from-financial-light/30 to-financial-light/10 font-bold' : ''}`}>
-                            <td className="p-3 border font-semibold">{anoAtual + index + 1}</td>
-                            <td className="p-3 border font-mono">R$ {valor1.toLocaleString('pt-BR')}</td>
-                            <td className="p-3 border font-mono">R$ {valor2.toLocaleString('pt-BR')}</td>
-                            <td className={`p-3 border font-mono font-bold ${diferenca >= 0 ? 'text-financial-success' : 'text-financial-danger'}`}>
-                              {diferenca >= 0 ? '+' : ''}R$ {diferenca.toLocaleString('pt-BR')}
-                            </td>
-                            <td className="p-3 border font-semibold">{vantagem}</td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
+                 <div className="overflow-x-auto">
+                   <table className="w-full border-collapse">
+                     <thead>
+                       <tr className="bg-gradient-to-r from-financial-primary to-financial-secondary text-white">
+                         <th className="p-3 text-left border">Ano</th>
+                         <th className="p-3 text-left border">Rendimentos {ativo1.nome}</th>
+                         <th className="p-3 text-left border">Rendimentos {ativo2.nome}</th>
+                         <th className="p-3 text-left border">Diferença</th>
+                         <th className="p-3 text-left border">Vantagem</th>
+                       </tr>
+                     </thead>
+                     <tbody>
+                       {(() => {
+                         const rendimentosAtivo1 = calcularRendimentosAnuais(results.ativo1, ativo1.valorInvestido);
+                         const rendimentosAtivo2 = calcularRendimentosAnuais(results.ativo2, ativo2.valorInvestido);
+                         
+                         return rendimentosAtivo1.map((rendimento1, index) => {
+                           const rendimento2 = rendimentosAtivo2[index];
+                           const diferenca = rendimento1 - rendimento2;
+                           const vantagem = diferenca >= 0 ? ativo1.nome : ativo2.nome;
+                           const isUltimoAno = index === rendimentosAtivo1.length - 1;
+                           
+                           return (
+                             <tr key={index} className={`even:bg-muted/50 ${isUltimoAno ? 'bg-gradient-to-r from-financial-light/30 to-financial-light/10 font-bold' : ''}`}>
+                               <td className="p-3 border font-semibold">{anoAtual + index}</td>
+                               <td className={`p-3 border font-mono ${rendimento1 >= 0 ? 'text-financial-success' : 'text-financial-danger'}`}>
+                                 {rendimento1 >= 0 ? '+' : ''}R$ {rendimento1.toLocaleString('pt-BR')}
+                               </td>
+                               <td className={`p-3 border font-mono ${rendimento2 >= 0 ? 'text-financial-success' : 'text-financial-danger'}`}>
+                                 {rendimento2 >= 0 ? '+' : ''}R$ {rendimento2.toLocaleString('pt-BR')}
+                               </td>
+                               <td className={`p-3 border font-mono font-bold ${diferenca >= 0 ? 'text-financial-success' : 'text-financial-danger'}`}>
+                                 {diferenca >= 0 ? '+' : ''}R$ {diferenca.toLocaleString('pt-BR')}
+                               </td>
+                               <td className="p-3 border font-semibold">{vantagem}</td>
+                             </tr>
+                           );
+                         });
+                       })()}
+                     </tbody>
+                   </table>
+                 </div>
               </CardContent>
             </Card>
 
