@@ -1830,25 +1830,34 @@ const InvestmentComparator = () => {
                             </div>
                           )}
                           
-                          {/* Reinvestment Explanation - Item 3 */}
-                          {results.reinvestimento && results.reinvestimento.ativoReinvestido === 'ativo2' && (
-                            <div className="space-y-2">
-                              <div className="flex justify-between items-center p-3 bg-financial-warning/10 rounded-lg border border-financial-warning/30">
-                                <span className="font-semibold text-financial-warning flex items-center gap-2">
-                                  <TrendingUp className="h-4 w-4" />
-                                  Valor após vencimento reaplicado no CDI:
-                                </span>
-                                <span className="font-mono text-lg text-financial-warning font-bold">
-                                  + R$ {(results.reinvestimento.valorFinalReinvestimento - results.reinvestimento.valorResgatado).toLocaleString('pt-BR')}
-                                </span>
-                              </div>
+                          {/* Reinvestment Explanation - Item 3 - Always show for layout consistency */}
+                          <div className="space-y-2">
+                            <div className="flex justify-between items-center p-3 bg-financial-warning/10 rounded-lg border border-financial-warning/30">
+                              <span className="font-semibold text-financial-warning flex items-center gap-2">
+                                <TrendingUp className="h-4 w-4" />
+                                Valor após vencimento reaplicado no CDI:
+                              </span>
+                              <span className="font-mono text-lg text-financial-warning font-bold">
+                                + R$ {results.reinvestimento && results.reinvestimento.ativoReinvestido === 'ativo2' 
+                                  ? (results.reinvestimento.valorFinalReinvestimento - results.reinvestimento.valorResgatado).toLocaleString('pt-BR')
+                                  : '0'
+                                }
+                              </span>
+                            </div>
+                            {results.reinvestimento && results.reinvestimento.ativoReinvestido === 'ativo2' ? (
                               <div className="text-xs text-muted-foreground px-3 pb-2">
                                 <span className="italic">
                                   Rendimento obtido aplicando R$ {results.reinvestimento.valorResgatado.toLocaleString('pt-BR')} por {results.reinvestimento.periodosReinvestimento} {results.reinvestimento.periodosReinvestimento === 1 ? 'ano' : 'anos'} à taxa CDI de {results.reinvestimento.taxaReinvestimento.toFixed(2)}% ao ano
                                 </span>
                               </div>
-                            </div>
-                          )}
+                            ) : (
+                              <div className="text-xs text-muted-foreground px-3 pb-2">
+                                <span className="italic">
+                                  Este ativo não foi reinvestido no CDI
+                                </span>
+                              </div>
+                            )}
+                          </div>
                           
                           <div className="flex justify-between items-center p-4 bg-gradient-to-r from-financial-primary/20 to-financial-secondary/20 rounded-lg border-2 border-financial-primary/50">
                             <span className="font-bold text-financial-primary text-lg">VALOR FINAL:</span>
