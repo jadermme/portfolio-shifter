@@ -407,36 +407,30 @@ const InvestmentComparator = () => {
               className={assetKey === 'ativo2' ? 'bg-muted/50 cursor-not-allowed' : ''}
             />
           </div>
-          <div className="space-y-2">
-            <Label htmlFor={`${assetKey}-cupons`}>
-              {assetKey === 'ativo2' ? 'Cupons Recebidos (R$) - Aplicação Nova' : 'Cupons Recebidos (R$)'}
-            </Label>
-            <Input
-              id={`${assetKey}-cupons`}
-              type="number"
-              step="0.01"
-              value={assetKey === 'ativo2' ? 0 : asset.cupons}
-              onChange={(e) => handleAssetChange(assetKey, 'cupons', parseFloat(e.target.value) || 0)}
-              disabled={assetKey === 'ativo2'}
-              className={assetKey === 'ativo2' ? 'bg-muted/50 cursor-not-allowed' : ''}
-              placeholder={assetKey === 'ativo2' ? 'Nenhum cupom recebido ainda' : ''}
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor={`${assetKey}-valorCurva`}>
-              {assetKey === 'ativo2' ? 'Valor de Curva (R$) - Aplicação Nova' : 'Valor de Curva (R$)'}
-            </Label>
-            <Input
-              id={`${assetKey}-valorCurva`}
-              type="number"
-              step="0.01"
-              value={assetKey === 'ativo2' ? asset.valorInvestido : asset.valorCurva}
-              onChange={(e) => handleAssetChange(assetKey, 'valorCurva', parseFloat(e.target.value) || 0)}
-              disabled={assetKey === 'ativo2'}
-              className={assetKey === 'ativo2' ? 'bg-muted/50 cursor-not-allowed' : ''}
-              placeholder={assetKey === 'ativo2' ? 'Igual ao valor investido' : ''}
-            />
-          </div>
+          {assetKey === 'ativo1' && (
+            <>
+              <div className="space-y-2">
+                <Label htmlFor={`${assetKey}-cupons`}>Cupons Recebidos (R$)</Label>
+                <Input
+                  id={`${assetKey}-cupons`}
+                  type="number"
+                  step="0.01"
+                  value={asset.cupons}
+                  onChange={(e) => handleAssetChange(assetKey, 'cupons', parseFloat(e.target.value) || 0)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor={`${assetKey}-valorCurva`}>Valor de Curva (R$)</Label>
+                <Input
+                  id={`${assetKey}-valorCurva`}
+                  type="number"
+                  step="0.01"
+                  value={asset.valorCurva}
+                  onChange={(e) => handleAssetChange(assetKey, 'valorCurva', parseFloat(e.target.value) || 0)}
+                />
+              </div>
+            </>
+          )}
           {assetKey === 'ativo1' && (
             <div className="space-y-2">
               <Label htmlFor={`${assetKey}-valorVenda`}>Valor de Venda (R$)</Label>
