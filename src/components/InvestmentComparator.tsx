@@ -1439,47 +1439,6 @@ const InvestmentComparator = () => {
               </CardContent>
             </Card>
 
-            {/* Reinvestment Information */}
-            {results.reinvestimento && <Card className="border-financial-primary/30 shadow-xl">
-                <CardHeader className="bg-gradient-to-r from-financial-primary to-financial-secondary text-white rounded-t-lg">
-                  <CardTitle className="flex items-center gap-2">
-                    <TrendingUp className="h-5 w-5" />
-                    Informações de Reinvestimento
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="p-6">
-                  <div className="space-y-3 text-sm">
-                    <div className="p-4 bg-muted/50 rounded-lg">
-                      <p className="font-medium text-muted-foreground">
-                        <strong>Estratégia aplicada:</strong> O {results.reinvestimento.ativoReinvestido === 'ativo1' ? ativo1.nome : ativo2.nome} vence antes, 
-                        então seu valor resgatado foi reinvestido na taxa CDI/Selic até o vencimento do outro ativo.
-                      </p>
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <div className="flex justify-between">
-                          <span className="font-medium">Valor Resgatado:</span>
-                          <span className="font-mono font-bold">R$ {results.reinvestimento.valorResgatado.toLocaleString('pt-BR')}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="font-medium">Período de Reinvestimento:</span>
-                          <span className="font-mono font-bold">{results.reinvestimento.periodosReinvestimento} {results.reinvestimento.periodosReinvestimento === 1 ? 'ano' : 'anos'}</span>
-                        </div>
-                      </div>
-                      <div className="space-y-2">
-                        <div className="flex justify-between">
-                          <span className="font-medium">Taxa de Reinvestimento:</span>
-                          <span className="font-mono font-bold">{results.reinvestimento.taxaReinvestimento.toFixed(2)}% a.a. (CDI)</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="font-medium">Valor Final Reinvestimento:</span>
-                          <span className="font-mono font-bold">R$ {results.reinvestimento.valorFinalReinvestimento.toLocaleString('pt-BR')}</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>}
 
             {/* Comparison Table */}
             <Card className="border-financial-secondary/30 shadow-xl">
@@ -1613,15 +1572,6 @@ const InvestmentComparator = () => {
                           </div>;
                   })()}
                     </div>
-                  </div>
-                  <div className="mt-4 p-4 bg-gradient-to-r from-financial-primary/10 to-financial-secondary/10 rounded-lg">
-                    <span className="font-bold">Conclusão:</span>
-                    <span className="ml-2">
-                      {(() => {
-                    const diferenca = results.ativo1[results.ativo1.length - 1] - results.ativo2[results.ativo2.length - 1];
-                    return diferenca >= 0 ? `O ${ativo1.nome} é projetado para ser financeiramente superior neste horizonte de investimento.` : `O ${ativo2.nome} oferece um retorno líquido potencialmente maior neste horizonte de investimento.`;
-                  })()}
-                    </span>
                   </div>
                 </div>
               </CardContent>
@@ -2002,6 +1952,16 @@ const InvestmentComparator = () => {
                       <strong>Sistema de Fluxo de Caixa:</strong> Os cupons são calculados com IR regressivo baseado no tempo de aplicação 
                       e reinvestidos pela curva CDI projetada do momento do pagamento até o vencimento. Otimizado para títulos diretos.
                     </p>
+                  </div>
+                  
+                  <div className="mt-4 p-4 bg-gradient-to-r from-financial-primary/10 to-financial-secondary/10 rounded-lg">
+                    <span className="font-bold">Conclusão:</span>
+                    <span className="ml-2">
+                      {(() => {
+                    const diferenca = results.ativo1[results.ativo1.length - 1] - results.ativo2[results.ativo2.length - 1];
+                    return diferenca >= 0 ? `O ${ativo1.nome} é projetado para ser financeiramente superior neste horizonte de investimento.` : `O ${ativo2.nome} oferece um retorno líquido potencialmente maior neste horizonte de investimento.`;
+                  })()}
+                    </span>
                   </div>
                 </CardContent>
               </Card>}
