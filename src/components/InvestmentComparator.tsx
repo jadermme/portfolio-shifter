@@ -1440,8 +1440,8 @@ const InvestmentComparator = () => {
             </Card>
 
             {/* Reinvestment Information */}
-            {results.reinvestimento && <Card className="border-financial-warning/30 shadow-xl bg-gradient-to-br from-yellow-50 to-orange-50">
-                <CardHeader className="bg-gradient-to-r from-yellow-500 to-orange-500 text-white rounded-t-lg">
+            {results.reinvestimento && <Card className="border-financial-primary/30 shadow-xl">
+                <CardHeader className="bg-gradient-to-r from-financial-primary to-financial-secondary text-white rounded-t-lg">
                   <CardTitle className="flex items-center gap-2">
                     <TrendingUp className="h-5 w-5" />
                     Informações de Reinvestimento
@@ -1449,8 +1449,8 @@ const InvestmentComparator = () => {
                 </CardHeader>
                 <CardContent className="p-6">
                   <div className="space-y-3 text-sm">
-                    <div className="p-4 bg-yellow-100 rounded-lg">
-                      <p className="font-medium text-yellow-800">
+                    <div className="p-4 bg-muted/50 rounded-lg">
+                      <p className="font-medium text-muted-foreground">
                         <strong>Estratégia aplicada:</strong> O {results.reinvestimento.ativoReinvestido === 'ativo1' ? ativo1.nome : ativo2.nome} vence antes, 
                         então seu valor resgatado foi reinvestido na taxa CDI/Selic até o vencimento do outro ativo.
                       </p>
