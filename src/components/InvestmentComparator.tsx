@@ -1673,6 +1673,60 @@ const InvestmentComparator = () => {
               </CardContent>
             </Card>
             
+            {/* Final Analysis Summary */}
+            <Card className="border-financial-primary/30 shadow-xl">
+              <CardHeader className="bg-gradient-to-r from-financial-primary to-financial-secondary text-white rounded-t-lg">
+                <CardTitle className="flex items-center gap-2">
+                  <BarChart3 className="h-5 w-5" />
+                  Análise Final da Comparação
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-6">
+                <div className="space-y-4">
+                  <div className="flex justify-between items-center py-2 border-b border-financial-primary/20">
+                    <span className="font-medium text-financial-primary">Valor Final Líquido ({ativo1.nome}):</span>
+                    <span className="font-mono font-bold text-lg">R$ {results.ativo1[results.ativo1.length - 1].toLocaleString('pt-BR')}</span>
+                  </div>
+                  <div className="flex justify-between items-center py-2 border-b border-financial-primary/20">
+                    <span className="font-medium text-financial-primary">Valor Final Líquido ({ativo2.nome}):</span>
+                    <span className="font-mono font-bold text-lg">R$ {results.ativo2[results.ativo2.length - 1].toLocaleString('pt-BR')}</span>
+                  </div>
+                  
+                  <div className="flex justify-between items-center py-3 bg-gradient-to-r from-financial-light/20 to-financial-light/10 rounded-lg px-4">
+                    <span className="font-bold text-financial-primary">Vantagem Final:</span>
+                    <div className="text-right">
+                      {(() => {
+                        const diferenca = results.ativo1[results.ativo1.length - 1] - results.ativo2[results.ativo2.length - 1];
+                        const melhorOpcao = diferenca >= 0 ? ativo1.nome : ativo2.nome;
+                        return (
+                          <div>
+                            <span className={`font-mono font-bold text-xl ${diferenca >= 0 ? 'text-financial-success' : 'text-financial-danger'}`}>
+                              R$ {Math.abs(diferenca).toLocaleString('pt-BR')}
+                            </span>
+                            <div className="text-sm font-medium text-muted-foreground">a favor de <span className="font-bold text-financial-primary">{melhorOpcao}</span></div>
+                          </div>
+                        );
+                      })()}
+                    </div>
+                  </div>
+
+                  <div className="mt-4 p-4 bg-gradient-to-r from-financial-primary/10 to-financial-secondary/10 rounded-lg border border-financial-primary/20">
+                    <div className="flex items-start gap-2">
+                      <div className="text-financial-primary font-bold">Conclusão:</div>
+                      <div className="flex-1 text-sm">
+                        {(() => {
+                          const diferenca = results.ativo1[results.ativo1.length - 1] - results.ativo2[results.ativo2.length - 1];
+                          return diferenca >= 0 
+                            ? `O ${ativo1.nome} é projetado para ser financeiramente superior neste horizonte de investimento.` 
+                            : `O ${ativo2.nome} oferece um retorno líquido potencialmente maior neste horizonte de investimento.`;
+                        })()}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
             {/* Coupon Details Section - New Cash Flow System */}
             {(results.couponDetails?.ativo1?.length || results.couponDetails?.ativo2?.length) && <Card className="border-blue-500/30 shadow-xl">
                 <CardHeader className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-t-lg">
@@ -1819,49 +1873,6 @@ const InvestmentComparator = () => {
                        e reinvestidos pela curva CDI projetada do momento do pagamento até o vencimento. Otimizado para títulos diretos.
                      </p>
                    </div>
-                  
-                  {/* Final Analysis Summary */}
-                  <div className="mt-6 p-4 bg-gradient-to-r from-financial-light/30 to-financial-light/10 rounded-lg border border-financial-primary/20">
-                    <h4 className="text-lg font-bold text-financial-primary mb-3">Análise Final da Comparação:</h4>
-                    <div className="space-y-2 text-sm mb-4">
-                      <div className="flex justify-between">
-                        <span className="font-medium">Valor Final Líquido ({ativo1.nome}):</span>
-                        <span className="font-mono font-bold">R$ {results.ativo1[results.ativo1.length - 1].toLocaleString('pt-BR')}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="font-medium">Valor Final Líquido ({ativo2.nome}):</span>
-                        <span className="font-mono font-bold">R$ {results.ativo2[results.ativo2.length - 1].toLocaleString('pt-BR')}</span>
-                      </div>
-                      <hr className="border-financial-primary/20 my-2" />
-                      <div className="flex justify-between items-center">
-                        <span className="font-bold">Vantagem Final:</span>
-                        <div className="text-right">
-                          {(() => {
-                            const diferenca = results.ativo1[results.ativo1.length - 1] - results.ativo2[results.ativo2.length - 1];
-                            const melhorOpcao = diferenca >= 0 ? ativo1.nome : ativo2.nome;
-                            return (
-                              <div>
-                                <span className={`font-mono font-bold ${diferenca >= 0 ? 'text-financial-success' : 'text-financial-danger'}`}>
-                                  R$ {Math.abs(diferenca).toLocaleString('pt-BR')}
-                                </span>
-                                <div className="text-xs font-medium">a favor de <span className="font-bold">{melhorOpcao}</span></div>
-                              </div>
-                            );
-                          })()}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div className="mt-4 p-4 bg-gradient-to-r from-financial-primary/10 to-financial-secondary/10 rounded-lg">
-                    <span className="font-bold">Conclusão:</span>
-                    <span className="ml-2">
-                      {(() => {
-                    const diferenca = results.ativo1[results.ativo1.length - 1] - results.ativo2[results.ativo2.length - 1];
-                    return diferenca >= 0 ? `O ${ativo1.nome} é projetado para ser financeiramente superior neste horizonte de investimento.` : `O ${ativo2.nome} oferece um retorno líquido potencialmente maior neste horizonte de investimento.`;
-                  })()}
-                    </span>
-                  </div>
                 </CardContent>
               </Card>}
           </div>}
