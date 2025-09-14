@@ -882,7 +882,51 @@ const InvestmentComparator = () => {
     setCalculationTimestamp(0);
   };
 
-  // Enhanced function to calculate annual yields considering specific periods and accrual
+  // New function to calculate annual yields from coupon details for consistency
+  const calcularRendimentosAnuaisFromCoupons = (couponDetails: CouponResult[], assetName: string) => {
+    console.log(`\n🔍 Calculando rendimentos anuais a partir dos cupons para: ${assetName}`);
+    console.log('📊 Detalhes de cupons recebidos:', couponDetails);
+    
+    if (!couponDetails || couponDetails.length === 0) {
+      console.log(`❌ Nenhum cupom encontrado para ${assetName}`);
+      return [];
+    }
+
+    // Group coupons by year based on coupon date
+    const couponsByYear: { [year: number]: CouponResult[] } = {};
+    const currentYear = new Date().getFullYear();
+    
+    // Initialize years from current to 2030
+    for (let year = currentYear; year <= 2030; year++) {
+      couponsByYear[year] = [];
+    }
+
+    // Group coupons by year
+    couponDetails.forEach(coupon => {
+      const couponYear = new Date(coupon.couponDate).getFullYear();
+      if (couponsByYear[couponYear]) {
+        couponsByYear[couponYear].push(coupon);
+      }
+    });
+
+    console.log('📅 Cupons agrupados por ano:', couponsByYear);
+
+    // Calculate annual yields as the sum of reinvested coupons per year
+    const rendimentosAnuais: number[] = [];
+    for (let i = 0; i < 6; i++) { // 6 years projection
+      const year = currentYear + i;
+      const couponsDoAno = couponsByYear[year] || [];
+      const rendimentoAnual = couponsDoAno.reduce((sum, coupon) => sum + coupon.reinvested, 0);
+      
+      console.log(`💰 ${assetName} ${year}: R$ ${rendimentoAnual.toLocaleString('pt-BR')} (${couponsDoAno.length} cupons)`);
+      rendimentosAnuais.push(rendimentoAnual);
+    }
+
+    console.log(`✅ Rendimentos anuais calculados para ${assetName}:`, rendimentosAnuais);
+    return rendimentosAnuais;
+  };
+
+  // Enhanced function to calculate annual yields considering specific periods and accrual (LEGACY - kept for compatibility)
   const calcularRendimentosAnuais = (valores: number[], valorInicial: number, asset: AssetData) => {
     console.log('\n🔍 Calculando rendimentos anuais para:', asset.nome);
     console.log('📊 Valores recebidos:', valores);
@@ -1480,9 +1524,9 @@ const InvestmentComparator = () => {
                       );
                     }
                     
-                     const rendimentosAtivo1 = calcularRendimentosAnuais(results.ativo1, ativo1.valorCurva, ativo1);
-                     const rendimentosAtivo2 = calcularRendimentosAnuais(results.ativo2, ativo2.valorCurva, ativo2);
-                     console.log('💰 Rendimentos calculados:', { rendimentosAtivo1, rendimentosAtivo2 });
+                     const rendimentosAtivo1 = calcularRendimentosAnuaisFromCoupons(results.couponDetails?.ativo1 || [], ativo1.nome);
+                     const rendimentosAtivo2 = calcularRendimentosAnuaisFromCoupons(results.couponDetails?.ativo2 || [], ativo2.nome);
+                     console.log('💰 Rendimentos calculados a partir dos cupons:', { rendimentosAtivo1, rendimentosAtivo2 });
                      
                       return rendimentosAtivo1.map((rendimento1, index) => {
                        const rendimento2 = rendimentosAtivo2[index];
@@ -1505,8 +1549,9 @@ const InvestmentComparator = () => {
                         const isTableDataFresh = currentHash === lastCalculationHash;
                         
                         if (isTableDataFresh && !hasUnsavedChanges && currentHash === lastCalculationHash) {
-                          const rendimentosAtivo1 = calcularRendimentosAnuais(results.ativo1, ativo1.valorCurva, ativo1);
-                          const rendimentosAtivo2 = calcularRendimentosAnuais(results.ativo2, ativo2.valorCurva, ativo2);
+                          // Use coupon-based calculation for consistency with detailed coupon table
+                          const rendimentosAtivo1 = calcularRendimentosAnuaisFromCoupons(results.couponDetails?.ativo1 || [], ativo1.nome);
+                          const rendimentosAtivo2 = calcularRendimentosAnuaisFromCoupons(results.couponDetails?.ativo2 || [], ativo2.nome);
                           
                           const totalAtivo1 = rendimentosAtivo1.reduce((acc, val) => acc + val, 0);
                           const totalAtivo2 = rendimentosAtivo2.reduce((acc, val) => acc + val, 0);
@@ -1903,12 +1948,38 @@ const InvestmentComparator = () => {
                       </div>}
                   </div>
                   
-                  <div className="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
-                    <p className="text-sm text-blue-800">
-                      <strong>Sistema de Fluxo de Caixa:</strong> Os cupons são calculados com IR regressivo baseado no tempo de aplicação 
-                      e reinvestidos pela curva CDI projetada do momento do pagamento até o vencimento. Otimizado para títulos diretos.
-                    </p>
-                  </div>
+                   <div className="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                     <p className="text-sm text-blue-800">
+                       <strong>Sistema de Fluxo de Caixa:</strong> Os cupons são calculados com IR regressivo baseado no tempo de aplicação 
+                       e reinvestidos pela curva CDI projetada do momento do pagamento até o vencimento. Otimizado para títulos diretos.
+                     </p>
+                     {/* Validation message to show data consistency */}
+                     {(() => {
+                       const rendimentosAnuaisAtivo1 = calcularRendimentosAnuaisFromCoupons(results.couponDetails?.ativo1 || [], ativo1.nome);
+                       const rendimentosAnuaisAtivo2 = calcularRendimentosAnuaisFromCoupons(results.couponDetails?.ativo2 || [], ativo2.nome);
+                       const totalAnualAtivo1 = rendimentosAnuaisAtivo1.reduce((sum, val) => sum + val, 0);
+                       const totalAnualAtivo2 = rendimentosAnuaisAtivo2.reduce((sum, val) => sum + val, 0);
+                       const totalCouponsAtivo1 = results.couponDetails?.ativo1?.reduce((sum, c) => sum + c.reinvested, 0) || 0;
+                       const totalCouponsAtivo2 = results.couponDetails?.ativo2?.reduce((sum, c) => sum + c.reinvested, 0) || 0;
+                       
+                       const isConsistent1 = Math.abs(totalAnualAtivo1 - totalCouponsAtivo1) < 0.01;
+                       const isConsistent2 = Math.abs(totalAnualAtivo2 - totalCouponsAtivo2) < 0.01;
+                       
+                       if (isConsistent1 && isConsistent2) {
+                         return (
+                           <p className="text-sm text-green-800 mt-2">
+                             ✅ <strong>Validação:</strong> Os dados da tabela "Comparação Ano a Ano" e "Detalhamento dos Cupons" estão consistentes.
+                           </p>
+                         );
+                       } else {
+                         return (
+                           <p className="text-sm text-red-800 mt-2">
+                             ⚠️ <strong>Inconsistência detectada:</strong> Verifique os cálculos entre as tabelas.
+                           </p>
+                         );
+                       }
+                     })()}
+                   </div>
                   
                   {/* Final Analysis Summary */}
                   <div className="mt-6 p-4 bg-gradient-to-r from-financial-light/30 to-financial-light/10 rounded-lg border border-financial-primary/20">
