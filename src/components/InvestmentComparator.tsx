@@ -1490,13 +1490,11 @@ const InvestmentComparator = () => {
                  <div className="overflow-x-auto">
                    <table className="w-full border-collapse">
                      <thead>
-                       <tr className="bg-gradient-to-r from-financial-primary to-financial-secondary text-white">
-                         <th className="p-3 text-left border">Ano</th>
-                         <th className="p-3 text-left border">Rendimentos {ativo1.nome}</th>
-                         <th className="p-3 text-left border">Rendimentos {ativo2.nome}</th>
-                         <th className="p-3 text-left border">Diferença</th>
-                         <th className="p-3 text-left border">Vantagem</th>
-                       </tr>
+                        <tr className="bg-gradient-to-r from-financial-primary to-financial-secondary text-white">
+                          <th className="p-3 text-left border">Ano</th>
+                          <th className="p-3 text-left border">Rendimentos {ativo1.nome}</th>
+                          <th className="p-3 text-left border">Rendimentos {ativo2.nome}</th>
+                        </tr>
                      </thead>
                       <tbody>
                         {(() => {
@@ -1515,11 +1513,11 @@ const InvestmentComparator = () => {
                       console.log('⚠️ DADOS DA TABELA ANUAL DESATUALIZADOS! Forçando recálculo...');
                       return (
                         <tr>
-                          <td colSpan={5} className="p-4 text-center text-yellow-700 bg-yellow-50">
-                            <strong>⚠️ Dados alterados</strong><br/>
-                            Recalcule para ver os rendimentos anuais com as novas projeções CDI/IPCA
-                          </td>
-                        </tr>
+                           <td colSpan={3} className="p-4 text-center text-yellow-700 bg-yellow-50">
+                             <strong>⚠️ Dados alterados</strong><br/>
+                             Recalcule para ver os rendimentos anuais com as novas projeções CDI/IPCA
+                           </td>
+                         </tr>
                       );
                     }
                     
@@ -1527,25 +1525,19 @@ const InvestmentComparator = () => {
                      const rendimentosAtivo2 = calcularRendimentosAnuais(results.ativo2, ativo2.valorCurva, ativo2);
                      console.log('💰 Rendimentos calculados:', { rendimentosAtivo1, rendimentosAtivo2 });
                      
-                     return rendimentosAtivo1.map((rendimento1, index) => {
-                      const rendimento2 = rendimentosAtivo2[index];
-                      const diferenca = rendimento1 - rendimento2;
-                      const vantagem = diferenca >= 0 ? ativo1.nome : ativo2.nome;
-                      const isUltimoAno = index === rendimentosAtivo1.length - 1;
-                      return <tr key={index} className={`even:bg-muted/50 ${isUltimoAno ? 'bg-gradient-to-r from-financial-light/30 to-financial-light/10 font-bold' : ''}`}>
-                               <td className="p-3 border font-semibold">{anoAtual + index}</td>
-                               <td className={`p-3 border font-mono ${rendimento1 >= 0 ? 'text-financial-success' : 'text-financial-danger'}`}>
-                                 {rendimento1 >= 0 ? '+' : ''}R$ {rendimento1.toLocaleString('pt-BR')}
-                               </td>
-                               <td className={`p-3 border font-mono ${rendimento2 >= 0 ? 'text-financial-success' : 'text-financial-danger'}`}>
-                                 {rendimento2 >= 0 ? '+' : ''}R$ {rendimento2.toLocaleString('pt-BR')}
-                               </td>
-                               <td className={`p-3 border font-mono font-bold ${diferenca >= 0 ? 'text-financial-success' : 'text-financial-danger'}`}>
-                                 {diferenca >= 0 ? '+' : ''}R$ {diferenca.toLocaleString('pt-BR')}
-                               </td>
-                               <td className="p-3 border font-semibold">{vantagem}</td>
-                             </tr>;
-                     });
+                      return rendimentosAtivo1.map((rendimento1, index) => {
+                       const rendimento2 = rendimentosAtivo2[index];
+                       const isUltimoAno = index === rendimentosAtivo1.length - 1;
+                       return <tr key={index} className={`even:bg-muted/50 ${isUltimoAno ? 'bg-gradient-to-r from-financial-light/30 to-financial-light/10 font-bold' : ''}`}>
+                                <td className="p-3 border font-semibold">{anoAtual + index}</td>
+                                <td className={`p-3 border font-mono ${rendimento1 >= 0 ? 'text-financial-success' : 'text-financial-danger'}`}>
+                                  {rendimento1 >= 0 ? '+' : ''}R$ {rendimento1.toLocaleString('pt-BR')}
+                                </td>
+                                <td className={`p-3 border font-mono ${rendimento2 >= 0 ? 'text-financial-success' : 'text-financial-danger'}`}>
+                                  {rendimento2 >= 0 ? '+' : ''}R$ {rendimento2.toLocaleString('pt-BR')}
+                                </td>
+                              </tr>;
+                      });
                    })()}
                       </tbody>
                       {(() => {
@@ -1559,8 +1551,6 @@ const InvestmentComparator = () => {
                           
                           const totalAtivo1 = rendimentosAtivo1.reduce((acc, val) => acc + val, 0);
                           const totalAtivo2 = rendimentosAtivo2.reduce((acc, val) => acc + val, 0);
-                          const diferencaTotal = totalAtivo1 - totalAtivo2;
-                          const vantagemTotal = diferencaTotal >= 0 ? ativo1.nome : ativo2.nome;
                           
                           return (
                             <tfoot>
@@ -1572,10 +1562,6 @@ const InvestmentComparator = () => {
                                 <td className={`p-4 border font-mono font-bold text-lg ${totalAtivo2 >= 0 ? 'text-financial-success' : 'text-financial-danger'}`}>
                                   {totalAtivo2 >= 0 ? '+' : ''}R$ {totalAtivo2.toLocaleString('pt-BR')}
                                 </td>
-                                <td className={`p-4 border font-mono font-bold text-lg ${diferencaTotal >= 0 ? 'text-financial-success' : 'text-financial-danger'}`}>
-                                  {diferencaTotal >= 0 ? '+' : ''}R$ {diferencaTotal.toLocaleString('pt-BR')}
-                                </td>
-                                <td className="p-4 border font-bold text-financial-primary">{vantagemTotal}</td>
                               </tr>
                             </tfoot>
                           );
