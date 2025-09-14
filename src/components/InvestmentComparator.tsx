@@ -1532,50 +1532,6 @@ const InvestmentComparator = () => {
               </CardContent>
             </Card>
 
-            {/* Final Analysis */}
-            <Card className="border-financial-success/30 shadow-xl bg-gradient-to-br from-financial-light/50 to-white">
-              <CardContent className="p-6">
-                <h3 className="text-xl font-bold text-financial-primary mb-4">
-                  Análise Final da Comparação:
-                </h3>
-                <div className="space-y-3 text-sm">
-                  <div className="flex justify-between">
-                    <span className="font-medium">Valor Final Líquido ({ativo1.nome}):</span>
-                    <span className="font-mono font-bold">R$ {results.ativo1[results.ativo1.length - 1].toLocaleString('pt-BR')}</span>
-                  </div>
-                  {ativo1.tipoIR !== 'isento' && (
-                    <div className="flex justify-between text-xs text-muted-foreground">
-                      <span>(Após IR de R$ {results.impostoAtivo1.toLocaleString('pt-BR')})</span>
-                    </div>
-                  )}
-                  <div className="flex justify-between">
-                    <span className="font-medium">Valor Final Líquido ({ativo2.nome}):</span>
-                    <span className="font-mono font-bold">R$ {results.ativo2[results.ativo2.length - 1].toLocaleString('pt-BR')}</span>
-                  </div>
-                  {ativo2.tipoIR !== 'isento' && (
-                    <div className="flex justify-between text-xs text-muted-foreground">
-                      <span>(Após IR de R$ {results.impostoAtivo2.toLocaleString('pt-BR')})</span>
-                    </div>
-                  )}
-                  <Separator />
-                  <div className="flex justify-between items-center">
-                    <span className="font-bold text-lg">Vantagem Final:</span>
-                    <div className="text-right">
-                      {(() => {
-                    const diferenca = results.ativo1[results.ativo1.length - 1] - results.ativo2[results.ativo2.length - 1];
-                    const melhorOpcao = diferenca >= 0 ? ativo1.nome : ativo2.nome;
-                    return <div>
-                            <span className={`font-mono font-bold text-lg ${diferenca >= 0 ? 'text-financial-success' : 'text-financial-danger'}`}>
-                              R$ {Math.abs(diferenca).toLocaleString('pt-BR')}
-                            </span>
-                            <div className="text-sm font-medium">a favor de <span className="font-bold">{melhorOpcao}</span></div>
-                          </div>;
-                  })()}
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
             
             {/* Decomposição Detalhada dos Valores Finais */}
             <Card className="border-financial-primary/30 shadow-xl">
@@ -1952,6 +1908,39 @@ const InvestmentComparator = () => {
                       <strong>Sistema de Fluxo de Caixa:</strong> Os cupons são calculados com IR regressivo baseado no tempo de aplicação 
                       e reinvestidos pela curva CDI projetada do momento do pagamento até o vencimento. Otimizado para títulos diretos.
                     </p>
+                  </div>
+                  
+                  {/* Final Analysis Summary */}
+                  <div className="mt-6 p-4 bg-gradient-to-r from-financial-light/30 to-financial-light/10 rounded-lg border border-financial-primary/20">
+                    <h4 className="text-lg font-bold text-financial-primary mb-3">Análise Final da Comparação:</h4>
+                    <div className="space-y-2 text-sm mb-4">
+                      <div className="flex justify-between">
+                        <span className="font-medium">Valor Final Líquido ({ativo1.nome}):</span>
+                        <span className="font-mono font-bold">R$ {results.ativo1[results.ativo1.length - 1].toLocaleString('pt-BR')}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="font-medium">Valor Final Líquido ({ativo2.nome}):</span>
+                        <span className="font-mono font-bold">R$ {results.ativo2[results.ativo2.length - 1].toLocaleString('pt-BR')}</span>
+                      </div>
+                      <hr className="border-financial-primary/20 my-2" />
+                      <div className="flex justify-between items-center">
+                        <span className="font-bold">Vantagem Final:</span>
+                        <div className="text-right">
+                          {(() => {
+                            const diferenca = results.ativo1[results.ativo1.length - 1] - results.ativo2[results.ativo2.length - 1];
+                            const melhorOpcao = diferenca >= 0 ? ativo1.nome : ativo2.nome;
+                            return (
+                              <div>
+                                <span className={`font-mono font-bold ${diferenca >= 0 ? 'text-financial-success' : 'text-financial-danger'}`}>
+                                  R$ {Math.abs(diferenca).toLocaleString('pt-BR')}
+                                </span>
+                                <div className="text-xs font-medium">a favor de <span className="font-bold">{melhorOpcao}</span></div>
+                              </div>
+                            );
+                          })()}
+                        </div>
+                      </div>
+                    </div>
                   </div>
                   
                   <div className="mt-4 p-4 bg-gradient-to-r from-financial-primary/10 to-financial-secondary/10 rounded-lg">
