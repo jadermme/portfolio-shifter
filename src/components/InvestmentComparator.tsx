@@ -1577,7 +1577,7 @@ const InvestmentComparator = () => {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="p-6">
-                  <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 text-sm">
+                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 text-sm">
                     {/* Coluna 1 - Características Básicas */}
                     <div className="space-y-3">
                       <div>
@@ -1588,6 +1588,10 @@ const InvestmentComparator = () => {
                         <span className="text-muted-foreground">Taxa:</span>
                         <div className="font-mono font-semibold">{getTaxaDisplay(ativo2)}</div>
                       </div>
+                    </div>
+                    
+                    {/* Coluna 2 - Datas e IR */}
+                    <div className="space-y-3">
                       <div>
                         <span className="text-muted-foreground">Vencimento:</span>
                         <div className="font-mono font-semibold">{new Date(ativo2.vencimento).toLocaleDateString('pt-BR')}</div>
@@ -1598,7 +1602,7 @@ const InvestmentComparator = () => {
                       </div>
                     </div>
                     
-                    {/* Coluna 2 - Valores Financeiros */}
+                    {/* Coluna 3 - Valores de Compra e Curva */}
                     <div className="space-y-3">
                       <div>
                         <span className="text-muted-foreground">Valor de Compra:</span>
@@ -1608,21 +1612,13 @@ const InvestmentComparator = () => {
                         <span className="text-muted-foreground">Valor de Curva:</span>
                         <div className="font-mono font-semibold">R$ {ativo2.valorCurva.toLocaleString('pt-BR')}</div>
                       </div>
+                    </div>
+                    
+                    {/* Coluna 4 - Cupons */}
+                    <div className="space-y-3">
                       <div>
                         <span className="text-muted-foreground">Cupons Recebidos:</span>
                         <div className="font-mono font-semibold text-financial-success">R$ {ativo2.couponData.total.toLocaleString('pt-BR')}</div>
-                      </div>
-                    </div>
-                    
-                    {/* Coluna 3 - Informação Adicional */}
-                    <div className="col-span-2 lg:col-span-1">
-                      <div className="p-4 bg-gradient-to-r from-financial-secondary/20 to-purple-100/20 rounded-lg border border-financial-secondary/30 h-full flex flex-col justify-center">
-                        <div className="text-center">
-                          <div className="text-sm text-muted-foreground mb-2">Alternativa de Investimento</div>
-                          <div className="text-xs text-muted-foreground">
-                            Este ativo representa a opção comparativa para análise de performance relativa dos investimentos.
-                          </div>
-                        </div>
                       </div>
                     </div>
                   </div>
