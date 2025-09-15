@@ -56,7 +56,11 @@ interface CouponEngineInput {
 interface AssetData {
   nome: string;
   codigo: string;
-  tipoTaxa: 'pre-fixada' | 'percentual-cdi' | 'cdi-mais' | 'ipca-mais';
+  // NEW: Separate fields for Asset Type and Indexer
+  tipoAtivo: 'debenture-incentivada' | 'cri-cra' | 'lci-lca' | 'cdb' | 'fundo-cetipado' | 'tesouro-direto';
+  indexador: 'pre-fixada' | 'percentual-cdi' | 'cdi-mais' | 'ipca-mais';
+  // Legacy field for backward compatibility
+  tipoTaxa?: 'pre-fixada' | 'percentual-cdi' | 'cdi-mais' | 'ipca-mais';
   taxa: number;
   vencimento: string;
   valorInvestido: number;
@@ -78,6 +82,9 @@ interface AssetData {
     year: number;
     months: number[];
   }[]; // Specific months when asset generates earnings
+  // NEW FIELDS FOR FUND DISTRIBUTIONS
+  distribuicaoPorCota?: number; // Monthly distribution per quota (for fundo-cetipado)
+  periodicidadeDistribuicao?: 'mensal' | 'trimestral'; // Distribution frequency
 }
 interface Projecoes {
   cdi: {
@@ -351,7 +358,8 @@ function projectWithReinvestCDI(x: CouponEngineInput, isLimitedAnalysis = false)
 
 // ===================== LEGACY COMPATIBILITY MAPPING =====================
 function mapLegacyToNewFormat(asset: AssetData): RateKind {
-  switch (asset.tipoTaxa) {
+  const indexador = asset.indexador || asset.tipoTaxa || 'pre-fixada';
+  switch (indexador) {
     case 'pre-fixada':
       return 'PRE';
     case 'percentual-cdi':
@@ -450,7 +458,9 @@ const clearFromLocalStorage = (key: string) => {
 const getDefaultAtivo1 = (): AssetData => ({
   nome: '',
   codigo: '',
-  tipoTaxa: 'pre-fixada',
+  tipoAtivo: 'debenture-incentivada',
+  indexador: 'pre-fixada',
+  tipoTaxa: 'pre-fixada', // Legacy field for backward compatibility
   taxa: 0,
   vencimento: '',
   valorInvestido: 0,
@@ -459,18 +469,22 @@ const getDefaultAtivo1 = (): AssetData => ({
   valorVenda: 0,
   tipoCupom: 'nenhum',
   mesesCupons: '',
-  tipoIR: 'renda-fixa',
+  tipoIR: 'isento',
   aliquotaIR: 15,
   rateKind: 'PRE',
   freq: 'SEMIANNUAL',
   earningsStartDate: '',
-  activePeriods: []
+  activePeriods: [],
+  distribuicaoPorCota: 0,
+  periodicidadeDistribuicao: 'mensal'
 });
 
 const getDefaultAtivo2 = (): AssetData => ({
   nome: '',
   codigo: '',
-  tipoTaxa: 'percentual-cdi',
+  tipoAtivo: 'lci-lca',
+  indexador: 'percentual-cdi',
+  tipoTaxa: 'percentual-cdi', // Legacy field for backward compatibility
   taxa: 0,
   vencimento: '',
   valorInvestido: 0,
@@ -505,13 +519,63 @@ const getDefaultProjecoes = (): Projecoes => ({
   }
 });
 
+// Data migration function to handle legacy tipoTaxa field
+const migrateAssetData = (asset: any): AssetData => {
+  if (asset.tipoAtivo && asset.indexador) {
+    // Already migrated
+    return asset as AssetData;
+  }
+  
+  // Legacy data migration
+  const tipoTaxa = asset.tipoTaxa || 'pre-fixada';
+  let tipoAtivo: AssetData['tipoAtivo'] = 'debenture-incentivada';
+  let indexador: AssetData['indexador'] = tipoTaxa;
+  
+  // Try to infer asset type from existing data
+  if (asset.nome?.toLowerCase().includes('lci') || asset.nome?.toLowerCase().includes('lca')) {
+    tipoAtivo = 'lci-lca';
+  } else if (asset.nome?.toLowerCase().includes('cdb')) {
+    tipoAtivo = 'cdb';
+  } else if (asset.nome?.toLowerCase().includes('cri') || asset.nome?.toLowerCase().includes('cra')) {
+    tipoAtivo = 'cri-cra';
+  } else if (asset.nome?.toLowerCase().includes('tesouro')) {
+    tipoAtivo = 'tesouro-direto';
+  } else if (asset.nome?.toLowerCase().includes('fundo') || asset.nome?.toLowerCase().includes('fii')) {
+    tipoAtivo = 'fundo-cetipado';
+  }
+  
+  return {
+    ...asset,
+    tipoAtivo,
+    indexador,
+    tipoTaxa, // Keep for backward compatibility
+    distribuicaoPorCota: asset.distribuicaoPorCota || 0,
+    periodicidadeDistribuicao: asset.periodicidadeDistribuicao || 'mensal'
+  };
+};
+
+// Enhanced load function with migration
+const loadAssetWithMigration = (key: string, defaultValue: AssetData): AssetData => {
+  try {
+    const item = localStorage.getItem(key);
+    if (item) {
+      const parsedItem = JSON.parse(item);
+      return migrateAssetData(parsedItem);
+    }
+    return defaultValue;
+  } catch (error) {
+    console.error('Erro ao carregar e migrar dados:', error);
+    return defaultValue;
+  }
+};
+
 const InvestmentComparator = () => {
   const { toast } = useToast();
   const [ativo1, setAtivo1] = useState<AssetData>(() => 
-    loadFromLocalStorage(STORAGE_KEYS.ativo1, getDefaultAtivo1())
+    loadAssetWithMigration(STORAGE_KEYS.ativo1, getDefaultAtivo1())
   );
   const [ativo2, setAtivo2] = useState<AssetData>(() => 
-    loadFromLocalStorage(STORAGE_KEYS.ativo2, getDefaultAtivo2())
+    loadAssetWithMigration(STORAGE_KEYS.ativo2, getDefaultAtivo2())
   );
   const [projecoes, setProjecoes] = useState<Projecoes>(() => 
     loadProjectionsWithVersionCheck()
@@ -691,7 +755,8 @@ const InvestmentComparator = () => {
     console.log(`🎯 Calculando taxa real para ${dados.nome} - Ano: ${anoKey}, Taxa base: ${dados.taxa}%`);
     
     // Removed earningsStartDate check that was zeroing rates
-    switch (dados.tipoTaxa) {
+    const indexador = dados.indexador || dados.tipoTaxa || 'pre-fixada';
+    switch (indexador) {
       case 'pre-fixada':
         const taxaPre = dados.taxa / 100;
         console.log(`💰 Taxa pré-fixada: ${taxaPre * 100}%`);
@@ -989,35 +1054,8 @@ const InvestmentComparator = () => {
     }
   };
   const limparDados = () => {
-    setAtivo1({
-      nome: '',
-      codigo: '',
-      tipoTaxa: 'pre-fixada',
-      taxa: 0,
-      vencimento: '',
-      valorInvestido: 0,
-      couponData: { coupons: [], total: 0 },
-      valorCurva: 0,
-      valorVenda: 0,
-      tipoCupom: 'semestral',
-      mesesCupons: '',
-      tipoIR: 'isento',
-      aliquotaIR: 0
-    });
-    setAtivo2({
-      nome: '',
-      codigo: '',
-      tipoTaxa: 'pre-fixada',
-      taxa: 0,
-      vencimento: '',
-      valorInvestido: 0,
-      couponData: { coupons: [], total: 0 },
-      valorCurva: 0,
-      tipoCupom: 'semestral',
-      mesesCupons: '',
-      tipoIR: 'isento',
-      aliquotaIR: 0
-    });
+    setAtivo1(getDefaultAtivo1());
+    setAtivo2(getDefaultAtivo2());
     setShowResults(false);
     setResults(null);
 
@@ -1241,7 +1279,15 @@ const InvestmentComparator = () => {
     }
   };
   const getTaxaDisplay = (asset: AssetData) => {
-    switch (asset.tipoTaxa) {
+    const indexador = asset.indexador || asset.tipoTaxa || 'pre-fixada';
+    
+    if (asset.tipoAtivo === 'fundo-cetipado') {
+      const distribuicao = asset.distribuicaoPorCota || 0;
+      const periodicidade = asset.periodicidadeDistribuicao || 'mensal';
+      return `R$ ${distribuicao.toFixed(2)}/${periodicidade === 'mensal' ? 'mês' : 'trimestre'}`;
+    }
+    
+    switch (indexador) {
       case 'pre-fixada':
         return `${asset.taxa.toFixed(2)}% a.a.`;
       case 'percentual-cdi':
@@ -1254,6 +1300,41 @@ const InvestmentComparator = () => {
         return `${asset.taxa.toFixed(2)}%`;
     }
   };
+
+  const getTipoAtivoDisplay = (tipoAtivo: string) => {
+    switch (tipoAtivo) {
+      case 'debenture-incentivada':
+        return 'Debênture Incentivada';
+      case 'cri-cra':
+        return 'CRI/CRA';
+      case 'lci-lca':
+        return 'LCI/LCA';
+      case 'cdb':
+        return 'CDB';
+      case 'fundo-cetipado':
+        return 'Fundo Cetipado (FII)';
+      case 'tesouro-direto':
+        return 'Tesouro Direto';
+      default:
+        return tipoAtivo;
+    }
+  };
+
+  const getIndexadorDisplay = (indexador: string) => {
+    switch (indexador) {
+      case 'pre-fixada':
+        return 'Pré-fixada';
+      case 'percentual-cdi':
+        return '% CDI';
+      case 'cdi-mais':
+        return 'CDI + Taxa Pré';
+      case 'ipca-mais':
+        return 'IPCA + Taxa Pré';
+      default:
+        return indexador;
+    }
+  };
+
   const getTipoTaxaDisplay = (tipoTaxa: string) => {
     switch (tipoTaxa) {
       case 'pre-fixada':
@@ -1269,6 +1350,17 @@ const InvestmentComparator = () => {
     }
   };
   const getIRDisplay = (asset: AssetData, anosProjecao: number) => {
+    // Special handling for Fundo Cetipado (FII)
+    if (asset.tipoAtivo === 'fundo-cetipado') {
+      return 'Isento (Distribuições)';
+    }
+    
+    // Special handling for CDB with regressive IR
+    if (asset.tipoAtivo === 'cdb') {
+      const aliquota = calcularAliquotaIR(asset, anosProjecao);
+      return `${aliquota}% (Tabela Regressiva)`;
+    }
+    
     switch (asset.tipoIR) {
       case 'isento':
         return 'Isento';
@@ -1330,23 +1422,79 @@ const InvestmentComparator = () => {
             <Input id={`${assetKey}-codigo`} value={asset.codigo} onChange={e => handleAssetChange(assetKey, 'codigo', e.target.value)} placeholder="Ex: CRA024001Q9" />
           </div>
           <div className="space-y-2">
-            <Label htmlFor={`${assetKey}-tipoTaxa`}>Tipo de Taxa</Label>
-            <Select value={asset.tipoTaxa} onValueChange={value => handleAssetChange(assetKey, 'tipoTaxa', value)}>
+            <Label htmlFor={`${assetKey}-tipoAtivo`}>Tipo de Ativo</Label>
+            <Select value={asset.tipoAtivo} onValueChange={value => handleAssetChange(assetKey, 'tipoAtivo', value)}>
               <SelectTrigger className="bg-background border-border z-50">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent className="bg-background border-border shadow-lg z-50">
-                <SelectItem value="pre-fixada">Pré-fixada</SelectItem>
-                <SelectItem value="percentual-cdi">% CDI</SelectItem>
-                <SelectItem value="cdi-mais">CDI + Taxa Pré</SelectItem>
-                <SelectItem value="ipca-mais">IPCA + Taxa Pré</SelectItem>
+                <SelectItem value="debenture-incentivada">Debênture Incentivada</SelectItem>
+                <SelectItem value="cri-cra">CRI/CRA</SelectItem>
+                <SelectItem value="lci-lca">LCI/LCA</SelectItem>
+                <SelectItem value="cdb">CDB</SelectItem>
+                <SelectItem value="fundo-cetipado">Fundo Cetipado (FII)</SelectItem>
+                <SelectItem value="tesouro-direto">Tesouro Direto</SelectItem>
               </SelectContent>
             </Select>
           </div>
-          <div className="space-y-2">
-            <Label htmlFor={`${assetKey}-taxa`}>{getTaxaLabel(asset.tipoTaxa)}</Label>
-            <Input id={`${assetKey}-taxa`} type="number" step="0.01" value={asset.taxa} onChange={e => handleAssetChange(assetKey, 'taxa', parseFloat(e.target.value) || 0)} placeholder={getTaxaPlaceholder(asset.tipoTaxa)} />
-          </div>
+          {asset.tipoAtivo !== 'fundo-cetipado' && (
+            <div className="space-y-2">
+              <Label htmlFor={`${assetKey}-indexador`}>Indexador</Label>
+              <Select value={asset.indexador} onValueChange={value => {
+                handleAssetChange(assetKey, 'indexador', value);
+                handleAssetChange(assetKey, 'tipoTaxa', value); // Keep legacy field in sync
+              }}>
+                <SelectTrigger className="bg-background border-border z-50">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="bg-background border-border shadow-lg z-50">
+                  <SelectItem value="pre-fixada">Pré-fixada</SelectItem>
+                  <SelectItem value="percentual-cdi">% CDI</SelectItem>
+                  <SelectItem value="cdi-mais">CDI + Taxa Pré</SelectItem>
+                  <SelectItem value="ipca-mais">IPCA + Taxa Pré</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+          {asset.tipoAtivo === 'fundo-cetipado' ? (
+            <>
+              <div className="space-y-2">
+                <Label htmlFor={`${assetKey}-distribuicao`}>Distribuição por Cota (R$/mês)</Label>
+                <Input 
+                  id={`${assetKey}-distribuicao`} 
+                  type="number" 
+                  step="0.01" 
+                  value={asset.distribuicaoPorCota || 0} 
+                  onChange={e => handleAssetChange(assetKey, 'distribuicaoPorCota', parseFloat(e.target.value) || 0)} 
+                  placeholder="Ex: 0.85" 
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor={`${assetKey}-periodicidade`}>Periodicidade</Label>
+                <Select value={asset.periodicidadeDistribuicao || 'mensal'} onValueChange={value => handleAssetChange(assetKey, 'periodicidadeDistribuicao', value)}>
+                  <SelectTrigger className="bg-background border-border z-50">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="bg-background border-border shadow-lg z-50">
+                    <SelectItem value="mensal">Mensal</SelectItem>
+                    <SelectItem value="trimestral">Trimestral</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </>
+          ) : (
+            <div className="space-y-2">
+              <Label htmlFor={`${assetKey}-taxa`}>{getTaxaLabel(asset.indexador || asset.tipoTaxa || 'pre-fixada')}</Label>
+              <Input 
+                id={`${assetKey}-taxa`} 
+                type="number" 
+                step="0.01" 
+                value={asset.taxa} 
+                onChange={e => handleAssetChange(assetKey, 'taxa', parseFloat(e.target.value) || 0)} 
+                placeholder={getTaxaPlaceholder(asset.indexador || asset.tipoTaxa || 'pre-fixada')} 
+              />
+            </div>
+          )}
           <div className="space-y-2">
             <Label htmlFor={`${assetKey}-vencimento`}>Data Vencimento</Label>
             <Input id={`${assetKey}-vencimento`} type="date" value={asset.vencimento} onChange={e => handleAssetChange(assetKey, 'vencimento', e.target.value)} />
@@ -1667,13 +1815,27 @@ const InvestmentComparator = () => {
                     {/* Coluna 1 - Características Básicas */}
                     <div className="space-y-3">
                       <div>
-                        <span className="text-muted-foreground">Tipo Taxa:</span>
-                        <div className="font-mono font-semibold">{getTipoTaxaDisplay(ativo1.tipoTaxa)}</div>
+                        <span className="text-muted-foreground">Tipo de Ativo:</span>
+                        <div className="font-mono font-semibold">{getTipoAtivoDisplay(ativo1.tipoAtivo)}</div>
                       </div>
-                      <div>
-                        <span className="text-muted-foreground">Taxa:</span>
-                        <div className="font-mono font-semibold">{getTaxaDisplay(ativo1)}</div>
-                      </div>
+                      {ativo1.tipoAtivo !== 'fundo-cetipado' && (
+                        <div>
+                          <span className="text-muted-foreground">Indexador:</span>
+                          <div className="font-mono font-semibold">{getIndexadorDisplay(ativo1.indexador)}</div>
+                        </div>
+                      )}
+              {ativo1.tipoAtivo !== 'fundo-cetipado' && (
+                <div>
+                  <span className="text-muted-foreground">Taxa:</span>
+                  <div className="font-mono font-semibold">{getTaxaDisplay(ativo1)}</div>
+                </div>
+              )}
+              {ativo1.tipoAtivo === 'fundo-cetipado' && (
+                <div>
+                  <span className="text-muted-foreground">Distribuição:</span>
+                  <div className="font-mono font-semibold">{getTaxaDisplay(ativo1)}</div>
+                </div>
+              )}
                       <div>
                         <span className="text-muted-foreground">Vencimento:</span>
                         <div className="font-mono font-semibold">{new Date(ativo1.vencimento).toLocaleDateString('pt-BR')}</div>
@@ -1757,13 +1919,27 @@ const InvestmentComparator = () => {
                     {/* Coluna 1 - Características Básicas */}
                     <div className="space-y-3">
                       <div>
-                        <span className="text-muted-foreground">Tipo Taxa:</span>
-                        <div className="font-mono font-semibold">{getTipoTaxaDisplay(ativo2?.tipoTaxa || 'pre')}</div>
+                        <span className="text-muted-foreground">Tipo de Ativo:</span>
+                        <div className="font-mono font-semibold">{getTipoAtivoDisplay(ativo2.tipoAtivo)}</div>
                       </div>
-                      <div>
-                        <span className="text-muted-foreground">Taxa:</span>
-                        <div className="font-mono font-semibold">{getTaxaDisplay(ativo2) || 'N/A'}</div>
-                      </div>
+                      {ativo2.tipoAtivo !== 'fundo-cetipado' && (
+                        <div>
+                          <span className="text-muted-foreground">Indexador:</span>
+                          <div className="font-mono font-semibold">{getIndexadorDisplay(ativo2.indexador)}</div>
+                        </div>
+                      )}
+                      {ativo2.tipoAtivo !== 'fundo-cetipado' && (
+                        <div>
+                          <span className="text-muted-foreground">Taxa:</span>
+                          <div className="font-mono font-semibold">{getTaxaDisplay(ativo2) || 'N/A'}</div>
+                        </div>
+                      )}
+                      {ativo2.tipoAtivo === 'fundo-cetipado' && (
+                        <div>
+                          <span className="text-muted-foreground">Distribuição:</span>
+                          <div className="font-mono font-semibold">{getTaxaDisplay(ativo2) || 'N/A'}</div>
+                        </div>
+                      )}
                     </div>
                     
                     {/* Coluna 2 - Datas e IR */}
