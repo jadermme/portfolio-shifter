@@ -57,29 +57,46 @@ export const CouponManager: React.FC<CouponManagerProps> = ({ couponData, onChan
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <Label className="text-sm font-medium">Cupons Recebidos Individualmente</Label>
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          onClick={addCoupon}
-          className="h-8 px-3"
-        >
-          <Plus className="h-4 w-4 mr-1" />
-          Adicionar Cupom
-        </Button>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        {/* Left section - Add button and title */}
+        <div className="lg:col-span-1">
+          <div className="flex flex-col space-y-3">
+            <Label className="text-sm font-medium">Cupons Recebidos Individualmente</Label>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={addCoupon}
+              className="w-full"
+            >
+              <Plus className="h-4 w-4 mr-1" />
+              Adicionar Cupom
+            </Button>
+          </div>
+        </div>
+
+        {/* Right section - Total */}
+        <div className="lg:col-span-2">
+          <div className="p-4 bg-muted/50 rounded-lg h-full flex items-center justify-center">
+            <div className="text-center">
+              <div className="text-sm text-muted-foreground mb-1">Total de Cupons</div>
+              <div className="text-2xl font-bold text-financial-success">
+                R$ {couponData.total.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
       {couponData.coupons.length > 0 && (
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-medium">
-              Lista de Cupons
+              Lista de Cupons ({couponData.coupons.length} cupons cadastrados)
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-3">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-6 gap-3">
               {couponData.coupons.map((coupon, index) => (
                 <div key={coupon.id} className="p-3 bg-muted/30 rounded-lg space-y-2">
                   <div className="flex justify-between items-center mb-2">
@@ -127,15 +144,6 @@ export const CouponManager: React.FC<CouponManagerProps> = ({ couponData, onChan
           </CardContent>
         </Card>
       )}
-
-      <div className="p-3 bg-muted/50 rounded-lg">
-        <div className="flex justify-between items-center">
-          <span className="text-sm font-medium">Total de Cupons:</span>
-          <span className="text-lg font-bold text-financial-success">
-            R$ {couponData.total.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-          </span>
-        </div>
-      </div>
     </div>
   );
 };
