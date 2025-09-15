@@ -1296,7 +1296,7 @@ const InvestmentComparator = () => {
         </div>
 
         {/* Asset Forms */}
-        <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 mb-6">
+        <div className="grid grid-cols-1 gap-6 mb-6">
           {renderAssetForm(ativo1, 'ativo1', '📊 Ativo 1', 'financial-primary')}
           
           <div className="flex items-center justify-center xl:hidden">
