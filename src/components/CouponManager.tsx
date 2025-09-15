@@ -124,38 +124,45 @@ export const CouponManager: React.FC<CouponManagerProps> = ({ couponData, onChan
                   </TableCell>
                   
                   <TableCell>
-                    <Popover 
-                      open={datePickerOpen === coupon.id} 
-                      onOpenChange={(open) => setDatePickerOpen(open ? coupon.id : null)}
-                    >
-                      <PopoverTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          className={cn(
-                            "w-full justify-start text-left font-normal h-9 px-3",
-                            !coupon.date && "text-muted-foreground"
-                          )}
-                        >
-                          <CalendarIcon className="mr-2 h-4 w-4" />
-                          {formatDateDisplay(coupon.date)}
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
-                        <Calendar
-                          mode="single"
-                          selected={coupon.date ? new Date(coupon.date) : undefined}
-                          onSelect={(date) => {
-                            if (date) {
-                              updateCoupon(coupon.id, 'date', format(date, 'yyyy-MM-dd'));
-                            }
-                            setDatePickerOpen(null);
-                          }}
-                          initialFocus
-                          className="pointer-events-auto"
-                          locale={ptBR}
-                        />
-                      </PopoverContent>
-                    </Popover>
+                    <div className="flex items-center gap-2">
+                      <Input
+                        type="date"
+                        value={coupon.date || ''}
+                        onChange={(e) => updateCoupon(coupon.id, 'date', e.target.value)}
+                        className="h-9 flex-1"
+                        placeholder="dd/mm/aaaa"
+                      />
+                      <Popover 
+                        open={datePickerOpen === coupon.id} 
+                        onOpenChange={(open) => setDatePickerOpen(open ? coupon.id : null)}
+                      >
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-9 w-9 p-0"
+                            title="Abrir calendário"
+                          >
+                            <CalendarIcon className="h-4 w-4" />
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar
+                            mode="single"
+                            selected={coupon.date ? new Date(coupon.date) : undefined}
+                            onSelect={(date) => {
+                              if (date) {
+                                updateCoupon(coupon.id, 'date', format(date, 'yyyy-MM-dd'));
+                              }
+                              setDatePickerOpen(null);
+                            }}
+                            initialFocus
+                            className="pointer-events-auto"
+                            locale={ptBR}
+                          />
+                        </PopoverContent>
+                      </Popover>
+                    </div>
                   </TableCell>
                   
                   <TableCell>
