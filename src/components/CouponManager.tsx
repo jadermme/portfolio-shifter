@@ -91,16 +91,11 @@ export const CouponManager: React.FC<CouponManagerProps> = ({ couponData, onChan
   return (
     <div className="space-y-6">
       {/* Header Section */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <Label className="text-lg font-semibold">Cupons Recebidos Individualmente</Label>
-          <p className="text-sm text-muted-foreground mt-1">
-            {couponData.coupons.length} cupons cadastrados
-          </p>
-        </div>
-        <Badge variant="outline" className="bg-financial-success/10 text-financial-success border-financial-success/20 px-4 py-2 text-base font-semibold">
-          Total: {formatCurrency(couponData.total)}
-        </Badge>
+      <div>
+        <Label className="text-lg font-semibold">Cupons Recebidos Individualmente</Label>
+        <p className="text-sm text-muted-foreground mt-1">
+          {couponData.coupons.length} cupons cadastrados
+        </p>
       </div>
 
       {/* Table Section */}
@@ -223,6 +218,13 @@ export const CouponManager: React.FC<CouponManagerProps> = ({ couponData, onChan
           <p className="text-sm">Clique no botão abaixo para adicionar o primeiro cupom.</p>
         </div>
       )}
+
+      {/* Total Section */}
+      <div className="flex justify-center">
+        <Badge variant="outline" className="bg-financial-success/10 text-financial-success border-financial-success/20 px-4 py-2 text-base font-semibold">
+          Total: {formatCurrency(couponData.total)}
+        </Badge>
+      </div>
 
       {/* Add Coupon Button */}
       <div className="flex justify-center">
