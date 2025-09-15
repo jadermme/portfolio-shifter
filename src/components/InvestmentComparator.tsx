@@ -1568,62 +1568,30 @@ const InvestmentComparator = () => {
                 </CardContent>
               </Card>
 
-              {/* Table 2 - BTDI11 Characteristics */}
-              <Card key="ativo2-btdi11-card" className="border-financial-info/30 shadow-xl">
-                <CardHeader className="bg-gradient-to-r from-financial-info to-blue-600 text-white rounded-t-lg">
-                  <CardTitle className="flex items-center gap-2 text-lg font-bold">
-                    <BarChart3 className="h-6 w-6" />
-                    ATIVO 2 - BTDI11
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="p-6">
-                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 text-sm">
-                    {/* Coluna 1 - Características Básicas */}
-                    <div className="space-y-3">
-                      <div>
-                        <span className="text-muted-foreground">Tipo Taxa:</span>
-                        <div className="font-mono font-semibold">{getTipoTaxaDisplay(ativo2.tipoTaxa)}</div>
+              {/* DEBUG: Tentando renderizar Ativo 2 */}
+              {(() => {
+                console.log('DEBUG: Tentando renderizar card BTDI11', { ativo2, results });
+                console.log('DEBUG: Card BTDI11 deveria estar visível agora');
+                return (
+                  <Card key="ativo2-btdi11-simplified" className="border-2 border-red-500 shadow-xl">
+                    <CardHeader className="bg-red-500 text-white rounded-t-lg">
+                      <CardTitle className="flex items-center gap-2 text-xl font-bold">
+                        <BarChart3 className="h-6 w-6" />
+                        ATIVO 2 - BTDI11 (TESTE)
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-6">
+                      <div className="text-lg font-bold text-center">
+                        ESTE É UM TESTE - SE VOCÊ VÊ ISSO, O CARD ESTÁ FUNCIONANDO
                       </div>
-                      <div>
-                        <span className="text-muted-foreground">Taxa:</span>
-                        <div className="font-mono font-semibold">{getTaxaDisplay(ativo2)}</div>
+                      <div className="mt-4 text-sm">
+                        <p>Valor Investido: R$ {ativo2?.valorInvestido || 'N/A'}</p>
+                        <p>Tipo Taxa: {ativo2?.tipoTaxa || 'N/A'}</p>
                       </div>
-                    </div>
-                    
-                    {/* Coluna 2 - Datas e IR */}
-                    <div className="space-y-3">
-                      <div>
-                        <span className="text-muted-foreground">Vencimento:</span>
-                        <div className="font-mono font-semibold">{new Date(ativo2.vencimento).toLocaleDateString('pt-BR')}</div>
-                      </div>
-                      <div>
-                        <span className="text-muted-foreground">Tributação IR:</span>
-                        <div className="font-mono font-semibold">{getIRDisplay(ativo2, results.anosProjecao)}</div>
-                      </div>
-                    </div>
-                    
-                    {/* Coluna 3 - Valores de Compra e Curva */}
-                    <div className="space-y-3">
-                      <div>
-                        <span className="text-muted-foreground">Valor de Compra:</span>
-                        <div className="font-mono font-semibold">R$ {ativo2.valorInvestido.toLocaleString('pt-BR')}</div>
-                      </div>
-                      <div>
-                        <span className="text-muted-foreground">Valor de Curva:</span>
-                        <div className="font-mono font-semibold">R$ {ativo2.valorCurva.toLocaleString('pt-BR')}</div>
-                      </div>
-                    </div>
-                    
-                    {/* Coluna 4 - Cupons */}
-                    <div className="space-y-3">
-                      <div>
-                        <span className="text-muted-foreground">Cupons Recebidos:</span>
-                        <div className="font-mono font-semibold text-financial-success">R$ {ativo2.couponData.total.toLocaleString('pt-BR')}</div>
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+                    </CardContent>
+                  </Card>
+                );
+              })()}
             </div>
 
 
