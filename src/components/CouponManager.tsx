@@ -6,6 +6,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Trash2, Plus, CalendarIcon, Edit } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -90,6 +91,54 @@ export const CouponManager: React.FC<CouponManagerProps> = ({ couponData, onChan
 
   return (
     <div className="space-y-6">
+      {/* Configuration Section */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 rounded-lg border bg-card">
+        <div className="space-y-2">
+          <Label className="text-sm font-medium">Tipo de Cupom</Label>
+          <Select defaultValue="semestral">
+            <SelectTrigger>
+              <SelectValue placeholder="Selecione o tipo" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="mensal">Mensal</SelectItem>
+              <SelectItem value="semestral">Semestral</SelectItem>
+              <SelectItem value="anual">Anual</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        
+        <div className="space-y-2">
+          <Label className="text-sm font-medium">Meses Cupons</Label>
+          <Select defaultValue="fev-ago">
+            <SelectTrigger>
+              <SelectValue placeholder="Selecione os meses" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="fev-ago">Fevereiro e Agosto</SelectItem>
+              <SelectItem value="jan-jul">Janeiro e Julho</SelectItem>
+              <SelectItem value="mar-set">Março e Setembro</SelectItem>
+              <SelectItem value="abr-out">Abril e Outubro</SelectItem>
+              <SelectItem value="mai-nov">Maio e Novembro</SelectItem>
+              <SelectItem value="jun-dez">Junho e Dezembro</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        
+        <div className="space-y-2">
+          <Label className="text-sm font-medium">Tipo de Tributação</Label>
+          <Select defaultValue="isento">
+            <SelectTrigger>
+              <SelectValue placeholder="Selecione a tributação" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="isento">Isento de IR</SelectItem>
+              <SelectItem value="tributado">Tributado</SelectItem>
+              <SelectItem value="diferido">Diferido</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
       {/* Header Section */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
