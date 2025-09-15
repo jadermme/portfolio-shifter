@@ -1367,7 +1367,7 @@ const InvestmentComparator = () => {
 
         {/* Asset Forms */}
         <div className="grid grid-cols-1 gap-6 mb-6">
-          {renderAssetForm(ativo1, 'ativo1', '📊 Ativo 1', 'financial-primary')}
+          {renderAssetForm(ativo1, 'ativo1', `📊 ${ativo1.nome || 'Ativo 1'}`, 'financial-primary')}
           
           <div className="flex items-center justify-center xl:hidden">
             <div className="p-3 bg-gradient-to-r from-financial-primary to-financial-secondary rounded-full">
@@ -1375,7 +1375,7 @@ const InvestmentComparator = () => {
             </div>
           </div>
           
-          {renderAssetForm(ativo2, 'ativo2', '📈 Ativo 2', 'financial-secondary')}
+          {renderAssetForm(ativo2, 'ativo2', `📈 ${ativo2.nome || 'Ativo 2'}`, 'financial-secondary')}
         </div>
 
         {/* Projections */}
@@ -1470,7 +1470,7 @@ const InvestmentComparator = () => {
                 <CardHeader className="bg-gradient-to-r from-financial-success to-green-600 text-white rounded-t-lg">
                   <CardTitle className="flex items-center gap-2">
                     <TrendingUp className="h-5 w-5" />
-                    CRA ZAMP - Análise de Venda Antecipada
+                    {ativo1.nome} - Análise de Venda Antecipada
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="p-6">
@@ -1560,7 +1560,7 @@ const InvestmentComparator = () => {
                 <CardHeader className="bg-gradient-to-r from-financial-info to-blue-600 text-white rounded-t-lg">
                   <CardTitle className="flex items-center gap-2 text-lg font-bold">
                     <BarChart3 className="h-6 w-6" />
-                    ATIVO 2 - BTDI11
+                    ATIVO 2 - {ativo2.nome || 'BTDI11'}
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="p-6">
