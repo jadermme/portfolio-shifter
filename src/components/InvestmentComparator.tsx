@@ -1771,7 +1771,7 @@ const InvestmentComparator = () => {
                     <span className="font-mono font-bold text-lg">R$ {results.ativo1[results.ativo1.length - 1].toLocaleString('pt-BR')}</span>
                   </div>
                   <div className="flex justify-between items-center py-2 border-b border-financial-primary/20">
-                    <span className="font-medium text-financial-primary">Valor Final Líquido ({ativo2.nome}):</span>
+                    <span className="font-medium text-financial-primary">Valor Futuro (BTDI11):</span>
                     <span className="font-mono font-bold text-lg">R$ {results.ativo2[results.ativo2.length - 1].toLocaleString('pt-BR')}</span>
                   </div>
                   
