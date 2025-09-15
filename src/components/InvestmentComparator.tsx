@@ -289,6 +289,12 @@ function projectWithReinvestCDI(x: CouponEngineInput, isLimitedAnalysis = false)
     const lastCouponDate = coupons[coupons.length - 1].couponDate;
     const daysFromLastCoupon = daysBetween(lastCouponDate, x.endISO);
     
+    console.log(`🔄 CAPITALIZAÇÃO DO PRINCIPAL:`);
+    console.log(`📅 Último Cupom: ${lastCouponDate}`);
+    console.log(`📅 Data Final: ${x.endISO}`);
+    console.log(`📊 Dias para Capitalizar: ${daysFromLastCoupon}`);
+    console.log(`💰 Principal Base: R$ ${x.principal.toLocaleString('pt-BR')}`);
+    
     if (daysFromLastCoupon > 0) {
       // Get asset rate for capitalization period
       const cdiAA = getCDIRateForMonth(x.cdiCurve, x.endISO);
@@ -305,12 +311,18 @@ function projectWithReinvestCDI(x: CouponEngineInput, isLimitedAnalysis = false)
       // Capitalize from last coupon to end date
       const capitalizationFactor = Math.pow(1 + rAssetAA, daysFromLastCoupon / 365);
       principalGrossFinal = basePrincipal * capitalizationFactor;
+      
+      console.log(`📈 Taxa do Ativo: ${(rAssetAA * 100).toFixed(4)}% a.a.`);
+      console.log(`🔢 Fator Capitalização: ${capitalizationFactor.toFixed(6)}`);
+      console.log(`💵 Principal Capitalizado: R$ ${principalGrossFinal.toLocaleString('pt-BR')}`);
+      console.log(`💲 Aumento: R$ ${(principalGrossFinal - x.principal).toLocaleString('pt-BR')}`);
     } else {
       principalGrossFinal = basePrincipal;
     }
   } else {
     // Normal case: redemption at par
     principalGrossFinal = basePrincipal;
+    console.log(`🏦 Resgate ao Par: R$ ${principalGrossFinal.toLocaleString('pt-BR')}`);
   }
 
   const diasTotal = daysBetween(x.startISO, x.endISO);
@@ -318,7 +330,17 @@ function projectWithReinvestCDI(x: CouponEngineInput, isLimitedAnalysis = false)
   const gainPrincipal = Math.max(0, principalGrossFinal - x.principal);
   const irPrincipal = gainPrincipal * aliqFinal;
   const principalNetFinal = principalGrossFinal - irPrincipal;
-  const totalVF = principalNetFinal + coupons.reduce((s, c) => s + c.reinvested, 0);
+  const totalCouponsReinvested = coupons.reduce((s, c) => s + c.reinvested, 0);
+  const totalVF = principalNetFinal + totalCouponsReinvested;
+  
+  console.log(`💰 BREAKDOWN FINAL:`);
+  console.log(`🔹 Principal Bruto Final: R$ ${principalGrossFinal.toLocaleString('pt-BR')}`);
+  console.log(`🔹 IR sobre Ganho Principal: R$ ${irPrincipal.toLocaleString('pt-BR')}`);
+  console.log(`🔹 Principal Líquido: R$ ${principalNetFinal.toLocaleString('pt-BR')}`);
+  console.log(`🔹 Cupons Reinvestidos: R$ ${totalCouponsReinvested.toLocaleString('pt-BR')}`);
+  console.log(`🏆 VALOR FINAL TOTAL: R$ ${totalVF.toLocaleString('pt-BR')}`);
+  console.log(`===============================================`);
+  
   return {
     coupons,
     principalNetFinal,
@@ -367,54 +389,75 @@ const InvestmentComparator = () => {
     toast
   } = useToast();
   const [ativo1, setAtivo1] = useState<AssetData>({
-    nome: 'CRA ZAMP',
-    codigo: 'CRA024001Q9',
+    nome: 'Debêntures Origem Energia',
+    codigo: 'ORIG21',
     tipoTaxa: 'pre-fixada',
-    taxa: 12.03,
-    vencimento: '2029-02-15',
-    valorInvestido: 236792,
+    taxa: 12.44,
+    vencimento: '2035-12-15',
+    valorInvestido: 249258.64,
     couponData: { 
       coupons: [
-        { id: '1', date: '2025-02-15', value: 10298.5 },
-        { id: '2', date: '2025-08-15', value: 30895.5 }
+        { id: '1', date: '2025-06-15', value: 15547.73 },
+        { id: '2', date: '2025-12-15', value: 15547.73 }
       ], 
-      total: 41194 
+      total: 31095.46 
     },
-    valorCurva: 231039,
+    valorCurva: 247309.36,
     valorVenda: 216268,
     tipoCupom: 'semestral',
-    mesesCupons: '2,8',
-    // Fevereiro e Agosto
+    mesesCupons: '6,12',
+    // Junho e Dezembro
     tipoIR: 'isento',
     aliquotaIR: 0,
     rateKind: 'PRE',
     freq: 'SEMIANNUAL',
-    // CRA ZAMP specific: earnings from September 2025 onwards (August 2025 cupom already paid)
-    earningsStartDate: '2025-09-01',
+    // Debêntures Origem Energia: earnings from January 2025 onwards
+    earningsStartDate: '2025-01-01',
     activePeriods: [{
       year: 2025,
-      months: [9, 10, 11, 12]
+      months: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
     },
-    // Sept-Dec 2025 for accrual (4 meses ativos)
+    // Full year 2025
     {
       year: 2026,
       months: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
     },
-    // Full years after 2025
     {
       year: 2027,
       months: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
-    }, {
+    },
+    {
       year: 2028,
       months: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
-    }, {
+    },
+    {
       year: 2029,
-      months: [1, 2]
-    }, // Jan-Feb 2029 until maturity (including February payment)
+      months: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
+    },
     {
       year: 2030,
+      months: [1, 2, 3, 4] // Until April 30, 2030 (analysis cutoff)
+    },
+    {
+      year: 2031,
       months: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
-    } // 2030: CRA ZAMP reaplicado a 100% CDI após vencimento em fev/2029
+    },
+    {
+      year: 2032,
+      months: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
+    },
+    {
+      year: 2033,
+      months: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
+    },
+    {
+      year: 2034,
+      months: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
+    },
+    {
+      year: 2035,
+      months: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
+    } // Until December 2035 maturity
     ]
   });
   const [ativo2, setAtivo2] = useState<AssetData>({
@@ -688,6 +731,11 @@ const InvestmentComparator = () => {
     // Use dataLimite when provided, otherwise use asset's original maturity
     const endDate = dataLimite ? new Date(dataLimite) : new Date(dados.vencimento);
     const endISO = endDate.toISOString().slice(0, 10);
+    
+    console.log(`🔍 Calculando ${dados.nome}:`);
+    console.log(`📊 Valor de Curva (Principal): R$ ${dados.valorCurva.toLocaleString('pt-BR')}`);
+    console.log(`📅 Data Limite: ${dataLimite || 'Sem limite (vencimento natural)'}`);
+    console.log(`🎯 Data Final Análise: ${endISO}`);
 
     // Generate CDI curve from projections
     const cdiCurve = projecoes.cdiCurve || generateCDICurve(projecoes);
@@ -721,6 +769,9 @@ const InvestmentComparator = () => {
     // Calculate cash flows
     // Check if this is a limited analysis (ending before asset's natural maturity)
     const isLimitedAnalysis = dataLimite && new Date(dataLimite) < new Date(dados.vencimento);
+    console.log(`⚖️ Análise Limitada: ${isLimitedAnalysis ? 'SIM' : 'NÃO'}`);
+    console.log(`💰 Taxa: ${dados.taxa}% a.a. (${rateKind})`);
+    
     const result = projectWithReinvestCDI(cashFlowInput, isLimitedAnalysis);
 
     // Build annual values array for compatibility
