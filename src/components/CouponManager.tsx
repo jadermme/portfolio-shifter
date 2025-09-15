@@ -92,11 +92,11 @@ export const CouponManager: React.FC<CouponManagerProps> = ({ couponData, onChan
   return (
     <div className="space-y-6">
       {/* Configuration Section */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 rounded-lg border bg-card">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 p-6 rounded-lg border bg-card">
         <div className="space-y-2">
           <Label className="text-sm font-medium">Tipo de Cupom</Label>
           <Select defaultValue="semestral">
-            <SelectTrigger>
+            <SelectTrigger className="w-full">
               <SelectValue placeholder="Selecione o tipo" />
             </SelectTrigger>
             <SelectContent>
@@ -110,7 +110,7 @@ export const CouponManager: React.FC<CouponManagerProps> = ({ couponData, onChan
         <div className="space-y-2">
           <Label className="text-sm font-medium">Meses Cupons</Label>
           <Select defaultValue="fev-ago">
-            <SelectTrigger>
+            <SelectTrigger className="w-full">
               <SelectValue placeholder="Selecione os meses" />
             </SelectTrigger>
             <SelectContent>
@@ -127,7 +127,7 @@ export const CouponManager: React.FC<CouponManagerProps> = ({ couponData, onChan
         <div className="space-y-2">
           <Label className="text-sm font-medium">Tipo de Tributação</Label>
           <Select defaultValue="isento">
-            <SelectTrigger>
+            <SelectTrigger className="w-full">
               <SelectValue placeholder="Selecione a tributação" />
             </SelectTrigger>
             <SelectContent>
