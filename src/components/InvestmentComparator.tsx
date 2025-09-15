@@ -1490,7 +1490,7 @@ const InvestmentComparator = () => {
                         <th className="p-3 text-left border">Tipo Taxa</th>
                         <th className="p-3 text-left border">Taxa</th>
                         <th className="p-3 text-left border">Vencimento</th>
-                        <th className="p-3 text-left border">Valor Investido</th>
+                        <th className="p-3 text-left border">Valor de Compra</th>
                         <th className="p-3 text-left border">Valor de Curva</th>
                         <th className="p-3 text-left border">Cupons Recebidos</th>
                         <th className="p-3 text-left border">Tributação IR</th>
