@@ -11,6 +11,14 @@ import { useToast } from '@/hooks/use-toast';
 import { CouponManager } from './CouponManager';
 import { CouponSummary } from '@/types/coupon';
 
+// ===================== UTILITY FUNCTIONS =====================
+const formatCurrency = (value: number): string => {
+  return new Intl.NumberFormat('pt-BR', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  }).format(value);
+};
+
 // ===================== NEW CASH FLOW SYSTEM TYPES =====================
 type RateKind = "PRE" | "IPCA+PRE" | "%CDI" | "CDI+PRE";
 type Freq = "MONTHLY" | "SEMIANNUAL";
@@ -2197,20 +2205,20 @@ const InvestmentComparator = () => {
                     <div className="space-y-3">
                       <div>
                         <span className="text-muted-foreground">Valor de Compra:</span>
-                        <div className="font-mono font-semibold">R$ {ativo1.valorInvestido.toLocaleString('pt-BR')}</div>
+                        <div className="font-mono font-semibold">R$ {formatCurrency(ativo1.valorInvestido)}</div>
                       </div>
                       <div>
                         <span className="text-muted-foreground">Valor de Curva:</span>
-                        <div className="font-mono font-semibold">R$ {ativo1.valorCurva.toLocaleString('pt-BR')}</div>
+                        <div className="font-mono font-semibold">R$ {formatCurrency(ativo1.valorCurva)}</div>
                       </div>
                       <div>
                         <span className="text-muted-foreground">Cupons Recebidos:</span>
-                        <div className="font-mono font-semibold text-financial-success">R$ {ativo1.couponData.total.toLocaleString('pt-BR')}</div>
+                        <div className="font-mono font-semibold text-financial-success">R$ {formatCurrency(ativo1.couponData.total)}</div>
                       </div>
                       {ativo1.valorVenda && (
                         <div>
                           <span className="text-muted-foreground">Valor de Venda:</span>
-                          <div className="font-mono font-semibold text-blue-600">R$ {ativo1.valorVenda.toLocaleString('pt-BR')}</div>
+                          <div className="font-mono font-semibold text-blue-600">R$ {formatCurrency(ativo1.valorVenda)}</div>
                         </div>
                       )}
                     </div>
@@ -2228,7 +2236,7 @@ const InvestmentComparator = () => {
                               return (
                                 <div>
                                   <div className={`font-mono text-xl font-bold ${isPositivo ? 'text-financial-success' : 'text-financial-danger'}`}>
-                                    {isPositivo ? '+' : ''}R$ {resultadoVenda.toLocaleString('pt-BR')}
+                                    {isPositivo ? '+' : ''}R$ {formatCurrency(resultadoVenda)}
                                   </div>
                                   <div className={`text-sm ${isPositivo ? 'text-financial-success' : 'text-financial-danger'}`}>
                                     {isPositivo ? '+' : ''}{percentual.toFixed(2)}% sobre o valor investido
@@ -2307,11 +2315,11 @@ const InvestmentComparator = () => {
                     <div className="space-y-3">
                       <div>
                         <span className="text-muted-foreground">Valor de Compra:</span>
-                        <div className="font-mono font-semibold">R$ {(ativo2?.valorInvestido || 0).toLocaleString('pt-BR')}</div>
+                        <div className="font-mono font-semibold">R$ {formatCurrency(ativo2?.valorInvestido || 0)}</div>
                       </div>
                       <div>
                         <span className="text-muted-foreground">Valor de Curva:</span>
-                        <div className="font-mono font-semibold">R$ {(ativo2?.valorCurva || 0).toLocaleString('pt-BR')}</div>
+                        <div className="font-mono font-semibold">R$ {formatCurrency(ativo2?.valorCurva || 0)}</div>
                       </div>
                     </div>
                     
@@ -2320,7 +2328,7 @@ const InvestmentComparator = () => {
                       <div>
                         <span className="text-muted-foreground">Cupons Recebidos:</span>
                         <div className="font-mono font-semibold text-financial-success">
-                          R$ {(ativo2?.couponData?.total || 0).toLocaleString('pt-BR')}
+                          R$ {formatCurrency(ativo2?.couponData?.total || 0)}
                         </div>
                       </div>
                     </div>
@@ -2411,40 +2419,40 @@ const InvestmentComparator = () => {
                         <div className="space-y-3">
                           <div className="flex justify-between items-center p-3 bg-muted/50 rounded-lg">
                             <span className="font-semibold">Principal Investido:</span>
-                            <span className="font-mono text-lg">R$ {breakdown1.principalInvestido.toLocaleString('pt-BR')}</span>
+                            <span className="font-mono text-lg">R$ {formatCurrency(breakdown1.principalInvestido)}</span>
                           </div>
                           
                           <div className="flex justify-between items-center p-3 bg-financial-success/10 rounded-lg border border-financial-success/30">
                             <span className="font-semibold text-financial-success">Cupons Brutos Recebidos:</span>
-                            <span className="font-mono text-lg text-financial-success">+ R$ {breakdown1.cupomsBrutos.toLocaleString('pt-BR')}</span>
+                            <span className="font-mono text-lg text-financial-success">+ R$ {formatCurrency(breakdown1.cupomsBrutos)}</span>
                           </div>
                           
                           <div className="flex justify-between items-center p-3 bg-financial-danger/10 rounded-lg border border-financial-danger/30">
                             <span className="font-semibold text-financial-danger">IR sobre Cupons:</span>
-                            <span className="font-mono text-lg text-financial-danger">- R$ {breakdown1.irSobreCupons.toLocaleString('pt-BR')}</span>
+                            <span className="font-mono text-lg text-financial-danger">- R$ {formatCurrency(breakdown1.irSobreCupons)}</span>
                           </div>
                           
                           <div className="flex justify-between items-center p-3 bg-financial-success/10 rounded-lg border border-financial-success/30">
                             <span className="font-semibold text-financial-success">Cupons Líquidos:</span>
-                            <span className="font-mono text-lg text-financial-success">= R$ {breakdown1.cuponsLiquidos.toLocaleString('pt-BR')}</span>
+                            <span className="font-mono text-lg text-financial-success">= R$ {formatCurrency(breakdown1.cuponsLiquidos)}</span>
                           </div>
                           
                           <div className="flex justify-between items-center p-3 bg-financial-info/10 rounded-lg border border-financial-info/30">
                             <span className="font-semibold text-financial-info">Rendimento sobre cupons:</span>
-                            <span className="font-mono text-lg text-financial-info">R$ {breakdown1.rendimentoSobreCupons.toLocaleString('pt-BR')}</span>
+                            <span className="font-mono text-lg text-financial-info">R$ {formatCurrency(breakdown1.rendimentoSobreCupons)}</span>
                           </div>
                           
                           {breakdown1.irSobreReinvestimentos > 0 && (
                             <div className="flex justify-between items-center p-3 bg-financial-danger/10 rounded-lg border border-financial-danger/30">
                               <span className="font-semibold text-financial-danger">IR sobre Reinvestimentos:</span>
-                              <span className="font-mono text-lg text-financial-danger">- R$ {breakdown1.irSobreReinvestimentos.toLocaleString('pt-BR')}</span>
+                              <span className="font-mono text-lg text-financial-danger">- R$ {formatCurrency(breakdown1.irSobreReinvestimentos)}</span>
                             </div>
                           )}
                           
                           {breakdown1.irSobrePrincipal > 0 && (
                             <div className="flex justify-between items-center p-3 bg-financial-danger/10 rounded-lg border border-financial-danger/30">
                               <span className="font-semibold text-financial-danger">IR sobre Principal:</span>
-                              <span className="font-mono text-lg text-financial-danger">- R$ {breakdown1.irSobrePrincipal.toLocaleString('pt-BR')}</span>
+                              <span className="font-mono text-lg text-financial-danger">- R$ {formatCurrency(breakdown1.irSobrePrincipal)}</span>
                             </div>
                           )}
                           
@@ -2457,15 +2465,15 @@ const InvestmentComparator = () => {
               </span>
               <span className="font-mono text-lg text-financial-warning font-bold">
                 + R$ {results.reinvestimento && results.reinvestimento.ativoReinvestido === 'ativo1' 
-                  ? (results.reinvestimento.valorFinalReinvestimento - results.reinvestimento.valorResgatado).toLocaleString('pt-BR')
-                  : '0'
+                  ? formatCurrency(results.reinvestimento.valorFinalReinvestimento - results.reinvestimento.valorResgatado)
+                  : '0,00'
                 }
               </span>
             </div>
             {results.reinvestimento && results.reinvestimento.ativoReinvestido === 'ativo1' ? (
               <div className="text-xs text-muted-foreground px-3 pb-2">
                 <span className="italic">
-                  Rendimento obtido aplicando R$ {results.reinvestimento.valorResgatado.toLocaleString('pt-BR')} por {results.reinvestimento.periodosReinvestimento} {results.reinvestimento.periodosReinvestimento === 1 ? 'ano' : 'anos'} à taxa CDI de {results.reinvestimento.taxaReinvestimento.toFixed(2)}% ao ano
+                  Rendimento obtido aplicando R$ {formatCurrency(results.reinvestimento.valorResgatado)} por {results.reinvestimento.periodosReinvestimento} {results.reinvestimento.periodosReinvestimento === 1 ? 'ano' : 'anos'} à taxa CDI de {results.reinvestimento.taxaReinvestimento.toFixed(2)}% ao ano
                 </span>
               </div>
             ) : (
@@ -2493,7 +2501,7 @@ const InvestmentComparator = () => {
                           
                           <div className="flex justify-between items-center p-4 bg-gradient-to-r from-financial-primary/20 to-financial-secondary/20 rounded-lg border-2 border-financial-primary/50">
                             <span className="font-bold text-financial-primary text-lg">VALOR FINAL:</span>
-                            <span className="font-mono text-xl font-bold text-financial-primary">R$ {breakdown1.valorFinal.toLocaleString('pt-BR')}</span>
+                            <span className="font-mono text-xl font-bold text-financial-primary">R$ {formatCurrency(breakdown1.valorFinal)}</span>
                           </div>
                         </div>
                       </div>
@@ -2507,40 +2515,40 @@ const InvestmentComparator = () => {
                         <div className="space-y-3">
                           <div className="flex justify-between items-center p-3 bg-muted/50 rounded-lg">
                             <span className="font-semibold">Principal Investido:</span>
-                            <span className="font-mono text-lg">R$ {breakdown2.principalInvestido.toLocaleString('pt-BR')}</span>
+                            <span className="font-mono text-lg">R$ {formatCurrency(breakdown2.principalInvestido)}</span>
                           </div>
                           
                           <div className="flex justify-between items-center p-3 bg-financial-success/10 rounded-lg border border-financial-success/30">
                             <span className="font-semibold text-financial-success">Cupons Brutos Recebidos:</span>
-                            <span className="font-mono text-lg text-financial-success">+ R$ {breakdown2.cupomsBrutos.toLocaleString('pt-BR')}</span>
+                            <span className="font-mono text-lg text-financial-success">+ R$ {formatCurrency(breakdown2.cupomsBrutos)}</span>
                           </div>
                           
                           <div className="flex justify-between items-center p-3 bg-financial-danger/10 rounded-lg border border-financial-danger/30">
                             <span className="font-semibold text-financial-danger">IR sobre Cupons:</span>
-                            <span className="font-mono text-lg text-financial-danger">- R$ {breakdown2.irSobreCupons.toLocaleString('pt-BR')}</span>
+                            <span className="font-mono text-lg text-financial-danger">- R$ {formatCurrency(breakdown2.irSobreCupons)}</span>
                           </div>
                           
                           <div className="flex justify-between items-center p-3 bg-financial-success/10 rounded-lg border border-financial-success/30">
                             <span className="font-semibold text-financial-success">Cupons Líquidos:</span>
-                            <span className="font-mono text-lg text-financial-success">= R$ {breakdown2.cuponsLiquidos.toLocaleString('pt-BR')}</span>
+                            <span className="font-mono text-lg text-financial-success">= R$ {formatCurrency(breakdown2.cuponsLiquidos)}</span>
                           </div>
                           
                           <div className="flex justify-between items-center p-3 bg-financial-info/10 rounded-lg border border-financial-info/30">
                             <span className="font-semibold text-financial-info">Rendimento sobre cupons:</span>
-                            <span className="font-mono text-lg text-financial-info">R$ {breakdown2.rendimentoSobreCupons.toLocaleString('pt-BR')}</span>
+                            <span className="font-mono text-lg text-financial-info">R$ {formatCurrency(breakdown2.rendimentoSobreCupons)}</span>
                           </div>
                           
                           {breakdown2.irSobreReinvestimentos > 0 && (
                             <div className="flex justify-between items-center p-3 bg-financial-danger/10 rounded-lg border border-financial-danger/30">
                               <span className="font-semibold text-financial-danger">IR sobre Reinvestimentos:</span>
-                              <span className="font-mono text-lg text-financial-danger">- R$ {breakdown2.irSobreReinvestimentos.toLocaleString('pt-BR')}</span>
+                              <span className="font-mono text-lg text-financial-danger">- R$ {formatCurrency(breakdown2.irSobreReinvestimentos)}</span>
                             </div>
                           )}
                           
                           {breakdown2.irSobrePrincipal > 0 && (
                             <div className="flex justify-between items-center p-3 bg-financial-danger/10 rounded-lg border border-financial-danger/30">
                               <span className="font-semibold text-financial-danger">IR sobre Principal:</span>
-                              <span className="font-mono text-lg text-financial-danger">- R$ {breakdown2.irSobrePrincipal.toLocaleString('pt-BR')}</span>
+                              <span className="font-mono text-lg text-financial-danger">- R$ {formatCurrency(breakdown2.irSobrePrincipal)}</span>
                             </div>
                           )}
                           
@@ -2553,7 +2561,7 @@ const InvestmentComparator = () => {
                               </span>
                               <span className="font-mono text-lg text-financial-warning font-bold">
                                 + R$ {results.reinvestimento && results.reinvestimento.ativoReinvestido === 'ativo2' 
-                                  ? (results.reinvestimento.valorFinalReinvestimento - results.reinvestimento.valorResgatado).toLocaleString('pt-BR')
+                                  ? formatCurrency(results.reinvestimento.valorFinalReinvestimento - results.reinvestimento.valorResgatado)
                                   : '0'
                                 }
                               </span>
@@ -2561,7 +2569,7 @@ const InvestmentComparator = () => {
                             {results.reinvestimento && results.reinvestimento.ativoReinvestido === 'ativo2' ? (
                               <div className="text-xs text-muted-foreground px-3 pb-2">
                                 <span className="italic">
-                                  Rendimento obtido aplicando R$ {results.reinvestimento.valorResgatado.toLocaleString('pt-BR')} por {results.reinvestimento.periodosReinvestimento} {results.reinvestimento.periodosReinvestimento === 1 ? 'ano' : 'anos'} à taxa CDI de {results.reinvestimento.taxaReinvestimento.toFixed(2)}% ao ano
+                                  Rendimento obtido aplicando R$ {formatCurrency(results.reinvestimento.valorResgatado)} por {results.reinvestimento.periodosReinvestimento} {results.reinvestimento.periodosReinvestimento === 1 ? 'ano' : 'anos'} à taxa CDI de {results.reinvestimento.taxaReinvestimento.toFixed(2)}% ao ano
                                 </span>
                               </div>
                             ) : (
@@ -2575,7 +2583,7 @@ const InvestmentComparator = () => {
                           
                           <div className="flex justify-between items-center p-4 bg-gradient-to-r from-financial-primary/20 to-financial-secondary/20 rounded-lg border-2 border-financial-primary/50">
                             <span className="font-bold text-financial-primary text-lg">VALOR FINAL:</span>
-                            <span className="font-mono text-xl font-bold text-financial-primary">R$ {breakdown2.valorFinal.toLocaleString('pt-BR')}</span>
+                            <span className="font-mono text-xl font-bold text-financial-primary">R$ {formatCurrency(breakdown2.valorFinal)}</span>
                           </div>
                         </div>
                       </div>
