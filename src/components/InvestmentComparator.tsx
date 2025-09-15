@@ -236,7 +236,7 @@ function getCDIRateForMonth(curve: CDIPoint[], dateISO: string): number {
   const pt = curve.find(p => p.date.slice(0, 7) === key);
   return pt ? pt.cdiAA : curve[curve.length - 1]?.cdiAA || 10;
 }
-function projectWithReinvestCDI(x: CouponEngineInput) {
+function projectWithReinvestCDI(x: CouponEngineInput, isLimitedAnalysis = false) {
   // No administrative fees for direct securities
   const couponDates = genCouponDates(x.startISO, x.endISO, x.freq, x.earningsStartDate);
   const coupons: CouponResult[] = [];
@@ -280,8 +280,39 @@ function projectWithReinvestCDI(x: CouponEngineInput) {
     last = dt;
   }
 
-  // principal no fim (resgate a par)
-  const principalGrossFinal = basePrincipal;
+  // Calculate principal value at end date
+  let principalGrossFinal: number;
+  
+  if (isLimitedAnalysis && coupons.length > 0) {
+    // When analyzing until a date before natural maturity, capitalize principal
+    // from last coupon date to end date using asset's rate
+    const lastCouponDate = coupons[coupons.length - 1].couponDate;
+    const daysFromLastCoupon = daysBetween(lastCouponDate, x.endISO);
+    
+    if (daysFromLastCoupon > 0) {
+      // Get asset rate for capitalization period
+      const cdiAA = getCDIRateForMonth(x.cdiCurve, x.endISO);
+      const rAssetAA = rateOfAssetForPeriod(x.rateKind, {
+        taxaPreAA: x.taxaPreAA,
+        taxaRealAA: x.taxaRealAA,
+        ipcaAA: x.ipcaCurve?.[0]?.ipcaAA ?? 0,
+        percCDI: x.percCDI,
+        cdiAA,
+        spreadPreAA: x.spreadPreAA,
+        use252: false
+      });
+      
+      // Capitalize from last coupon to end date
+      const capitalizationFactor = Math.pow(1 + rAssetAA, daysFromLastCoupon / 365);
+      principalGrossFinal = basePrincipal * capitalizationFactor;
+    } else {
+      principalGrossFinal = basePrincipal;
+    }
+  } else {
+    // Normal case: redemption at par
+    principalGrossFinal = basePrincipal;
+  }
+
   const diasTotal = daysBetween(x.startISO, x.endISO);
   const aliqFinal = x.irRegressivo !== false ? irAliquotaRegressivo(diasTotal) : 0;
   const gainPrincipal = Math.max(0, principalGrossFinal - x.principal);
@@ -688,7 +719,9 @@ const InvestmentComparator = () => {
     };
 
     // Calculate cash flows
-    const result = projectWithReinvestCDI(cashFlowInput);
+    // Check if this is a limited analysis (ending before asset's natural maturity)
+    const isLimitedAnalysis = dataLimite && new Date(dataLimite) < new Date(dados.vencimento);
+    const result = projectWithReinvestCDI(cashFlowInput, isLimitedAnalysis);
 
     // Build annual values array for compatibility
     const valores = [Math.round(dados.valorCurva)];
