@@ -78,45 +78,52 @@ export const CouponManager: React.FC<CouponManagerProps> = ({ couponData, onChan
               Lista de Cupons
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-3">
-            {couponData.coupons.map((coupon, index) => (
-              <div key={coupon.id} className="flex items-center gap-2 p-3 bg-muted/30 rounded-lg">
-                <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  <div>
-                    <Label className="text-xs text-muted-foreground">
-                      Data do Recebimento
-                    </Label>
-                    <Input
-                      type="date"
-                      value={coupon.date}
-                      onChange={(e) => updateCoupon(coupon.id, 'date', e.target.value)}
-                      className="h-8"
-                    />
+          <CardContent>
+            <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-3">
+              {couponData.coupons.map((coupon, index) => (
+                <div key={coupon.id} className="p-3 bg-muted/30 rounded-lg space-y-2">
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="text-xs font-medium text-muted-foreground">
+                      Cupom #{index + 1}
+                    </span>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => removeCoupon(coupon.id)}
+                      className="h-6 w-6 p-0 text-destructive hover:bg-destructive/10"
+                    >
+                      <Trash2 className="h-3 w-3" />
+                    </Button>
                   </div>
-                  <div>
-                    <Label className="text-xs text-muted-foreground">
-                      Valor (R$)
-                    </Label>
-                    <Input
-                      type="number"
-                      step="0.01"
-                      value={coupon.value || ''}
-                      onChange={(e) => updateCoupon(coupon.id, 'value', parseFloat(e.target.value) || 0)}
-                      className="h-8"
-                    />
+                  <div className="space-y-2">
+                    <div>
+                      <Label className="text-xs text-muted-foreground">
+                        Data do Recebimento
+                      </Label>
+                      <Input
+                        type="date"
+                        value={coupon.date}
+                        onChange={(e) => updateCoupon(coupon.id, 'date', e.target.value)}
+                        className="h-8"
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-xs text-muted-foreground">
+                        Valor (R$)
+                      </Label>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        value={coupon.value || ''}
+                        onChange={(e) => updateCoupon(coupon.id, 'value', parseFloat(e.target.value) || 0)}
+                        className="h-8"
+                      />
+                    </div>
                   </div>
                 </div>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => removeCoupon(coupon.id)}
-                  className="h-8 w-8 p-0 text-destructive hover:bg-destructive/10"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              </div>
-            ))}
+              ))}
+            </div>
           </CardContent>
         </Card>
       )}
