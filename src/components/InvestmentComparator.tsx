@@ -390,8 +390,12 @@ const STORAGE_KEYS = {
   ativo1: 'investment_comparator_ativo1',
   ativo2: 'investment_comparator_ativo2',
   projecoes: 'investment_comparator_projecoes',
+  projecoes_version: 'investment_comparator_projecoes_version',
   timestamp: 'investment_comparator_timestamp'
 };
+
+// Version for default projections - increment when changing defaults
+const PROJECTIONS_VERSION = '2.0';
 
 const saveToLocalStorage = (key: string, data: any) => {
   try {
@@ -409,6 +413,27 @@ const loadFromLocalStorage = (key: string, defaultValue: any) => {
   } catch (error) {
     console.error('Erro ao carregar do localStorage:', error);
     return defaultValue;
+  }
+};
+
+const loadProjectionsWithVersionCheck = (): Projecoes => {
+  try {
+    const savedVersion = localStorage.getItem(STORAGE_KEYS.projecoes_version);
+    const savedProjections = localStorage.getItem(STORAGE_KEYS.projecoes);
+    
+    // If no version or version mismatch, use new defaults
+    if (!savedVersion || savedVersion !== PROJECTIONS_VERSION || !savedProjections) {
+      const defaultProjections = getDefaultProjecoes();
+      localStorage.setItem(STORAGE_KEYS.projecoes, JSON.stringify(defaultProjections));
+      localStorage.setItem(STORAGE_KEYS.projecoes_version, PROJECTIONS_VERSION);
+      console.log('📈 Usando novos valores padrão das projeções');
+      return defaultProjections;
+    }
+    
+    return JSON.parse(savedProjections);
+  } catch (error) {
+    console.error('Erro ao carregar projeções do localStorage:', error);
+    return getDefaultProjecoes();
   }
 };
 
@@ -489,7 +514,7 @@ const InvestmentComparator = () => {
     loadFromLocalStorage(STORAGE_KEYS.ativo2, getDefaultAtivo2())
   );
   const [projecoes, setProjecoes] = useState<Projecoes>(() => 
-    loadFromLocalStorage(STORAGE_KEYS.projecoes, getDefaultProjecoes())
+    loadProjectionsWithVersionCheck()
   );
   const [results, setResults] = useState<CalculationResult | null>(null);
   const [showResults, setShowResults] = useState(false);
@@ -538,6 +563,7 @@ const InvestmentComparator = () => {
   useEffect(() => {
     const timeoutId = setTimeout(() => {
       saveToLocalStorage(STORAGE_KEYS.projecoes, projecoes);
+      localStorage.setItem(STORAGE_KEYS.projecoes_version, PROJECTIONS_VERSION);
     }, 500); // Debounce 500ms
 
     return () => clearTimeout(timeoutId);
@@ -564,6 +590,19 @@ const InvestmentComparator = () => {
     toast({
       title: "Dados limpos",
       description: "Todos os dados do Ativo 2 foram removidos.",
+      variant: "default",
+    });
+  };
+
+  const resetProjecoes = () => {
+    const defaultProjecoes = getDefaultProjecoes();
+    setProjecoes(defaultProjecoes);
+    clearFromLocalStorage(STORAGE_KEYS.projecoes);
+    localStorage.setItem(STORAGE_KEYS.projecoes_version, PROJECTIONS_VERSION);
+    invalidateResults();
+    toast({
+      title: "Projeções restauradas",
+      description: "Todas as projeções foram restauradas aos valores padrão.",
       variant: "default",
     });
   };
@@ -1523,7 +1562,17 @@ const InvestmentComparator = () => {
           {/* CDI Projections */}
           <Card className="border-financial-secondary/20 shadow-lg">
             <CardHeader className="bg-gradient-to-r from-financial-secondary to-financial-primary text-white rounded-t-lg">
-              <CardTitle>📈 Projeção CDI (%)</CardTitle>
+              <CardTitle className="flex justify-between items-center">
+                📈 Projeção CDI (%)
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={resetProjecoes}
+                  className="bg-white/10 text-white border-white/20 hover:bg-white/20"
+                >
+                  Restaurar Padrões
+                </Button>
+              </CardTitle>
             </CardHeader>
             <CardContent className="p-6">
               <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
