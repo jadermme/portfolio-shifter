@@ -79,7 +79,7 @@ export const CouponManager: React.FC<CouponManagerProps> = ({ couponData, onChan
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-3">
               {couponData.coupons.map((coupon, index) => (
                 <div key={coupon.id} className="p-3 bg-muted/30 rounded-lg space-y-2">
                   <div className="flex justify-between items-center mb-2">
