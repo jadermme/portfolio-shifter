@@ -1477,7 +1477,7 @@ const InvestmentComparator = () => {
             })()}
             
             {/* Executive Summary - Restructured into Two Separate Tables */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="space-y-6">
               {/* Table 1 - CRA ZAMP with Early Sale Analysis */}
               <Card className="border-financial-success/30 shadow-xl">
                 <CardHeader className="bg-gradient-to-r from-financial-success to-green-600 text-white rounded-t-lg">
