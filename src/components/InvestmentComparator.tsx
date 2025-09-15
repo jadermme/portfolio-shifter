@@ -1192,11 +1192,13 @@ const InvestmentComparator = () => {
             <Input id={`${assetKey}-valorInvestido`} type="number" step="0.01" value={asset.valorInvestido} onChange={e => handleAssetChange(assetKey, 'valorInvestido', parseFloat(e.target.value) || 0)} disabled={assetKey === 'ativo2'} className={assetKey === 'ativo2' ? 'bg-muted/50 cursor-not-allowed' : ''} />
           </div>
           {assetKey === 'ativo1' && <>
-              <CouponManager 
-                couponData={asset.couponData}
-                onChange={(couponData) => handleAssetChange(assetKey, 'couponData', couponData)}
-                assetKey={assetKey}
-              />
+              <div className="col-span-full">
+                <CouponManager 
+                  couponData={asset.couponData}
+                  onChange={(couponData) => handleAssetChange(assetKey, 'couponData', couponData)}
+                  assetKey={assetKey}
+                />
+              </div>
               <div className="space-y-2">
                 <Label htmlFor={`${assetKey}-valorCurva`}>Valor de Curva (R$)</Label>
                 <Input id={`${assetKey}-valorCurva`} type="number" step="0.01" value={asset.valorCurva} onChange={e => handleAssetChange(assetKey, 'valorCurva', parseFloat(e.target.value) || 0)} />
