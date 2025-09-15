@@ -432,20 +432,20 @@ const InvestmentComparator = () => {
   });
   const [projecoes, setProjecoes] = useState<Projecoes>({
     cdi: {
-      2025: 10.5,
-      2026: 13.3,
-      2027: 9.0,
-      2028: 9.0,
-      2029: 9.0,
-      2030: 9.0
+      2025: 15.00,
+      2026: 12.50,
+      2027: 11.70,
+      2028: 10.50,
+      2029: 10.00,
+      2030: 10.00
     },
     ipca: {
-      2025: 4.0,
-      2026: 3.5,
-      2027: 3.25,
+      2025: 4.2,
+      2026: 3.8,
+      2027: 3.5,
       2028: 3.25,
-      2029: 3.25,
-      2030: 3.25
+      2029: 3.00,
+      2030: 3.00
     }
   });
   const [results, setResults] = useState<CalculationResult | null>(null);
