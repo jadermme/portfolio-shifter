@@ -1846,11 +1846,25 @@ const InvestmentComparator = () => {
                 </span>
               </div>
             ) : (
-              <div className="text-xs text-muted-foreground px-3 pb-2">
-                <span className="italic">
-                  Este ativo não foi reinvestido no CDI
-                </span>
-              </div>
+              (() => {
+                // Check if Asset 1 matures after Asset 2
+                const vencimento1 = new Date(ativo1.vencimento);
+                const vencimento2 = new Date(ativo2.vencimento);
+                const ativo1VenceDepois = vencimento1 > vencimento2;
+                
+                // Hide message if Asset 1 matures after Asset 2
+                if (ativo1VenceDepois) {
+                  return null;
+                }
+                
+                return (
+                  <div className="text-xs text-muted-foreground px-3 pb-2">
+                    <span className="italic">
+                      Este ativo não foi reinvestido no CDI
+                    </span>
+                  </div>
+                );
+              })()
             )}
           </div>
                           
