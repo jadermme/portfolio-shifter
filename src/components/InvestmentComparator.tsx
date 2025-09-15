@@ -1272,23 +1272,25 @@ const InvestmentComparator = () => {
             </Select>
           </div>
           
-          {/* Earnings Period Configuration */}
-          <div className="col-span-full">
-            <div className="bg-muted/30 p-4 rounded-lg border border-dashed">
-              <h4 className="text-sm font-medium mb-3">⚙️ Configurações Especiais</h4>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor={`${assetKey}-earningsStartDate`} className="text-sm">
-                    📅 Data de Início dos Rendimentos
-                  </Label>
-                  <Input id={`${assetKey}-earningsStartDate`} type="date" value={asset.earningsStartDate || ''} onChange={e => handleAssetChange(assetKey, 'earningsStartDate', e.target.value)} placeholder="YYYY-MM-DD" className="text-sm" />
+          {/* Earnings Period Configuration - Only for Ativo 2 (new investment) */}
+          {assetKey === 'ativo2' && (
+            <div className="col-span-full">
+              <div className="bg-muted/30 p-4 rounded-lg border border-dashed">
+                <h4 className="text-sm font-medium mb-3">⚙️ Configurações Especiais</h4>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor={`${assetKey}-earningsStartDate`} className="text-sm">
+                      📅 Data de Início dos Rendimentos
+                    </Label>
+                    <Input id={`${assetKey}-earningsStartDate`} type="date" value={asset.earningsStartDate || ''} onChange={e => handleAssetChange(assetKey, 'earningsStartDate', e.target.value)} placeholder="YYYY-MM-DD" className="text-sm" />
+                    
+                  </div>
                   
                 </div>
-                
               </div>
             </div>
-          </div>
+          )}
         </div>
       </CardContent>
     </Card>;
