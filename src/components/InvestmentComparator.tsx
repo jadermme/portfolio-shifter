@@ -793,37 +793,24 @@ const InvestmentComparator = () => {
         });
         return;
       }
+      // Usar sempre o menor prazo entre os ativos para comparação
+      const menorPrazo = Math.min(anosAtivo1, anosAtivo2);
+      
       let resultAtivo1, resultAtivo2, reinvestimentoInfo;
       if (anosAtivo1 < anosAtivo2) {
-        // Ativo 1 vence antes do Ativo 2 - reinvestir Ativo 1
-        resultAtivo1 = calcularAtivo(ativo1, anosAtivo1, anosAtivo1);
-        resultAtivo2 = calcularAtivo(ativo2, anosAtivo2, anosAtivo2);
-
-        // Calcular reinvestimento do Ativo 1
-        const valorResgatado = resultAtivo1.valores[resultAtivo1.valores.length - 1];
-        const periodosReinvestimento = anosAtivo2 - anosAtivo1;
-        const reinvestimento = calcularReinvestimento(valorResgatado, periodosReinvestimento, anosAtivo1);
-
-        // Completar array do Ativo 1 com valores de reinvestimento
-        resultAtivo1.valores = [...resultAtivo1.valores, ...reinvestimento.valores];
-        resultAtivo1.imposto += reinvestimento.imposto;
-        reinvestimentoInfo = {
-          ativoReinvestido: 'ativo1' as const,
-          valorResgatado,
-          periodosReinvestimento,
-          taxaReinvestimento: projecoes.cdi[Object.keys(projecoes.cdi).pop() as any],
-          valorFinalReinvestimento: reinvestimento.valores[reinvestimento.valores.length - 1] || valorResgatado
-        };
+        // Ativo 1 vence antes do Ativo 2 - comparar até o vencimento do Ativo 1 (menor prazo)
+        resultAtivo1 = calcularAtivo(ativo1, menorPrazo, menorPrazo);
+        resultAtivo2 = calcularAtivo(ativo2, menorPrazo, menorPrazo);
       } else if (anosAtivo2 < anosAtivo1) {
-        // Ativo 2 vence antes do Ativo 1 - comparar apenas até vencimento do Ativo 2
-        resultAtivo1 = calcularAtivo(ativo1, anosAtivo2, anosAtivo2);
-        resultAtivo2 = calcularAtivo(ativo2, anosAtivo2, anosAtivo2);
+        // Ativo 2 vence antes do Ativo 1 - comparar até o vencimento do Ativo 2 (menor prazo)
+        resultAtivo1 = calcularAtivo(ativo1, menorPrazo, menorPrazo);
+        resultAtivo2 = calcularAtivo(ativo2, menorPrazo, menorPrazo);
       } else {
         // Ambos vencem na mesma data
         resultAtivo1 = calcularAtivo(ativo1, anosAtivo1, anosAtivo1);
         resultAtivo2 = calcularAtivo(ativo2, anosAtivo2, anosAtivo2);
       }
-      const anosProjecao = Math.max(anosAtivo1, anosAtivo2);
+      const anosProjecao = menorPrazo;
       setResults({
         ativo1: resultAtivo1.valores,
         ativo2: resultAtivo2.valores,
