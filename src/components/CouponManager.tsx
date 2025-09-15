@@ -219,24 +219,25 @@ export const CouponManager: React.FC<CouponManagerProps> = ({ couponData, onChan
         </div>
       )}
 
-      {/* Total Section */}
-      <div className="flex justify-center">
-        <Badge variant="outline" className="bg-financial-success/10 text-financial-success border-financial-success/20 px-4 py-2 text-base font-semibold">
-          Total: {formatCurrency(couponData.total)}
-        </Badge>
-      </div>
-
-      {/* Add Coupon Button */}
-      <div className="flex justify-center">
-        <Button
-          type="button"
-          variant="outline"
-          onClick={addCoupon}
-          className="gap-2 px-6"
-        >
-          <Plus className="h-4 w-4" />
-          Adicionar Cupom
-        </Button>
+      {/* Bottom Section - Total and Add Button */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div className="flex-1"></div>
+        <div className="flex justify-center">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={addCoupon}
+            className="gap-2 px-6"
+          >
+            <Plus className="h-4 w-4" />
+            Adicionar Cupom
+          </Button>
+        </div>
+        <div className="flex-1 flex justify-end">
+          <Badge variant="outline" className="bg-financial-success/10 text-financial-success border-financial-success/20 px-4 py-2 text-base font-semibold">
+            Total: {formatCurrency(couponData.total)}
+          </Badge>
+        </div>
       </div>
     </div>
   );
