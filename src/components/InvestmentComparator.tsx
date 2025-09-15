@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
 import { Calculator, Trash2, Printer, TrendingUp, BarChart3, ArrowRight, AlertTriangle } from 'lucide-react';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
 import { CouponManager } from './CouponManager';
 import { CouponSummary } from '@/types/coupon';
@@ -384,144 +385,112 @@ function generateCDICurve(projecoes: Projecoes): CDIPoint[] {
   }
   return curve;
 }
+// ===================== PERSISTENCE FUNCTIONS =====================
+const STORAGE_KEYS = {
+  ativo1: 'investment_comparator_ativo1',
+  ativo2: 'investment_comparator_ativo2',
+  projecoes: 'investment_comparator_projecoes',
+  timestamp: 'investment_comparator_timestamp'
+};
+
+const saveToLocalStorage = (key: string, data: any) => {
+  try {
+    localStorage.setItem(key, JSON.stringify(data));
+    localStorage.setItem(STORAGE_KEYS.timestamp, Date.now().toString());
+  } catch (error) {
+    console.error('Erro ao salvar no localStorage:', error);
+  }
+};
+
+const loadFromLocalStorage = (key: string, defaultValue: any) => {
+  try {
+    const saved = localStorage.getItem(key);
+    return saved ? JSON.parse(saved) : defaultValue;
+  } catch (error) {
+    console.error('Erro ao carregar do localStorage:', error);
+    return defaultValue;
+  }
+};
+
+const clearFromLocalStorage = (key: string) => {
+  try {
+    localStorage.removeItem(key);
+    localStorage.setItem(STORAGE_KEYS.timestamp, Date.now().toString());
+  } catch (error) {
+    console.error('Erro ao limpar localStorage:', error);
+  }
+};
+
+// ===================== DEFAULT STATE VALUES =====================
+const getDefaultAtivo1 = (): AssetData => ({
+  nome: '',
+  codigo: '',
+  tipoTaxa: 'pre-fixada',
+  taxa: 0,
+  vencimento: '',
+  valorInvestido: 0,
+  couponData: { coupons: [], total: 0 },
+  valorCurva: 0,
+  valorVenda: 0,
+  tipoCupom: 'nenhum',
+  mesesCupons: '',
+  tipoIR: 'renda-fixa',
+  aliquotaIR: 15,
+  rateKind: 'PRE',
+  freq: 'SEMIANNUAL',
+  earningsStartDate: '',
+  activePeriods: []
+});
+
+const getDefaultAtivo2 = (): AssetData => ({
+  nome: '',
+  codigo: '',
+  tipoTaxa: 'percentual-cdi',
+  taxa: 0,
+  vencimento: '',
+  valorInvestido: 0,
+  couponData: { coupons: [], total: 0 },
+  valorCurva: 0,
+  tipoCupom: 'nenhum',
+  mesesCupons: '',
+  tipoIR: 'renda-fixa',
+  aliquotaIR: 15,
+  rateKind: 'PRE',
+  freq: 'SEMIANNUAL',
+  earningsStartDate: '',
+  activePeriods: []
+});
+
+const getDefaultProjecoes = (): Projecoes => ({
+  cdi: {
+    2025: 11.25,
+    2026: 10.50,
+    2027: 10.00,
+    2028: 9.50,
+    2029: 9.00,
+    2030: 9.00
+  },
+  ipca: {
+    2025: 4.2,
+    2026: 3.8,
+    2027: 3.5,
+    2028: 3.25,
+    2029: 3.00,
+    2030: 3.00
+  }
+});
+
 const InvestmentComparator = () => {
-  const {
-    toast
-  } = useToast();
-  const [ativo1, setAtivo1] = useState<AssetData>({
-    nome: 'Debêntures Origem Energia',
-    codigo: 'ORIG21',
-    tipoTaxa: 'pre-fixada',
-    taxa: 12.44,
-    vencimento: '2035-12-15',
-    valorInvestido: 249258.64,
-    couponData: { 
-      coupons: [
-        { id: '1', date: '2025-06-15', value: 15547.73 },
-        { id: '2', date: '2025-12-15', value: 15547.73 }
-      ], 
-      total: 31095.46 
-    },
-    valorCurva: 247309.36,
-    valorVenda: 216268,
-    tipoCupom: 'semestral',
-    mesesCupons: '6,12',
-    // Junho e Dezembro
-    tipoIR: 'isento',
-    aliquotaIR: 0,
-    rateKind: 'PRE',
-    freq: 'SEMIANNUAL',
-    // Debêntures Origem Energia: earnings from January 2025 onwards
-    earningsStartDate: '2025-01-01',
-    activePeriods: [{
-      year: 2025,
-      months: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
-    },
-    // Full year 2025
-    {
-      year: 2026,
-      months: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
-    },
-    {
-      year: 2027,
-      months: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
-    },
-    {
-      year: 2028,
-      months: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
-    },
-    {
-      year: 2029,
-      months: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
-    },
-    {
-      year: 2030,
-      months: [1, 2, 3, 4] // Until April 30, 2030 (analysis cutoff)
-    },
-    {
-      year: 2031,
-      months: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
-    },
-    {
-      year: 2032,
-      months: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
-    },
-    {
-      year: 2033,
-      months: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
-    },
-    {
-      year: 2034,
-      months: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
-    },
-    {
-      year: 2035,
-      months: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
-    } // Until December 2035 maturity
-    ]
-  });
-  const [ativo2, setAtivo2] = useState<AssetData>({
-    nome: 'BTDI11',
-    codigo: 'BTDI11',
-    tipoTaxa: 'cdi-mais',
-    // Changed to cdi-mais for CDI+2.50%
-    taxa: 2.50,
-    // 2.50% above CDI
-    vencimento: '2030-04-30',
-    valorInvestido: 216268,
-    // Mesmo valor da venda do ativo1
-    couponData: { coupons: [], total: 0 },
-    valorCurva: 216268,
-    tipoCupom: 'mensal',
-    // Monthly payments starting Nov 2025
-    mesesCupons: '',
-    tipoIR: 'isento',
-    aliquotaIR: 0,
-    // BTDI11 specific: earnings start in November 2025
-    earningsStartDate: '2025-11-01',
-    activePeriods: [{
-      year: 2025,
-      months: [11, 12]
-    },
-    // Nov-Dec 2025
-    {
-      year: 2026,
-      months: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
-    },
-    // Full years
-    {
-      year: 2027,
-      months: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
-    }, {
-      year: 2028,
-      months: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
-    }, {
-      year: 2029,
-      months: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
-    }, {
-      year: 2030,
-      months: [1, 2, 3, 4]
-    } // Jan-Apr 2030 until maturity
-    ]
-  });
-  const [projecoes, setProjecoes] = useState<Projecoes>({
-    cdi: {
-      2025: 15.00,
-      2026: 12.50,
-      2027: 11.70,
-      2028: 10.50,
-      2029: 10.00,
-      2030: 10.00
-    },
-    ipca: {
-      2025: 4.2,
-      2026: 3.8,
-      2027: 3.5,
-      2028: 3.25,
-      2029: 3.00,
-      2030: 3.00
-    }
-  });
+  const { toast } = useToast();
+  const [ativo1, setAtivo1] = useState<AssetData>(() => 
+    loadFromLocalStorage(STORAGE_KEYS.ativo1, getDefaultAtivo1())
+  );
+  const [ativo2, setAtivo2] = useState<AssetData>(() => 
+    loadFromLocalStorage(STORAGE_KEYS.ativo2, getDefaultAtivo2())
+  );
+  const [projecoes, setProjecoes] = useState<Projecoes>(() => 
+    loadFromLocalStorage(STORAGE_KEYS.projecoes, getDefaultProjecoes())
+  );
   const [results, setResults] = useState<CalculationResult | null>(null);
   const [showResults, setShowResults] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
@@ -547,6 +516,56 @@ const InvestmentComparator = () => {
       projecoes
     });
     return btoa(dataString).slice(0, 20); // Simple hash for validation
+  };
+
+  // ===================== AUTO-SAVE FUNCTIONALITY =====================
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      saveToLocalStorage(STORAGE_KEYS.ativo1, ativo1);
+    }, 500); // Debounce 500ms
+
+    return () => clearTimeout(timeoutId);
+  }, [ativo1]);
+
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      saveToLocalStorage(STORAGE_KEYS.ativo2, ativo2);
+    }, 500); // Debounce 500ms
+
+    return () => clearTimeout(timeoutId);
+  }, [ativo2]);
+
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      saveToLocalStorage(STORAGE_KEYS.projecoes, projecoes);
+    }, 500); // Debounce 500ms
+
+    return () => clearTimeout(timeoutId);
+  }, [projecoes]);
+
+  // ===================== RESET FUNCTIONS =====================
+  const resetAtivo1 = () => {
+    const defaultAtivo1 = getDefaultAtivo1();
+    setAtivo1(defaultAtivo1);
+    clearFromLocalStorage(STORAGE_KEYS.ativo1);
+    invalidateResults();
+    toast({
+      title: "Dados limpos",
+      description: "Todos os dados do Ativo 1 foram removidos.",
+      variant: "default",
+    });
+  };
+
+  const resetAtivo2 = () => {
+    const defaultAtivo2 = getDefaultAtivo2();
+    setAtivo2(defaultAtivo2);
+    clearFromLocalStorage(STORAGE_KEYS.ativo2);
+    invalidateResults();
+    toast({
+      title: "Dados limpos",
+      description: "Todos os dados do Ativo 2 foram removidos.",
+      variant: "default",
+    });
   };
   const handleAssetChange = (asset: 'ativo1' | 'ativo2', field: keyof AssetData, value: string | number | boolean | CouponSummary) => {
     if (asset === 'ativo1') {
@@ -1224,9 +1243,41 @@ const InvestmentComparator = () => {
   };
   const renderAssetForm = (asset: AssetData, assetKey: 'ativo1' | 'ativo2', title: string, color: string) => <Card className={`border-${color}/20 shadow-lg`}>
       <CardHeader className={`bg-gradient-to-r from-${color} to-financial-secondary text-white rounded-t-lg`}>
-        <CardTitle className="flex items-center gap-2">
-          <BarChart3 className="h-5 w-5" />
-          {title}
+        <CardTitle className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <BarChart3 className="h-5 w-5" />
+            {title}
+          </div>
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button 
+                variant="destructive" 
+                size="sm" 
+                className="bg-red-600/20 hover:bg-red-600/40 text-white border-red-400/50"
+              >
+                <Trash2 className="h-4 w-4 mr-1" />
+                Limpar {assetKey === 'ativo1' ? 'Ativo 1' : 'Ativo 2'}
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Confirmar Limpeza</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Tem certeza que deseja limpar todos os dados do {assetKey === 'ativo1' ? 'Ativo 1' : 'Ativo 2'}? 
+                  Esta ação não pode ser desfeita e removerá todos os campos preenchidos.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                <AlertDialogAction 
+                  onClick={assetKey === 'ativo1' ? resetAtivo1 : resetAtivo2}
+                  className="bg-red-600 hover:bg-red-700"
+                >
+                  Confirmar Limpeza
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </CardTitle>
       </CardHeader>
       <CardContent className="p-6">
