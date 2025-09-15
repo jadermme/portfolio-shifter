@@ -256,6 +256,8 @@ function rateOfAssetForPeriod(kind: RateKind, p: {
   spreadPreAA?: number;
   use252?: boolean;
   useDailyCapitalization?: boolean;
+  fromISO?: string;
+  toISO?: string;
 }, monthlyIndex?: number): number {
   const {
     taxaPreAA = 0,
@@ -265,11 +267,37 @@ function rateOfAssetForPeriod(kind: RateKind, p: {
     cdiAA = 0,
     spreadPreAA = 0,
     use252 = false,
-    useDailyCapitalization = false
+    useDailyCapitalization = false,
+    fromISO,
+    toISO
   } = p;
   
   console.log(`📈 Calculando taxa para ${kind}: use252=${use252}, dailyCap=${useDailyCapitalization}`);
   
+  // Se temos datas do período, calculamos taxa para período específico
+  if (fromISO && toISO) {
+    switch (kind) {
+      case "PRE":
+        // Taxa pré-fixada sempre usa ACT/365
+        return calculatePeriodRate(taxaPreAA, fromISO, toISO, false);
+      case "IPCA+PRE":
+        // IPCA + Taxa real sempre usa ACT/365 
+        const ipcaPeriod = calculatePeriodRate(ipcaAA, fromISO, toISO, false);
+        const realPeriod = calculatePeriodRate(taxaRealAA, fromISO, toISO, false);
+        return (1 + ipcaPeriod) * (1 + realPeriod) - 1;
+      case "%CDI":
+        // Percentual do CDI usa regras específicas por tipo de ativo
+        const cdiPeriod = calculatePeriodRate(cdiAA, fromISO, toISO, use252);
+        return cdiPeriod * (percCDI / 100);
+      case "CDI+PRE":
+        // CDI + Spread usa regras específicas por tipo de ativo
+        const cdiBasePeriod = calculatePeriodRate(cdiAA, fromISO, toISO, use252);
+        const spreadPeriod = calculatePeriodRate(spreadPreAA, fromISO, toISO, use252);
+        return cdiBasePeriod + spreadPeriod;
+    }
+  }
+  
+  // Fallback para cálculo mensal (compatibilidade)
   switch (kind) {
     case "PRE":
       // Taxa pré-fixada sempre usa ACT/365
@@ -292,10 +320,45 @@ function addMonths(dateISO: string, n: number) {
   d.setMonth(d.getMonth() + n);
   return d.toISOString().slice(0, 10);
 }
+
 function daysBetween(aISO: string, bISO: string) {
   const a = new Date(aISO).getTime(),
     b = new Date(bISO).getTime();
   return Math.max(0, Math.floor((b - a) / (1000 * 60 * 60 * 24)));
+}
+
+// Calcula dias úteis entre duas datas (base 252)
+function businessDaysBetween(aISO: string, bISO: string): number {
+  const start = new Date(aISO);
+  const end = new Date(bISO);
+  let count = 0;
+  let current = new Date(start);
+
+  while (current < end) {
+    const dayOfWeek = current.getDay();
+    // Monday = 1, Tuesday = 2, ..., Friday = 5, Saturday = 6, Sunday = 0
+    if (dayOfWeek >= 1 && dayOfWeek <= 5) {
+      count++;
+    }
+    current.setDate(current.getDate() + 1);
+  }
+  
+  return count;
+}
+
+// Converte taxa anual para taxa diária baseada na convenção
+function aaToDaily(aaPct: number, use252: boolean): number {
+  return use252 ? aaToDaily252(aaPct) : Math.pow(1 + aaPct / 100, 1 / 365) - 1;
+}
+
+// Calcula taxa para um período específico baseado em dias reais
+function calculatePeriodRate(annualRate: number, fromISO: string, toISO: string, use252: boolean): number {
+  const days = use252 ? businessDaysBetween(fromISO, toISO) : daysBetween(fromISO, toISO);
+  const dailyRate = aaToDaily(annualRate, use252);
+  
+  console.log(`📊 Período ${fromISO} até ${toISO}: ${days} ${use252 ? 'dias úteis' : 'dias corridos'}, taxa diária=${(dailyRate * 100).toFixed(6)}%`);
+  
+  return Math.pow(1 + dailyRate, days) - 1;
 }
 function genCouponDates(startISO: string, endISO: string, freq: Freq, earningsStartDate?: string): string[] {
   const step = freq === "MONTHLY" ? 1 : 6;
@@ -394,14 +457,14 @@ function projectWithReinvestCDI(x: CouponEngineInput, isLimitedAnalysis = false,
   let basePrincipal = x.principal;
 
   // percorre cada período
-  let last = x.startISO;
+  let last = x.earningsStartDate || x.startISO; // Usa data de início dos rendimentos se disponível
   for (const dt of couponDates) {
-    const months = x.freq === "MONTHLY" ? 1 : 6;
-
     // Get CDI rate specific for this coupon period
     const couponMonth = dt.slice(0, 7); // YYYY-MM
     const cdiAA = getCDIRateForMonth(x.cdiCurve, dt);
-    const rAssetMonthly = rateOfAssetForPeriod(x.rateKind, {
+    
+    // Calculate rate for the actual period using real days
+    const rPeriodGross = rateOfAssetForPeriod(x.rateKind, {
       taxaPreAA: x.taxaPreAA,
       taxaRealAA: x.taxaRealAA,
       ipcaAA: x.ipcaCurve?.[0]?.ipcaAA ?? 0,
@@ -409,13 +472,15 @@ function projectWithReinvestCDI(x: CouponEngineInput, isLimitedAnalysis = false,
       cdiAA,
       spreadPreAA: x.spreadPreAA,
       use252: rules.use252,
-      useDailyCapitalization: rules.useDailyCapitalization
+      useDailyCapitalization: rules.useDailyCapitalization,
+      fromISO: last,
+      toISO: dt
     });
     
-    const rPeriodGross = Math.pow(1 + rAssetMonthly, months) - 1;
     const couponGross = Math.max(0, basePrincipal * rPeriodGross);
 
-    console.log(`📅 Cupom ${dt}: Taxa Mensal=${(rAssetMonthly * 100).toFixed(4)}%, Cupom=R$${couponGross.toLocaleString('pt-BR')}`);
+    console.log(`📅 Cupom ${dt}: Período ${last} até ${dt}`);
+    console.log(`📊 Taxa do período=${(rPeriodGross * 100).toFixed(4)}%, Cupom=R$${couponGross.toLocaleString('pt-BR')}`);
 
     // IR regressivo sobre o cupom pelo tempo desde a aplicação
     const dias = daysBetween(x.startISO, dt);
@@ -432,7 +497,7 @@ function projectWithReinvestCDI(x: CouponEngineInput, isLimitedAnalysis = false,
       reinvestFactor: fReinv,
       reinvested: couponReinv
     });
-    last = dt;
+    last = dt; // Atualiza para próximo período
   }
 
   // Calculate principal value at end date
@@ -451,9 +516,9 @@ function projectWithReinvestCDI(x: CouponEngineInput, isLimitedAnalysis = false,
     console.log(`💰 Principal Base: R$ ${x.principal.toLocaleString('pt-BR')}`);
     
     if (daysFromLastCoupon > 0) {
-      // Get asset rate for capitalization period
+      // Get asset rate for capitalization period using real days
       const cdiAA = getCDIRateForMonth(x.cdiCurve, x.endISO);
-      const rAssetAA = rateOfAssetForPeriod(x.rateKind, {
+      const rPeriodCapitalization = rateOfAssetForPeriod(x.rateKind, {
         taxaPreAA: x.taxaPreAA,
         taxaRealAA: x.taxaRealAA,
         ipcaAA: x.ipcaCurve?.[0]?.ipcaAA ?? 0,
@@ -461,15 +526,16 @@ function projectWithReinvestCDI(x: CouponEngineInput, isLimitedAnalysis = false,
         cdiAA,
         spreadPreAA: x.spreadPreAA,
         use252: rules.use252,
-        useDailyCapitalization: rules.useDailyCapitalization
+        useDailyCapitalization: rules.useDailyCapitalization,
+        fromISO: lastCouponDate,
+        toISO: x.endISO
       });
       
-      // Capitalize from last coupon to end date using appropriate day count convention
-      const dayCountBase = rules.dayCountConvention === 'ACT/252' ? 252 : 365;
-      const capitalizationFactor = Math.pow(1 + rAssetAA, daysFromLastCoupon / dayCountBase);
+      // Use period rate calculated with real days
+      const capitalizationFactor = 1 + rPeriodCapitalization;
       principalGrossFinal = basePrincipal * capitalizationFactor;
       
-      console.log(`📈 Taxa do Ativo: ${(rAssetAA * 100).toFixed(4)}% a.a. (${rules.dayCountConvention})`);
+      console.log(`📈 Taxa do Período (${lastCouponDate} até ${x.endISO}): ${(rPeriodCapitalization * 100).toFixed(4)}%`);
       console.log(`🔢 Fator Capitalização: ${capitalizationFactor.toFixed(6)}`);
       console.log(`💵 Principal Capitalizado: R$ ${principalGrossFinal.toLocaleString('pt-BR')}`);
       console.log(`💲 Aumento: R$ ${(principalGrossFinal - x.principal).toLocaleString('pt-BR')}`);
