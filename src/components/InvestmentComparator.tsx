@@ -1176,7 +1176,7 @@ const InvestmentComparator = () => {
           </div>
           <div className="space-y-2">
             <Label htmlFor={`${assetKey}-valorInvestido`}>
-              {assetKey === 'ativo2' ? 'Valor Investido (R$) - Valor da Venda do Ativo 1' : 'Valor Investido (R$)'}
+              {assetKey === 'ativo2' ? 'Valor de Compra (R$) - Valor da Venda do Ativo 1' : 'Valor de Compra (R$)'}
             </Label>
             <Input id={`${assetKey}-valorInvestido`} type="number" step="0.01" value={asset.valorInvestido} onChange={e => handleAssetChange(assetKey, 'valorInvestido', parseFloat(e.target.value) || 0)} disabled={assetKey === 'ativo2'} className={assetKey === 'ativo2' ? 'bg-muted/50 cursor-not-allowed' : ''} />
           </div>
