@@ -758,10 +758,10 @@ const InvestmentComparator = () => {
     if (venc1 <= hoje) errors.push('Data de vencimento do Ativo 1 deve ser no futuro');
     if (venc2 <= hoje) errors.push('Data de vencimento do Ativo 2 deve ser no futuro');
 
-    // Validate projections cover necessary years
-    const maxYear = Math.max(venc1.getFullYear(), venc2.getFullYear());
+    // Validate projections cover necessary years - usar apenas o menor prazo
+    const minYear = Math.min(venc1.getFullYear(), venc2.getFullYear());
     const currentYear = hoje.getFullYear();
-    for (let year = currentYear; year <= maxYear; year++) {
+    for (let year = currentYear; year <= minYear; year++) {
       if (!projecoes.cdi[year]) errors.push(`Projeção CDI para ${year} é necessária`);
       if (!projecoes.ipca[year]) errors.push(`Projeção IPCA para ${year} é necessária`);
     }
