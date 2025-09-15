@@ -1819,7 +1819,7 @@ const InvestmentComparator = () => {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="p-6">
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  <div className="space-y-6">
                     
                     {/* Ativo 1 Coupons */}
                     {results.couponDetails?.ativo1?.length > 0 && <div>
