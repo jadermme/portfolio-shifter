@@ -594,7 +594,11 @@ const InvestmentComparator = () => {
 
     // Always use cash flow system when asset has coupons
     if (dados.tipoCupom !== 'nenhum') {
-      return calcularAtivoComFluxoCaixa(dados, periodosAtivo);
+      // For Asset 1, when it has longer maturity than Asset 2, limit calculation to Asset 2's maturity
+      const dataLimite = dados === ativo1 && new Date(ativo2.vencimento) < new Date(dados.vencimento) 
+        ? ativo2.vencimento 
+        : undefined;
+      return calcularAtivoComFluxoCaixa(dados, periodosAtivo, dataLimite);
     }
 
     // Legacy calculation for backward compatibility
@@ -643,14 +647,15 @@ const InvestmentComparator = () => {
   };
 
   // New cash flow calculation method
-  const calcularAtivoComFluxoCaixa = (dados: AssetData, anosProjecao: number): {
+  const calcularAtivoComFluxoCaixa = (dados: AssetData, anosProjecao: number, dataLimite?: string): {
     valores: number[];
     imposto: number;
     couponDetails: CouponResult[];
   } => {
     const hoje = new Date();
     const startISO = hoje.toISOString().slice(0, 10);
-    const endDate = new Date(dados.vencimento);
+    // Use dataLimite when provided, otherwise use asset's original maturity
+    const endDate = dataLimite ? new Date(dataLimite) : new Date(dados.vencimento);
     const endISO = endDate.toISOString().slice(0, 10);
 
     // Generate CDI curve from projections
