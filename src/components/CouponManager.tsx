@@ -106,13 +106,13 @@ export const CouponManager: React.FC<CouponManagerProps> = ({ couponData, onChan
       {/* Table Section */}
       {couponData.coupons.length > 0 ? (
         <div className="rounded-lg border bg-card">
-          <Table>
+          <Table className="table-fixed">
             <TableHeader>
               <TableRow className="bg-muted/50">
-                <TableHead className="w-16 font-semibold">Nº</TableHead>
-                <TableHead className="font-semibold">Data do Recebimento</TableHead>
-                <TableHead className="font-semibold">Valor (R$)</TableHead>
-                <TableHead className="w-24 text-center font-semibold">Ações</TableHead>
+                <TableHead className="w-1/12 font-semibold">Nº</TableHead>
+                <TableHead className="w-5/12 font-semibold">Data do Recebimento</TableHead>
+                <TableHead className="w-4/12 font-semibold">Valor (R$)</TableHead>
+                <TableHead className="w-2/12 text-center font-semibold">Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
