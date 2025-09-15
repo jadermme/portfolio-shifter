@@ -1569,11 +1569,11 @@ const InvestmentComparator = () => {
               </Card>
 
               {/* Table 2 - BTDI11 Characteristics */}
-              <Card className="border-financial-info/30 shadow-xl">
+              <Card key="ativo2-btdi11-card" className="border-financial-info/30 shadow-xl">
                 <CardHeader className="bg-gradient-to-r from-financial-info to-blue-600 text-white rounded-t-lg">
-                  <CardTitle className="flex items-center gap-2">
-                    <BarChart3 className="h-5 w-5" />
-                    Ativo 2 (BTDI11) - Características
+                  <CardTitle className="flex items-center gap-2 text-lg font-bold">
+                    <BarChart3 className="h-6 w-6" />
+                    ATIVO 2 - BTDI11
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="p-6">
