@@ -1270,6 +1270,7 @@ const InvestmentComparator = () => {
                   assetKey={assetKey}
                 />
               </div>
+            </>}
           
           {/* Earnings Period Configuration - Only for Ativo 2 (new investment) */}
           {assetKey === 'ativo2' && (
