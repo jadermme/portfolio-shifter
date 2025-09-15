@@ -1476,52 +1476,147 @@ const InvestmentComparator = () => {
               return null;
             })()}
             
-            {/* Executive Summary */}
-            <Card className="border-financial-primary/30 shadow-xl">
-              <CardHeader className="bg-gradient-to-r from-financial-primary to-financial-secondary text-white rounded-t-lg">
-                <CardTitle>Resumo Executivo - {ativo1.nome} vs {ativo2.nome}</CardTitle>
-              </CardHeader>
-              <CardContent className="p-6">
-                <div className="overflow-x-auto">
-                  <table className="w-full border-collapse">
-                    <thead>
-                      <tr className="bg-gradient-to-r from-financial-secondary to-financial-primary text-white">
-                        <th className="p-3 text-left border">Ativo</th>
-                        <th className="p-3 text-left border">Tipo Taxa</th>
-                        <th className="p-3 text-left border">Taxa</th>
-                        <th className="p-3 text-left border">Vencimento</th>
-                        <th className="p-3 text-left border">Valor de Compra</th>
-                        <th className="p-3 text-left border">Valor de Curva</th>
-                        <th className="p-3 text-left border">Cupons Recebidos</th>
-                        <th className="p-3 text-left border">Tributação IR</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <tr className="even:bg-muted/50">
-                        <td className="p-3 border font-semibold">{ativo1.nome}</td>
-                        <td className="p-3 border font-mono">{getTipoTaxaDisplay(ativo1.tipoTaxa)}</td>
-                        <td className="p-3 border font-mono">{getTaxaDisplay(ativo1)}</td>
-                        <td className="p-3 border font-mono">{new Date(ativo1.vencimento).toLocaleDateString('pt-BR')}</td>
-                        <td className="p-3 border font-mono">R$ {ativo1.valorInvestido.toLocaleString('pt-BR')}</td>
-                        <td className="p-3 border font-mono">R$ {ativo1.valorCurva.toLocaleString('pt-BR')}</td>
-                        <td className="p-3 border font-mono">R$ {ativo1.couponData.total.toLocaleString('pt-BR')}</td>
-                        <td className="p-3 border font-mono">{getIRDisplay(ativo1, results.anosProjecao)}</td>
-                      </tr>
-                      <tr className="even:bg-muted/50">
-                        <td className="p-3 border font-semibold">{ativo2.nome}</td>
-                        <td className="p-3 border font-mono">{getTipoTaxaDisplay(ativo2.tipoTaxa)}</td>
-                        <td className="p-3 border font-mono">{getTaxaDisplay(ativo2)}</td>
-                        <td className="p-3 border font-mono">{new Date(ativo2.vencimento).toLocaleDateString('pt-BR')}</td>
-                        <td className="p-3 border font-mono">R$ {ativo2.valorInvestido.toLocaleString('pt-BR')}</td>
-                        <td className="p-3 border font-mono">R$ {ativo2.valorCurva.toLocaleString('pt-BR')}</td>
-                        <td className="p-3 border font-mono">R$ {ativo2.couponData.total.toLocaleString('pt-BR')}</td>
-                        <td className="p-3 border font-mono">{getIRDisplay(ativo2, results.anosProjecao)}</td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
-              </CardContent>
-            </Card>
+            {/* Executive Summary - Restructured into Two Separate Tables */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Table 1 - CRA ZAMP with Early Sale Analysis */}
+              <Card className="border-financial-success/30 shadow-xl">
+                <CardHeader className="bg-gradient-to-r from-financial-success to-green-600 text-white rounded-t-lg">
+                  <CardTitle className="flex items-center gap-2">
+                    <TrendingUp className="h-5 w-5" />
+                    CRA ZAMP - Análise de Venda Antecipada
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-6">
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4 text-sm">
+                      <div className="space-y-3">
+                        <div>
+                          <span className="text-muted-foreground">Tipo Taxa:</span>
+                          <div className="font-mono font-semibold">{getTipoTaxaDisplay(ativo1.tipoTaxa)}</div>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground">Taxa:</span>
+                          <div className="font-mono font-semibold">{getTaxaDisplay(ativo1)}</div>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground">Vencimento:</span>
+                          <div className="font-mono font-semibold">{new Date(ativo1.vencimento).toLocaleDateString('pt-BR')}</div>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground">Tributação IR:</span>
+                          <div className="font-mono font-semibold">{getIRDisplay(ativo1, results.anosProjecao)}</div>
+                        </div>
+                      </div>
+                      
+                      <div className="space-y-3">
+                        <div>
+                          <span className="text-muted-foreground">Valor de Compra:</span>
+                          <div className="font-mono font-semibold">R$ {ativo1.valorInvestido.toLocaleString('pt-BR')}</div>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground">Valor de Curva:</span>
+                          <div className="font-mono font-semibold">R$ {ativo1.valorCurva.toLocaleString('pt-BR')}</div>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground">Cupons Recebidos:</span>
+                          <div className="font-mono font-semibold text-financial-success">R$ {ativo1.couponData.total.toLocaleString('pt-BR')}</div>
+                        </div>
+                        {ativo1.valorVenda && (
+                          <div>
+                            <span className="text-muted-foreground">Valor de Venda:</span>
+                            <div className="font-mono font-semibold text-blue-600">R$ {ativo1.valorVenda.toLocaleString('pt-BR')}</div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    
+                    {ativo1.valorVenda && (
+                      <div className="mt-4 p-4 bg-gradient-to-r from-financial-info/20 to-blue-100/20 rounded-lg border border-financial-info/30">
+                        <div className="text-center">
+                          <div className="text-sm text-muted-foreground mb-1">Resultado da Venda Antecipada</div>
+                          {(() => {
+                            const resultadoVenda = ativo1.valorVenda + ativo1.couponData.total - ativo1.valorInvestido;
+                            const isPositivo = resultadoVenda >= 0;
+                            const percentual = ((resultadoVenda / ativo1.valorInvestido) * 100);
+                            return (
+                              <div>
+                                <div className={`font-mono text-xl font-bold ${isPositivo ? 'text-financial-success' : 'text-financial-danger'}`}>
+                                  {isPositivo ? '+' : ''}R$ {resultadoVenda.toLocaleString('pt-BR')}
+                                </div>
+                                <div className={`text-sm ${isPositivo ? 'text-financial-success' : 'text-financial-danger'}`}>
+                                  {isPositivo ? '+' : ''}{percentual.toFixed(2)}% sobre o valor investido
+                                </div>
+                                <div className="text-xs text-muted-foreground mt-2">
+                                  Valor de Venda + Cupons - Valor de Compra
+                                </div>
+                              </div>
+                            );
+                          })()}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Table 2 - BTDI11 Characteristics */}
+              <Card className="border-financial-info/30 shadow-xl">
+                <CardHeader className="bg-gradient-to-r from-financial-info to-blue-600 text-white rounded-t-lg">
+                  <CardTitle className="flex items-center gap-2">
+                    <BarChart3 className="h-5 w-5" />
+                    BTDI11 - Características do Ativo
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-6">
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4 text-sm">
+                      <div className="space-y-3">
+                        <div>
+                          <span className="text-muted-foreground">Tipo Taxa:</span>
+                          <div className="font-mono font-semibold">{getTipoTaxaDisplay(ativo2.tipoTaxa)}</div>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground">Taxa:</span>
+                          <div className="font-mono font-semibold">{getTaxaDisplay(ativo2)}</div>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground">Vencimento:</span>
+                          <div className="font-mono font-semibold">{new Date(ativo2.vencimento).toLocaleDateString('pt-BR')}</div>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground">Tributação IR:</span>
+                          <div className="font-mono font-semibold">{getIRDisplay(ativo2, results.anosProjecao)}</div>
+                        </div>
+                      </div>
+                      
+                      <div className="space-y-3">
+                        <div>
+                          <span className="text-muted-foreground">Valor de Compra:</span>
+                          <div className="font-mono font-semibold">R$ {ativo2.valorInvestido.toLocaleString('pt-BR')}</div>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground">Valor de Curva:</span>
+                          <div className="font-mono font-semibold">R$ {ativo2.valorCurva.toLocaleString('pt-BR')}</div>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground">Cupons Recebidos:</span>
+                          <div className="font-mono font-semibold text-financial-success">R$ {ativo2.couponData.total.toLocaleString('pt-BR')}</div>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="mt-4 p-4 bg-gradient-to-r from-financial-secondary/20 to-purple-100/20 rounded-lg border border-financial-secondary/30">
+                      <div className="text-center">
+                        <div className="text-sm text-muted-foreground mb-2">Alternativa de Investimento</div>
+                        <div className="text-xs text-muted-foreground">
+                          Este ativo representa a opção comparativa para análise de performance relativa dos investimentos.
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
 
 
 
