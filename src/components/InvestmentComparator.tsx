@@ -1487,71 +1487,80 @@ const InvestmentComparator = () => {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="p-6">
-                  <div className="space-y-4">
-                    <div className="grid grid-cols-2 gap-4 text-sm">
-                      <div className="space-y-3">
-                        <div>
-                          <span className="text-muted-foreground">Tipo Taxa:</span>
-                          <div className="font-mono font-semibold">{getTipoTaxaDisplay(ativo1.tipoTaxa)}</div>
-                        </div>
-                        <div>
-                          <span className="text-muted-foreground">Taxa:</span>
-                          <div className="font-mono font-semibold">{getTaxaDisplay(ativo1)}</div>
-                        </div>
-                        <div>
-                          <span className="text-muted-foreground">Vencimento:</span>
-                          <div className="font-mono font-semibold">{new Date(ativo1.vencimento).toLocaleDateString('pt-BR')}</div>
-                        </div>
-                        <div>
-                          <span className="text-muted-foreground">Tributação IR:</span>
-                          <div className="font-mono font-semibold">{getIRDisplay(ativo1, results.anosProjecao)}</div>
-                        </div>
+                  <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 text-sm">
+                    {/* Coluna 1 - Características Básicas */}
+                    <div className="space-y-3">
+                      <div>
+                        <span className="text-muted-foreground">Tipo Taxa:</span>
+                        <div className="font-mono font-semibold">{getTipoTaxaDisplay(ativo1.tipoTaxa)}</div>
                       </div>
-                      
-                      <div className="space-y-3">
-                        <div>
-                          <span className="text-muted-foreground">Valor de Compra:</span>
-                          <div className="font-mono font-semibold">R$ {ativo1.valorInvestido.toLocaleString('pt-BR')}</div>
-                        </div>
-                        <div>
-                          <span className="text-muted-foreground">Valor de Curva:</span>
-                          <div className="font-mono font-semibold">R$ {ativo1.valorCurva.toLocaleString('pt-BR')}</div>
-                        </div>
-                        <div>
-                          <span className="text-muted-foreground">Cupons Recebidos:</span>
-                          <div className="font-mono font-semibold text-financial-success">R$ {ativo1.couponData.total.toLocaleString('pt-BR')}</div>
-                        </div>
-                        {ativo1.valorVenda && (
-                          <div>
-                            <span className="text-muted-foreground">Valor de Venda:</span>
-                            <div className="font-mono font-semibold text-blue-600">R$ {ativo1.valorVenda.toLocaleString('pt-BR')}</div>
-                          </div>
-                        )}
+                      <div>
+                        <span className="text-muted-foreground">Taxa:</span>
+                        <div className="font-mono font-semibold">{getTaxaDisplay(ativo1)}</div>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">Vencimento:</span>
+                        <div className="font-mono font-semibold">{new Date(ativo1.vencimento).toLocaleDateString('pt-BR')}</div>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">Tributação IR:</span>
+                        <div className="font-mono font-semibold">{getIRDisplay(ativo1, results.anosProjecao)}</div>
                       </div>
                     </div>
                     
-                    {ativo1.valorVenda && (
-                      <div className="mt-4 p-4 bg-gradient-to-r from-financial-info/20 to-blue-100/20 rounded-lg border border-financial-info/30">
-                        <div className="text-center">
-                          <div className="text-sm text-muted-foreground mb-1">Resultado da Venda Antecipada</div>
-                          {(() => {
-                            const resultadoVenda = ativo1.valorVenda + ativo1.couponData.total - ativo1.valorInvestido;
-                            const isPositivo = resultadoVenda >= 0;
-                            const percentual = ((resultadoVenda / ativo1.valorInvestido) * 100);
-                            return (
-                              <div>
-                                <div className={`font-mono text-xl font-bold ${isPositivo ? 'text-financial-success' : 'text-financial-danger'}`}>
-                                  {isPositivo ? '+' : ''}R$ {resultadoVenda.toLocaleString('pt-BR')}
+                    {/* Coluna 2 - Valores Financeiros */}
+                    <div className="space-y-3">
+                      <div>
+                        <span className="text-muted-foreground">Valor de Compra:</span>
+                        <div className="font-mono font-semibold">R$ {ativo1.valorInvestido.toLocaleString('pt-BR')}</div>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">Valor de Curva:</span>
+                        <div className="font-mono font-semibold">R$ {ativo1.valorCurva.toLocaleString('pt-BR')}</div>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">Cupons Recebidos:</span>
+                        <div className="font-mono font-semibold text-financial-success">R$ {ativo1.couponData.total.toLocaleString('pt-BR')}</div>
+                      </div>
+                      {ativo1.valorVenda && (
+                        <div>
+                          <span className="text-muted-foreground">Valor de Venda:</span>
+                          <div className="font-mono font-semibold text-blue-600">R$ {ativo1.valorVenda.toLocaleString('pt-BR')}</div>
+                        </div>
+                      )}
+                    </div>
+                    
+                    {/* Coluna 3 - Análise de Resultado */}
+                    {ativo1.valorVenda ? (
+                      <div className="col-span-2 lg:col-span-1">
+                        <div className="p-4 bg-gradient-to-r from-financial-info/20 to-blue-100/20 rounded-lg border border-financial-info/30 h-full flex flex-col justify-center">
+                          <div className="text-center">
+                            <div className="text-sm text-muted-foreground mb-1">Resultado da Venda Antecipada</div>
+                            {(() => {
+                              const resultadoVenda = ativo1.valorVenda + ativo1.couponData.total - ativo1.valorInvestido;
+                              const isPositivo = resultadoVenda >= 0;
+                              const percentual = ((resultadoVenda / ativo1.valorInvestido) * 100);
+                              return (
+                                <div>
+                                  <div className={`font-mono text-xl font-bold ${isPositivo ? 'text-financial-success' : 'text-financial-danger'}`}>
+                                    {isPositivo ? '+' : ''}R$ {resultadoVenda.toLocaleString('pt-BR')}
+                                  </div>
+                                  <div className={`text-sm ${isPositivo ? 'text-financial-success' : 'text-financial-danger'}`}>
+                                    {isPositivo ? '+' : ''}{percentual.toFixed(2)}% sobre o valor investido
+                                  </div>
+                                  <div className="text-xs text-muted-foreground mt-2">
+                                    Valor de Venda + Cupons - Valor de Compra
+                                  </div>
                                 </div>
-                                <div className={`text-sm ${isPositivo ? 'text-financial-success' : 'text-financial-danger'}`}>
-                                  {isPositivo ? '+' : ''}{percentual.toFixed(2)}% sobre o valor investido
-                                </div>
-                                <div className="text-xs text-muted-foreground mt-2">
-                                  Valor de Venda + Cupons - Valor de Compra
-                                </div>
-                              </div>
-                            );
-                          })()}
+                              );
+                            })()}
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="col-span-2 lg:col-span-1 flex items-center justify-center">
+                        <div className="text-center text-muted-foreground text-sm">
+                          Aguardando valor de venda para análise
                         </div>
                       </div>
                     )}
@@ -1568,48 +1577,51 @@ const InvestmentComparator = () => {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="p-6">
-                  <div className="space-y-4">
-                    <div className="grid grid-cols-2 gap-4 text-sm">
-                      <div className="space-y-3">
-                        <div>
-                          <span className="text-muted-foreground">Tipo Taxa:</span>
-                          <div className="font-mono font-semibold">{getTipoTaxaDisplay(ativo2.tipoTaxa)}</div>
-                        </div>
-                        <div>
-                          <span className="text-muted-foreground">Taxa:</span>
-                          <div className="font-mono font-semibold">{getTaxaDisplay(ativo2)}</div>
-                        </div>
-                        <div>
-                          <span className="text-muted-foreground">Vencimento:</span>
-                          <div className="font-mono font-semibold">{new Date(ativo2.vencimento).toLocaleDateString('pt-BR')}</div>
-                        </div>
-                        <div>
-                          <span className="text-muted-foreground">Tributação IR:</span>
-                          <div className="font-mono font-semibold">{getIRDisplay(ativo2, results.anosProjecao)}</div>
-                        </div>
+                  <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 text-sm">
+                    {/* Coluna 1 - Características Básicas */}
+                    <div className="space-y-3">
+                      <div>
+                        <span className="text-muted-foreground">Tipo Taxa:</span>
+                        <div className="font-mono font-semibold">{getTipoTaxaDisplay(ativo2.tipoTaxa)}</div>
                       </div>
-                      
-                      <div className="space-y-3">
-                        <div>
-                          <span className="text-muted-foreground">Valor de Compra:</span>
-                          <div className="font-mono font-semibold">R$ {ativo2.valorInvestido.toLocaleString('pt-BR')}</div>
-                        </div>
-                        <div>
-                          <span className="text-muted-foreground">Valor de Curva:</span>
-                          <div className="font-mono font-semibold">R$ {ativo2.valorCurva.toLocaleString('pt-BR')}</div>
-                        </div>
-                        <div>
-                          <span className="text-muted-foreground">Cupons Recebidos:</span>
-                          <div className="font-mono font-semibold text-financial-success">R$ {ativo2.couponData.total.toLocaleString('pt-BR')}</div>
-                        </div>
+                      <div>
+                        <span className="text-muted-foreground">Taxa:</span>
+                        <div className="font-mono font-semibold">{getTaxaDisplay(ativo2)}</div>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">Vencimento:</span>
+                        <div className="font-mono font-semibold">{new Date(ativo2.vencimento).toLocaleDateString('pt-BR')}</div>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">Tributação IR:</span>
+                        <div className="font-mono font-semibold">{getIRDisplay(ativo2, results.anosProjecao)}</div>
                       </div>
                     </div>
                     
-                    <div className="mt-4 p-4 bg-gradient-to-r from-financial-secondary/20 to-purple-100/20 rounded-lg border border-financial-secondary/30">
-                      <div className="text-center">
-                        <div className="text-sm text-muted-foreground mb-2">Alternativa de Investimento</div>
-                        <div className="text-xs text-muted-foreground">
-                          Este ativo representa a opção comparativa para análise de performance relativa dos investimentos.
+                    {/* Coluna 2 - Valores Financeiros */}
+                    <div className="space-y-3">
+                      <div>
+                        <span className="text-muted-foreground">Valor de Compra:</span>
+                        <div className="font-mono font-semibold">R$ {ativo2.valorInvestido.toLocaleString('pt-BR')}</div>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">Valor de Curva:</span>
+                        <div className="font-mono font-semibold">R$ {ativo2.valorCurva.toLocaleString('pt-BR')}</div>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">Cupons Recebidos:</span>
+                        <div className="font-mono font-semibold text-financial-success">R$ {ativo2.couponData.total.toLocaleString('pt-BR')}</div>
+                      </div>
+                    </div>
+                    
+                    {/* Coluna 3 - Informação Adicional */}
+                    <div className="col-span-2 lg:col-span-1">
+                      <div className="p-4 bg-gradient-to-r from-financial-secondary/20 to-purple-100/20 rounded-lg border border-financial-secondary/30 h-full flex flex-col justify-center">
+                        <div className="text-center">
+                          <div className="text-sm text-muted-foreground mb-2">Alternativa de Investimento</div>
+                          <div className="text-xs text-muted-foreground">
+                            Este ativo representa a opção comparativa para análise de performance relativa dos investimentos.
+                          </div>
                         </div>
                       </div>
                     </div>
