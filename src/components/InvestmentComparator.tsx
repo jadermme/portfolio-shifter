@@ -128,10 +128,125 @@ interface CalculationResult {
 const irAliquotaRegressivo = (dias: number) => dias <= 180 ? 0.225 : dias <= 360 ? 0.20 : dias <= 720 ? 0.175 : 0.15;
 const aaToMonthly = (aaPct: number) => Math.pow(1 + aaPct / 100, 1 / 12) - 1;
 const aaToDaily252 = (aaPct: number) => Math.pow(1 + aaPct / 100, 1 / 252) - 1;
-function monthlyRateFromCDI(cdiAA: number, use252: boolean, duPerMonth = 21) {
-  if (use252) return Math.pow(1 + aaToDaily252(cdiAA), duPerMonth) - 1;
+
+// ===================== DYNAMIC CALCULATION RULES BY ASSET TYPE =====================
+interface CalculationRules {
+  use252: boolean;
+  useDailyCapitalization: boolean;
+  dayCountConvention: 'ACT/252' | 'ACT/365';
+}
+
+function getCalculationRules(tipoAtivo: string, indexador: string): CalculationRules {
+  // Default rules
+  let rules: CalculationRules = {
+    use252: false,
+    useDailyCapitalization: false,
+    dayCountConvention: 'ACT/365'
+  };
+
+  // Apply rules based on asset type and indexer combination
+  switch (tipoAtivo) {
+    case 'cdb':
+      if (indexador === 'percentual-cdi' || indexador === 'cdi-mais') {
+        // CDB indexado ao CDI usa 252 DU com capitalização diária
+        rules = {
+          use252: true,
+          useDailyCapitalization: true,
+          dayCountConvention: 'ACT/252'
+        };
+      } else if (indexador === 'pre-fixada') {
+        // CDB pré-fixado usa ACT/365 dias corridos
+        rules = {
+          use252: false,
+          useDailyCapitalization: false,
+          dayCountConvention: 'ACT/365'
+        };
+      }
+      break;
+
+    case 'cri-cra':
+    case 'debenture-incentivada':
+      if (indexador === 'percentual-cdi' || indexador === 'cdi-mais') {
+        // CRI/CRA e Debêntures indexadas ao CDI usam 252 DU com capitalização mensal
+        rules = {
+          use252: true,
+          useDailyCapitalization: false,
+          dayCountConvention: 'ACT/252'
+        };
+      } else if (indexador === 'pre-fixada') {
+        // CRI/CRA e Debêntures pré-fixadas usam ACT/365
+        rules = {
+          use252: false,
+          useDailyCapitalization: false,
+          dayCountConvention: 'ACT/365'
+        };
+      }
+      break;
+
+    case 'lci-lca':
+      // LCI/LCA seguem mesmas regras do CDB
+      if (indexador === 'percentual-cdi' || indexador === 'cdi-mais') {
+        rules = {
+          use252: true,
+          useDailyCapitalization: true,
+          dayCountConvention: 'ACT/252'
+        };
+      } else if (indexador === 'pre-fixada') {
+        rules = {
+          use252: false,
+          useDailyCapitalization: false,
+          dayCountConvention: 'ACT/365'
+        };
+      }
+      break;
+
+    case 'tesouro-direto':
+      if (indexador === 'ipca-mais') {
+        // Tesouro IPCA+ usa regras específicas do Tesouro
+        rules = {
+          use252: false,
+          useDailyCapitalization: false,
+          dayCountConvention: 'ACT/365'
+        };
+      } else if (indexador === 'pre-fixada') {
+        // Tesouro Prefixado
+        rules = {
+          use252: false,
+          useDailyCapitalization: false,
+          dayCountConvention: 'ACT/365'
+        };
+      }
+      break;
+
+    case 'fundo-cetipado':
+      // Fundos cetipados apenas distribuem, não valorizam
+      rules = {
+        use252: true,
+        useDailyCapitalization: false,
+        dayCountConvention: 'ACT/252'
+      };
+      break;
+  }
+
+  console.log(`📊 Regras de cálculo para ${tipoAtivo} + ${indexador}:`, rules);
+  return rules;
+}
+function monthlyRateFromCDI(cdiAA: number, use252: boolean, duPerMonth = 21, useDailyCapitalization = false) {
+  if (use252) {
+    if (useDailyCapitalization) {
+      // Para CDB indexado ao CDI: capitalização diária
+      // Taxa diária CDI composta por dias úteis no mês
+      const dailyRate = aaToDaily252(cdiAA);
+      return Math.pow(1 + dailyRate, duPerMonth) - 1;
+    } else {
+      // Para CRI/CRA e Debêntures: capitalização mensal baseada em 252 DU
+      return Math.pow(1 + aaToDaily252(cdiAA), duPerMonth) - 1;
+    }
+  }
+  // Capitalização mensal tradicional (365 dias)
   return aaToMonthly(cdiAA);
 }
+
 function rateOfAssetForPeriod(kind: RateKind, p: {
   taxaPreAA?: number;
   taxaRealAA?: number;
@@ -140,6 +255,7 @@ function rateOfAssetForPeriod(kind: RateKind, p: {
   cdiAA?: number;
   spreadPreAA?: number;
   use252?: boolean;
+  useDailyCapitalization?: boolean;
 }, monthlyIndex?: number): number {
   const {
     taxaPreAA = 0,
@@ -148,17 +264,27 @@ function rateOfAssetForPeriod(kind: RateKind, p: {
     percCDI = 0,
     cdiAA = 0,
     spreadPreAA = 0,
-    use252 = false
+    use252 = false,
+    useDailyCapitalization = false
   } = p;
+  
+  console.log(`📈 Calculando taxa para ${kind}: use252=${use252}, dailyCap=${useDailyCapitalization}`);
+  
   switch (kind) {
     case "PRE":
+      // Taxa pré-fixada sempre usa ACT/365
       return aaToMonthly(taxaPreAA);
     case "IPCA+PRE":
+      // IPCA + Taxa real sempre usa ACT/365
       return (1 + aaToMonthly(taxaRealAA)) * (1 + aaToMonthly(ipcaAA)) - 1;
     case "%CDI":
-      return monthlyRateFromCDI(cdiAA, use252) * (percCDI / 100);
+      // Percentual do CDI usa regras específicas por tipo de ativo
+      const baseCDIRate = monthlyRateFromCDI(cdiAA, use252, 21, useDailyCapitalization);
+      return baseCDIRate * (percCDI / 100);
     case "CDI+PRE":
-      return monthlyRateFromCDI(cdiAA, use252) + aaToMonthly(spreadPreAA);
+      // CDI + Spread usa regras específicas por tipo de ativo
+      const cdiRate = monthlyRateFromCDI(cdiAA, use252, 21, useDailyCapitalization);
+      return cdiRate + aaToMonthly(spreadPreAA);
   }
 }
 function addMonths(dateISO: string, n: number) {
@@ -227,7 +353,7 @@ function genCouponDates(startISO: string, endISO: string, freq: Freq, earningsSt
 }
 
 // Fator CDI acumulado entre duas datas, usando curva mensal
-function cdiFactor(curve: CDIPoint[], fromISO: string, toISO: string, use252 = false): number {
+function cdiFactor(curve: CDIPoint[], fromISO: string, toISO: string, use252 = false, useDailyCapitalization = false): number {
   if (new Date(fromISO) >= new Date(toISO)) return 1;
   let factor = 1;
   let cursor = new Date(fromISO);
@@ -238,7 +364,7 @@ function cdiFactor(curve: CDIPoint[], fromISO: string, toISO: string, use252 = f
     // acha o ponto CDI do mês de 'cursor'
     const key = cursor.toISOString().slice(0, 7); // YYYY-MM
     const pt = curve.find(p => p.date.slice(0, 7) === key) ?? curve[curve.length - 1];
-    const rm = monthlyRateFromCDI(pt.cdiAA, use252);
+    const rm = monthlyRateFromCDI(pt.cdiAA, use252, 21, useDailyCapitalization);
     factor *= 1 + rm;
     cursor.setMonth(cursor.getMonth() + 1);
   }
@@ -251,7 +377,17 @@ function getCDIRateForMonth(curve: CDIPoint[], dateISO: string): number {
   const pt = curve.find(p => p.date.slice(0, 7) === key);
   return pt ? pt.cdiAA : curve[curve.length - 1]?.cdiAA || 10;
 }
-function projectWithReinvestCDI(x: CouponEngineInput, isLimitedAnalysis = false) {
+function projectWithReinvestCDI(x: CouponEngineInput, isLimitedAnalysis = false, assetType?: string, indexador?: string) {
+  // Determine calculation rules based on asset type and indexer
+  const rules = assetType && indexador ? getCalculationRules(assetType, indexador) : {
+    use252: x.use252 || false,
+    useDailyCapitalization: false,
+    dayCountConvention: 'ACT/365' as const
+  };
+  
+  console.log(`💼 Calculando cupons para ${assetType || 'ativo'} com ${indexador || 'indexador'}`);
+  console.log(`📊 Regras aplicadas:`, rules);
+  
   // No administrative fees for direct securities
   const couponDates = genCouponDates(x.startISO, x.endISO, x.freq, x.earningsStartDate);
   const coupons: CouponResult[] = [];
@@ -272,10 +408,14 @@ function projectWithReinvestCDI(x: CouponEngineInput, isLimitedAnalysis = false)
       percCDI: x.percCDI,
       cdiAA,
       spreadPreAA: x.spreadPreAA,
-      use252: false
+      use252: rules.use252,
+      useDailyCapitalization: rules.useDailyCapitalization
     });
+    
     const rPeriodGross = Math.pow(1 + rAssetMonthly, months) - 1;
     const couponGross = Math.max(0, basePrincipal * rPeriodGross);
+
+    console.log(`📅 Cupom ${dt}: Taxa Mensal=${(rAssetMonthly * 100).toFixed(4)}%, Cupom=R$${couponGross.toLocaleString('pt-BR')}`);
 
     // IR regressivo sobre o cupom pelo tempo desde a aplicação
     const dias = daysBetween(x.startISO, dt);
@@ -283,7 +423,7 @@ function projectWithReinvestCDI(x: CouponEngineInput, isLimitedAnalysis = false)
     const couponNet = couponGross * (1 - aliq);
 
     // fator de reinvestimento CDI do pagamento até o fim
-    const fReinv = cdiFactor(x.cdiCurve, dt, x.endISO, false);
+    const fReinv = cdiFactor(x.cdiCurve, dt, x.endISO, rules.use252, rules.useDailyCapitalization);
     const couponReinv = couponNet * fReinv;
     coupons.push({
       couponDate: dt,
@@ -320,14 +460,16 @@ function projectWithReinvestCDI(x: CouponEngineInput, isLimitedAnalysis = false)
         percCDI: x.percCDI,
         cdiAA,
         spreadPreAA: x.spreadPreAA,
-        use252: false
+        use252: rules.use252,
+        useDailyCapitalization: rules.useDailyCapitalization
       });
       
-      // Capitalize from last coupon to end date
-      const capitalizationFactor = Math.pow(1 + rAssetAA, daysFromLastCoupon / 365);
+      // Capitalize from last coupon to end date using appropriate day count convention
+      const dayCountBase = rules.dayCountConvention === 'ACT/252' ? 252 : 365;
+      const capitalizationFactor = Math.pow(1 + rAssetAA, daysFromLastCoupon / dayCountBase);
       principalGrossFinal = basePrincipal * capitalizationFactor;
       
-      console.log(`📈 Taxa do Ativo: ${(rAssetAA * 100).toFixed(4)}% a.a.`);
+      console.log(`📈 Taxa do Ativo: ${(rAssetAA * 100).toFixed(4)}% a.a. (${rules.dayCountConvention})`);
       console.log(`🔢 Fator Capitalização: ${capitalizationFactor.toFixed(6)}`);
       console.log(`💵 Principal Capitalizado: R$ ${principalGrossFinal.toLocaleString('pt-BR')}`);
       console.log(`💲 Aumento: R$ ${(principalGrossFinal - x.principal).toLocaleString('pt-BR')}`);
@@ -874,35 +1016,40 @@ const InvestmentComparator = () => {
     const rateKind = mapLegacyToNewFormat(dados);
     const freq = mapCoupomFreq(dados.tipoCupom);
 
-    // Setup cash flow input
-    const cashFlowInput: CouponEngineInput = {
-      principal: dados.valorCurva,
-      startISO,
-      endISO,
-      freq,
-      rateKind,
-      taxaPreAA: rateKind === 'PRE' ? dados.taxa : undefined,
-      taxaRealAA: rateKind === 'IPCA+PRE' ? dados.taxa : undefined,
-      spreadPreAA: rateKind === 'CDI+PRE' ? dados.taxa : undefined,
-      percCDI: rateKind === '%CDI' ? dados.taxa : undefined,
-      cdiAABase: projecoes.cdi[new Date().getFullYear()] || 10,
-      cdiCurve,
-      ipcaCurve: projecoes.ipcaCurve,
-      feesAA: 0,
-      // Removed - not applicable for direct securities
-      irRegressivo: dados.tipoIR === 'renda-fixa',
-      use252: false,
-      // Removed - not applicable for direct securities
-      earningsStartDate: dados.earningsStartDate // Add earnings start date
-    };
+     // Setup cash flow input
+     const cashFlowInput: CouponEngineInput = {
+       principal: dados.valorCurva,
+       startISO,
+       endISO,
+       freq,
+       rateKind,
+       taxaPreAA: rateKind === 'PRE' ? dados.taxa : undefined,
+       taxaRealAA: rateKind === 'IPCA+PRE' ? dados.taxa : undefined,
+       spreadPreAA: rateKind === 'CDI+PRE' ? dados.taxa : undefined,
+       percCDI: rateKind === '%CDI' ? dados.taxa : undefined,
+       cdiAABase: projecoes.cdi[new Date().getFullYear()] || 10,
+       cdiCurve,
+       ipcaCurve: projecoes.ipcaCurve,
+       feesAA: 0,
+       irRegressivo: dados.tipoIR === 'renda-fixa',
+       // use252 will be determined dynamically based on asset type and indexer
+       earningsStartDate: dados.earningsStartDate
+     };
 
-    // Calculate cash flows
-    // Check if this is a limited analysis (ending before asset's natural maturity)
-    const isLimitedAnalysis = dataLimite && new Date(dataLimite) < new Date(dados.vencimento);
-    console.log(`⚖️ Análise Limitada: ${isLimitedAnalysis ? 'SIM' : 'NÃO'}`);
-    console.log(`💰 Taxa: ${dados.taxa}% a.a. (${rateKind})`);
-    
-    const result = projectWithReinvestCDI(cashFlowInput, isLimitedAnalysis);
+     // Calculate cash flows
+     // Check if this is a limited analysis (ending before asset's natural maturity)
+     const isLimitedAnalysis = dataLimite && new Date(dataLimite) < new Date(dados.vencimento);
+     console.log(`⚖️ Análise Limitada: ${isLimitedAnalysis ? 'SIM' : 'NÃO'}`);
+     console.log(`💰 Taxa: ${dados.taxa}% a.a. (${rateKind})`);
+     console.log(`🏢 Tipo de Ativo: ${dados.tipoAtivo}`);
+     console.log(`📊 Indexador: ${dados.indexador || dados.tipoTaxa || 'pre-fixada'}`);
+     
+     const result = projectWithReinvestCDI(
+       cashFlowInput, 
+       isLimitedAnalysis, 
+       dados.tipoAtivo, 
+       dados.indexador || dados.tipoTaxa || 'pre-fixada'
+     );
 
     // Build annual values array for compatibility
     const valores = [Math.round(dados.valorCurva)];
@@ -2437,12 +2584,29 @@ const InvestmentComparator = () => {
                 <CardContent className="p-6">
                   <div className="space-y-6">
                     
-                    {/* Ativo 1 Coupons */}
-                    {results.couponDetails?.ativo1?.length > 0 && <div>
-                        <h4 className="font-bold text-lg mb-3 text-financial-primary">
-                          {ativo1.nome} - Fluxo de Cupons
-                        </h4>
-                        <div className="overflow-x-auto">
+                     {/* Ativo 1 Coupons */}
+                     {results.couponDetails?.ativo1?.length > 0 && <div>
+                         <h4 className="font-bold text-lg mb-3 text-financial-primary">
+                           {ativo1.nome} - Fluxo de Cupons
+                         </h4>
+                         
+                         {/* Methodology indicator */}
+                         <div className="mb-3 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                           <div className="flex items-center gap-2 text-sm">
+                             <span className="text-blue-600 dark:text-blue-400 font-medium">📊 Metodologia de Cálculo:</span>
+                             <span className="font-mono text-blue-800 dark:text-blue-300">
+                               {(() => {
+                                 const rules = getCalculationRules(ativo1.tipoAtivo, ativo1.indexador || ativo1.tipoTaxa || 'pre-fixada');
+                                 return `${rules.dayCountConvention} ${rules.useDailyCapitalization ? '(Capitalização Diária)' : '(Capitalização Mensal)'}`;
+                               })()}
+                             </span>
+                           </div>
+                           <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">
+                             Cupons calculados dinamicamente baseados no tipo de ativo ({ativo1.tipoAtivo}) e indexador ({ativo1.indexador || ativo1.tipoTaxa || 'pre-fixada'})
+                           </p>
+                         </div>
+                         
+                         <div className="overflow-x-auto">
                           <table className="w-full border-collapse text-sm">
                             <thead>
                               <tr className="bg-financial-primary/10">
@@ -2501,12 +2665,29 @@ const InvestmentComparator = () => {
                         </div>
                       </div>}
                     
-                    {/* Ativo 2 Coupons */}
-                    {results.couponDetails?.ativo2?.length > 0 && <div>
-                        <h4 className="font-bold text-lg mb-3 text-financial-secondary">
-                          {ativo2.nome} - Fluxo de Cupons
-                        </h4>
-                        <div className="overflow-x-auto">
+                     {/* Ativo 2 Coupons */}
+                     {results.couponDetails?.ativo2?.length > 0 && <div>
+                         <h4 className="font-bold text-lg mb-3 text-financial-secondary">
+                           {ativo2.nome} - Fluxo de Cupons
+                         </h4>
+                         
+                         {/* Methodology indicator */}
+                         <div className="mb-3 p-3 bg-orange-50 dark:bg-orange-900/20 rounded-lg border border-orange-200 dark:border-orange-800">
+                           <div className="flex items-center gap-2 text-sm">
+                             <span className="text-orange-600 dark:text-orange-400 font-medium">📊 Metodologia de Cálculo:</span>
+                             <span className="font-mono text-orange-800 dark:text-orange-300">
+                               {(() => {
+                                 const rules = getCalculationRules(ativo2.tipoAtivo, ativo2.indexador || ativo2.tipoTaxa || 'pre-fixada');
+                                 return `${rules.dayCountConvention} ${rules.useDailyCapitalization ? '(Capitalização Diária)' : '(Capitalização Mensal)'}`;
+                               })()}
+                             </span>
+                           </div>
+                           <p className="text-xs text-orange-600 dark:text-orange-400 mt-1">
+                             Cupons calculados dinamicamente baseados no tipo de ativo ({ativo2.tipoAtivo}) e indexador ({ativo2.indexador || ativo2.tipoTaxa || 'pre-fixada'})
+                           </p>
+                         </div>
+                         
+                         <div className="overflow-x-auto">
                           <table className="w-full border-collapse text-sm">
                             <thead>
                               <tr className="bg-financial-secondary/10">
