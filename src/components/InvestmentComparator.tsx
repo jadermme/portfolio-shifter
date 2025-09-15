@@ -7,6 +7,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Separator } from '@/components/ui/separator';
 import { Calculator, Trash2, Printer, TrendingUp, BarChart3, ArrowRight, AlertTriangle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { CouponManager } from './CouponManager';
+import { CouponSummary } from '@/types/coupon';
 
 // ===================== NEW CASH FLOW SYSTEM TYPES =====================
 type RateKind = "PRE" | "IPCA+PRE" | "%CDI" | "CDI+PRE";
@@ -57,7 +59,7 @@ interface AssetData {
   taxa: number;
   vencimento: string;
   valorInvestido: number;
-  cupons: number;
+  couponData: CouponSummary;
   valorCurva: number;
   valorVenda?: number;
   tipoCupom: string;
@@ -340,7 +342,13 @@ const InvestmentComparator = () => {
     taxa: 12.03,
     vencimento: '2029-02-15',
     valorInvestido: 236792,
-    cupons: 41194,
+    couponData: { 
+      coupons: [
+        { id: '1', date: '2025-02-15', value: 10298.5 },
+        { id: '2', date: '2025-08-15', value: 30895.5 }
+      ], 
+      total: 41194 
+    },
     valorCurva: 231039,
     valorVenda: 216268,
     tipoCupom: 'semestral',
@@ -388,7 +396,7 @@ const InvestmentComparator = () => {
     vencimento: '2030-04-30',
     valorInvestido: 216268,
     // Mesmo valor da venda do ativo1
-    cupons: 0,
+    couponData: { coupons: [], total: 0 },
     valorCurva: 216268,
     tipoCupom: 'mensal',
     // Monthly payments starting Nov 2025
@@ -466,7 +474,7 @@ const InvestmentComparator = () => {
     });
     return btoa(dataString).slice(0, 20); // Simple hash for validation
   };
-  const handleAssetChange = (asset: 'ativo1' | 'ativo2', field: keyof AssetData, value: string | number | boolean) => {
+  const handleAssetChange = (asset: 'ativo1' | 'ativo2', field: keyof AssetData, value: string | number | boolean | CouponSummary) => {
     if (asset === 'ativo1') {
       setAtivo1(prev => ({
         ...prev,
@@ -479,7 +487,10 @@ const InvestmentComparator = () => {
           valorInvestido: Number(value),
           valorCurva: Number(value),
           // Para aplicação nova, valor de curva = valor investido
-          cupons: 0 // Aplicação nova não tem cupons recebidos
+          couponData: { 
+            coupons: [], 
+            total: 0 // Aplicação nova não tem cupons recebidos
+          }
         }));
       }
     } else {
@@ -489,10 +500,10 @@ const InvestmentComparator = () => {
           ...prev,
           valorInvestido: Number(value),
           valorCurva: Number(value),
-          cupons: 0
+          couponData: { coupons: [], total: 0 }
         }));
-      } else if (field !== 'cupons' && field !== 'valorCurva') {
-        // Impede alteração de cupons e valorCurva
+      } else if (field !== 'couponData' && field !== 'valorCurva') {
+        // Impede alteração de couponData e valorCurva
         setAtivo2(prev => ({
           ...prev,
           [field]: value
@@ -851,7 +862,7 @@ const InvestmentComparator = () => {
       taxa: 0,
       vencimento: '',
       valorInvestido: 0,
-      cupons: 0,
+      couponData: { coupons: [], total: 0 },
       valorCurva: 0,
       valorVenda: 0,
       tipoCupom: 'semestral',
@@ -866,7 +877,7 @@ const InvestmentComparator = () => {
       taxa: 0,
       vencimento: '',
       valorInvestido: 0,
-      cupons: 0,
+      couponData: { coupons: [], total: 0 },
       valorCurva: 0,
       tipoCupom: 'semestral',
       mesesCupons: '',
@@ -1181,10 +1192,11 @@ const InvestmentComparator = () => {
             <Input id={`${assetKey}-valorInvestido`} type="number" step="0.01" value={asset.valorInvestido} onChange={e => handleAssetChange(assetKey, 'valorInvestido', parseFloat(e.target.value) || 0)} disabled={assetKey === 'ativo2'} className={assetKey === 'ativo2' ? 'bg-muted/50 cursor-not-allowed' : ''} />
           </div>
           {assetKey === 'ativo1' && <>
-              <div className="space-y-2">
-                <Label htmlFor={`${assetKey}-cupons`}>Cupons Recebidos (R$)</Label>
-                <Input id={`${assetKey}-cupons`} type="number" step="0.01" value={asset.cupons} onChange={e => handleAssetChange(assetKey, 'cupons', parseFloat(e.target.value) || 0)} />
-              </div>
+              <CouponManager 
+                couponData={asset.couponData}
+                onChange={(couponData) => handleAssetChange(assetKey, 'couponData', couponData)}
+                assetKey={assetKey}
+              />
               <div className="space-y-2">
                 <Label htmlFor={`${assetKey}-valorCurva`}>Valor de Curva (R$)</Label>
                 <Input id={`${assetKey}-valorCurva`} type="number" step="0.01" value={asset.valorCurva} onChange={e => handleAssetChange(assetKey, 'valorCurva', parseFloat(e.target.value) || 0)} />
@@ -1421,7 +1433,7 @@ const InvestmentComparator = () => {
                         <td className="p-3 border font-mono">{new Date(ativo1.vencimento).toLocaleDateString('pt-BR')}</td>
                         <td className="p-3 border font-mono">R$ {ativo1.valorInvestido.toLocaleString('pt-BR')}</td>
                         <td className="p-3 border font-mono">R$ {ativo1.valorCurva.toLocaleString('pt-BR')}</td>
-                        <td className="p-3 border font-mono">R$ {ativo1.cupons.toLocaleString('pt-BR')}</td>
+                        <td className="p-3 border font-mono">R$ {ativo1.couponData.total.toLocaleString('pt-BR')}</td>
                         <td className="p-3 border font-mono">{getIRDisplay(ativo1, results.anosProjecao)}</td>
                       </tr>
                       <tr className="even:bg-muted/50">
@@ -1431,7 +1443,7 @@ const InvestmentComparator = () => {
                         <td className="p-3 border font-mono">{new Date(ativo2.vencimento).toLocaleDateString('pt-BR')}</td>
                         <td className="p-3 border font-mono">R$ {ativo2.valorInvestido.toLocaleString('pt-BR')}</td>
                         <td className="p-3 border font-mono">R$ {ativo2.valorCurva.toLocaleString('pt-BR')}</td>
-                        <td className="p-3 border font-mono">R$ {ativo2.cupons.toLocaleString('pt-BR')}</td>
+                        <td className="p-3 border font-mono">R$ {ativo2.couponData.total.toLocaleString('pt-BR')}</td>
                         <td className="p-3 border font-mono">{getIRDisplay(ativo2, results.anosProjecao)}</td>
                       </tr>
                     </tbody>
