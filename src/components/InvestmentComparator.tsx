@@ -47,6 +47,9 @@ interface CouponEngineInput {
   taxaPreAA?: number;
   taxaRealAA?: number;
   spreadPreAA?: number;
+  // novos parâmetros para lógicas especiais
+  mesesCupons?: string;
+  tipoAtivo?: string;
   percCDI?: number;
   cdiAABase?: number;
   // curvas:
@@ -367,7 +370,7 @@ function calculatePeriodRate(annualRate: number, fromISO: string, toISO: string,
   
   return Math.pow(1 + dailyRate, days) - 1;
 }
-function genCouponDates(startISO: string, endISO: string, freq: Freq, earningsStartDate?: string): string[] {
+function genCouponDates(startISO: string, endISO: string, freq: Freq, earningsStartDate?: string, mesesCupons?: string, tipoAtivo?: string): string[] {
   const step = freq === "MONTHLY" ? 1 : 6;
   const out: string[] = [];
 
@@ -375,38 +378,36 @@ function genCouponDates(startISO: string, endISO: string, freq: Freq, earningsSt
   if (earningsStartDate) {
     console.log(`📅 Usando data de início dos rendimentos: ${earningsStartDate}`);
     
-    // Special handling for CRA ZAMP - cupons em fevereiro e agosto
-    if (earningsStartDate === '2025-09-01') {
-      console.log(`📅 CRA ZAMP: Gerando cupons para fev/ago, excluindo agosto de 2025 (já pago)`);
-      console.log(`📅 CRA ZAMP: Cupons limitados até 30/04/2029 para comparação`);
+    // Special handling for CRI/CRA/Debêntures with configured coupon months
+    if ((tipoAtivo === 'cri-cra' || tipoAtivo === 'debenture-incentivada') && mesesCupons) {
+      console.log(`📅 ${tipoAtivo.toUpperCase()}: Gerando cupons para os meses configurados: ${mesesCupons}`);
       
-      // Data limite: 30/04/2029
-      const limitDate = new Date('2029-04-30');
+      const meses = mesesCupons.split(',').map(m => parseInt(m.trim()));
+      console.log(`📅 Meses dos cupons: ${meses.join(', ')}`);
       
-      // Start from February 2026 (next coupon after September 2025)
-      let currentYear = 2026;
+      // Start from the year after earnings start date
+      const earningsStart = new Date(earningsStartDate);
+      let currentYear = earningsStart.getFullYear() + 1;
       const endYear = new Date(endISO).getFullYear();
       
       while (currentYear <= endYear) {
-        // February coupon
-        const febDate = `${currentYear}-02-15`;
-        const febDateObj = new Date(febDate);
-        if (febDateObj <= new Date(endISO) && febDateObj <= limitDate) {
-          console.log(`📅 Data de cupom gerada: ${febDate}`);
-          out.push(febDate);
-        }
-        
-        // August coupon
-        const augDate = `${currentYear}-08-15`;
-        const augDateObj = new Date(augDate);
-        if (augDateObj <= new Date(endISO) && augDateObj <= limitDate) {
-          console.log(`📅 Data de cupom gerada: ${augDate}`);
-          out.push(augDate);
+        for (const mes of meses) {
+          // Use day 15 as default coupon payment day
+          const couponDate = `${currentYear}-${mes.toString().padStart(2, '0')}-15`;
+          const couponDateObj = new Date(couponDate);
+          
+          if (couponDateObj <= new Date(endISO) && couponDateObj > earningsStart) {
+            console.log(`📅 Data de cupom gerada: ${couponDate}`);
+            out.push(couponDate);
+          }
         }
         
         currentYear++;
       }
+      
+      return out;
     } else if (earningsStartDate === '2025-10-01') {
+      // Special handling for BTDI11 - monthly coupons on day 10
       console.log(`📅 BTDI11: Gerando cupons mensais no dia 10, primeiro cupom em novembro`);
 
       let currentDate = new Date('2025-11-10');
@@ -485,7 +486,7 @@ function projectWithReinvestCDI(x: CouponEngineInput, isLimitedAnalysis = false,
   console.log(`📊 Regras aplicadas:`, rules);
   
   // No administrative fees for direct securities
-  const couponDates = genCouponDates(x.startISO, x.endISO, x.freq, x.earningsStartDate);
+  const couponDates = genCouponDates(x.startISO, x.endISO, x.freq, x.earningsStartDate, x.mesesCupons, x.tipoAtivo);
   const coupons: CouponResult[] = [];
   let basePrincipal = x.principal;
 
@@ -1252,13 +1253,16 @@ const InvestmentComparator = () => {
      let inferredEarningsStartDate = dados.earningsStartDate;
      let inferredFreq = mapCoupomFreq(dados.tipoCupom); // fallback para lógica atual
 
-     if (dados.nome?.toUpperCase().includes('CRA ZAMP')) {
-       inferredEarningsStartDate = '2025-09-01'; // Force correct value
-       inferredFreq = 'SEMIANNUAL';
-     } else if (dados.nome?.toUpperCase().includes('BTDI11')) {
-       inferredEarningsStartDate = '2025-10-01'; // Force correct value
-       inferredFreq = 'MONTHLY';
-     }
+      // Detect asset type based on name for legacy compatibility, but prefer explicit tipoAtivo
+      if (dados.nome?.toUpperCase().includes('CRA ZAMP') && !dados.tipoAtivo) {
+        // Legacy support - but now should rely on tipoAtivo and mesesCupons fields
+        console.log(`⚠️ CRA ZAMP detectado por nome - recomendado usar tipoAtivo='cri-cra' e mesesCupons='2,8'`);
+        inferredEarningsStartDate = '2025-09-01';
+        inferredFreq = 'SEMIANNUAL';
+      } else if (dados.nome?.toUpperCase().includes('BTDI11')) {
+        inferredEarningsStartDate = '2025-10-01';
+        inferredFreq = 'MONTHLY';
+      }
 
      // Etapa 3: Log para debug
      console.log(`🔧 Configurações inferidas para ${dados.nome}:`);
@@ -1282,7 +1286,9 @@ const InvestmentComparator = () => {
         feesAA: 0,
         irRegressivo: dados.tipoIR === 'renda-fixa',
         // use252 will be determined dynamically based on asset type and indexer
-        earningsStartDate: inferredEarningsStartDate
+        earningsStartDate: inferredEarningsStartDate,
+        mesesCupons: dados.mesesCupons,
+        tipoAtivo: dados.tipoAtivo
       };
 
      // Calculate cash flows
@@ -1473,14 +1479,20 @@ const InvestmentComparator = () => {
       // Para CRA ZAMP (Eneva), limitar a comparação até 30/04/2029
       let dataFinal = vencimento2; // Default: usa o vencimento do ativo 2
       
-      // Se o Ativo 1 é CRA ZAMP (earningsStartDate === '2025-09-01'), limita até 30/04/2029
-      if (ativo1.earningsStartDate === '2025-09-01') {
-        const limiteCRAZAMP = new Date('2029-04-30');
-        console.log(`📅 CRA ZAMP detectado - limitando comparação até 30/04/2029`);
-        console.log(`📅 Vencimento original Ativo 2: ${vencimento2.toLocaleDateString()}`);
+      // Para CRI/CRA e Debêntures, implementar lógica de comparação baseada nos vencimentos
+      if (ativo1.tipoAtivo === 'cri-cra' || ativo1.tipoAtivo === 'debenture-incentivada') {
+        console.log(`📅 ${ativo1.tipoAtivo.toUpperCase()} detectado - aplicando lógica de comparação por vencimentos`);
         
-        // Usa a menor data entre o limite da CRA ZAMP e o vencimento do Ativo 2
-        dataFinal = limiteCRAZAMP < vencimento2 ? limiteCRAZAMP : vencimento2;
+        if (vencimento1 < vencimento2) {
+          // Cenário A: Ativo 1 vence antes - reinvestir em CDI até vencimento do Ativo 2
+          console.log(`💰 Ativo 1 vence antes (${vencimento1.toLocaleDateString()}) - reinvestindo em CDI até vencimento do Ativo 2 (${vencimento2.toLocaleDateString()})`);
+          dataFinal = vencimento2; // Comparar até vencimento do Ativo 2
+        } else {
+          // Cenário B: Ativo 1 vence depois - comparar apenas até vencimento do Ativo 2
+          console.log(`📊 Ativo 1 vence depois (${vencimento1.toLocaleDateString()}) - limitando comparação até vencimento do Ativo 2 (${vencimento2.toLocaleDateString()})`);
+          dataFinal = vencimento2; // Limitar comparação até vencimento do Ativo 2
+        }
+        
         console.log(`📅 Data final da comparação: ${dataFinal.toLocaleDateString()}`);
       }
       
@@ -1489,26 +1501,54 @@ const InvestmentComparator = () => {
       
       console.log(`📅 Data final da comparação: ${dataFinal.toISOString().slice(0, 10)} (${anosAteDataFinal.toFixed(2)} anos)`);
       
-      // Calcular ambos os ativos até o prazo do Ativo 2
-      if (vencimento1 > vencimento2) {
-        console.log(`💎 CENÁRIO: Ativo 1 tem vencimento mais longo - calculando até vencimento do Ativo 2`);
+      // Calcular ambos os ativos baseado nos cenários de vencimento
+      if ((ativo1.tipoAtivo === 'cri-cra' || ativo1.tipoAtivo === 'debenture-incentivada') && vencimento1 < vencimento2) {
+        console.log(`💰 CENÁRIO A: Ativo 1 vence antes - calculando até vencimento natural e reinvestindo em CDI`);
         
-        // Calcular Ativo 1 apenas até a data final
+        // Calcular Ativo 1 até seu vencimento natural
+        resultAtivo1 = calcularAtivo(ativo1, anosAtivo1);
+        
+        // Calcular Ativo 2 até seu vencimento natural
+        resultAtivo2 = calcularAtivo(ativo2, anosAtivo2);
+        
+        // Calcular reinvestimento do Ativo 1 em CDI até o vencimento do Ativo 2
+        const valorLiquidoAtivo1 = resultAtivo1.valores[resultAtivo1.valores.length - 1] - resultAtivo1.imposto;
+        const reinvestmentCDI = calcularReinvestimentoCDI(valorLiquidoAtivo1, vencimento1, vencimento2, projecoes);
+        
+        // Atualizar resultado do Ativo 1 com o valor final após reinvestimento
+        resultAtivo1.valores[resultAtivo1.valores.length - 1] = reinvestmentCDI.valorLiquido;
+        resultAtivo1.imposto += reinvestmentCDI.ir;
+        
+        reinvestimentoInfo = {
+          valorInicial: valorLiquidoAtivo1,
+          valorFinal: reinvestmentCDI.valorLiquido,
+          rendimentoCDI: reinvestmentCDI.rendimento,
+          ir: reinvestmentCDI.ir,
+          diasReinvestidos: reinvestmentCDI.diasReinvestidos
+        };
+        
+        console.log(`💰 Reinvestimento CDI: R$ ${valorLiquidoAtivo1.toLocaleString()} → R$ ${reinvestmentCDI.valorLiquido.toLocaleString()}`);
+        
+      } else if (vencimento1 > vencimento2) {
+        console.log(`📊 CENÁRIO B: Ativo 1 vence depois - limitando comparação até vencimento do Ativo 2`);
+        
+        // Calcular Ativo 1 apenas até a data final (vencimento do Ativo 2)
         resultAtivo1 = calcularAtivo(ativo1, anosAteDataFinal);
         
-        // Calcular Ativo 2 até a data final
-        resultAtivo2 = calcularAtivo(ativo2, anosAteDataFinal);
+        // Calcular Ativo 2 até seu vencimento natural
+        resultAtivo2 = calcularAtivo(ativo2, anosAtivo2);
+        
+        reinvestimentoInfo = null;
         
       } else {
-        console.log(`💎 CENÁRIO: Ambos os ativos têm prazo similar ou Ativo 2 tem vencimento mais longo`);
+        console.log(`💎 CENÁRIO C: Ambos os ativos têm vencimentos similares`);
         
-        // Calcular ambos normalmente até o prazo do Ativo 2
+        // Calcular ambos normalmente até seus vencimentos
         resultAtivo1 = calcularAtivo(ativo1, anosAteDataFinal);
         resultAtivo2 = calcularAtivo(ativo2, anosAtivo2);
+        
+        reinvestimentoInfo = null;
       }
-      
-      // Não há reinvestimento - comparação encerrada no vencimento do Ativo 2
-      reinvestimentoInfo = null;
 
       setResults({
         ativo1: resultAtivo1.valores,
