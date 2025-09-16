@@ -1092,29 +1092,45 @@ const InvestmentComparator = () => {
     // Generate CDI curve from projections
     const cdiCurve = projecoes.cdiCurve || generateCDICurve(projecoes);
 
-    // Map legacy data to new format
-    const rateKind = mapLegacyToNewFormat(dados);
-    const freq = mapCoupomFreq(dados.tipoCupom);
+     // Map legacy data to new format
+     const rateKind = mapLegacyToNewFormat(dados);
+     
+     // Etapa 1: Inferir freq e earningsStartDate baseado no nome
+     let inferredEarningsStartDate = dados.earningsStartDate;
+     let inferredFreq = mapCoupomFreq(dados.tipoCupom); // fallback para lógica atual
 
-     // Setup cash flow input
-     const cashFlowInput: CouponEngineInput = {
-       principal: dados.valorCurva,
-       startISO,
-       endISO,
-       freq,
-       rateKind,
-       taxaPreAA: rateKind === 'PRE' ? dados.taxa : undefined,
-       taxaRealAA: rateKind === 'IPCA+PRE' ? dados.taxa : undefined,
-       spreadPreAA: rateKind === 'CDI+PRE' ? dados.taxa : undefined,
-       percCDI: rateKind === '%CDI' ? dados.taxa : undefined,
-       cdiAABase: projecoes.cdi[new Date().getFullYear()] || 10,
-       cdiCurve,
-       ipcaCurve: projecoes.ipcaCurve,
-       feesAA: 0,
-       irRegressivo: dados.tipoIR === 'renda-fixa',
-       // use252 will be determined dynamically based on asset type and indexer
-       earningsStartDate: dados.earningsStartDate
-     };
+     if (dados.nome?.toUpperCase().includes('CRA ZAMP')) {
+       inferredEarningsStartDate = inferredEarningsStartDate || '2025-09-01';
+       inferredFreq = 'SEMIANNUAL';
+     } else if (dados.nome?.toUpperCase().includes('BTDI11')) {
+       inferredEarningsStartDate = inferredEarningsStartDate || '2025-10-01';
+       inferredFreq = 'MONTHLY';
+     }
+
+     // Etapa 3: Log para debug
+     console.log(`🔧 Configurações inferidas para ${dados.nome}:`);
+     console.log(`  📅 earningsStartDate: ${inferredEarningsStartDate}`);
+     console.log(`  🔄 freq: ${inferredFreq}`);
+
+      // Setup cash flow input
+      const cashFlowInput: CouponEngineInput = {
+        principal: dados.valorCurva,
+        startISO,
+        endISO,
+        freq: inferredFreq,
+        rateKind,
+        taxaPreAA: rateKind === 'PRE' ? dados.taxa : undefined,
+        taxaRealAA: rateKind === 'IPCA+PRE' ? dados.taxa : undefined,
+        spreadPreAA: rateKind === 'CDI+PRE' ? dados.taxa : undefined,
+        percCDI: rateKind === '%CDI' ? dados.taxa : undefined,
+        cdiAABase: projecoes.cdi[new Date().getFullYear()] || 10,
+        cdiCurve,
+        ipcaCurve: projecoes.ipcaCurve,
+        feesAA: 0,
+        irRegressivo: dados.tipoIR === 'renda-fixa',
+        // use252 will be determined dynamically based on asset type and indexer
+        earningsStartDate: inferredEarningsStartDate
+      };
 
      // Calculate cash flows
      // Check if this is a limited analysis (ending before asset's natural maturity)
