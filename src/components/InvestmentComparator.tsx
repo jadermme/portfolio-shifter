@@ -1398,7 +1398,7 @@ const InvestmentComparator = () => {
     dataInicio: Date, 
     dataFim: Date, 
     projecoes: Projecoes
-  ): { valorFinal: number; rendimento: number; ir: number; valorLiquido: number; diasReinvestidos: number } => {
+  ): { valorFinal: number; rendimento: number; ir: number; valorLiquido: number; diasReinvestidos: number; taxaReinvestimento: number } => {
     const diasReinvestidos = Math.floor((dataFim.getTime() - dataInicio.getTime()) / (1000 * 60 * 60 * 24));
     
     // Calculate average CDI for reinvestment period
@@ -1437,7 +1437,7 @@ const InvestmentComparator = () => {
     console.log(`🧾 IR (${(irAliquotaRegressivo(diasReinvestidos) * 100).toFixed(1)}%): R$ ${ir.toLocaleString('pt-BR')}`);
     console.log(`🏆 Valor Líquido: R$ ${valorLiquido.toLocaleString('pt-BR')}`);
     
-    return { valorFinal, rendimento, ir, valorLiquido, diasReinvestidos };
+    return { valorFinal, rendimento, ir, valorLiquido, diasReinvestidos, taxaReinvestimento: cdiMedio };
   };
 
   const calcular = () => {
@@ -1520,11 +1520,17 @@ const InvestmentComparator = () => {
         resultAtivo1.imposto += reinvestmentCDI.ir;
         
         reinvestimentoInfo = {
-          valorInicial: valorLiquidoAtivo1,
-          valorFinal: reinvestmentCDI.valorLiquido,
-          rendimentoCDI: reinvestmentCDI.rendimento,
-          ir: reinvestmentCDI.ir,
-          diasReinvestidos: reinvestmentCDI.diasReinvestidos
+          ativoReinvestido: 'ativo1',
+          valorResgatado: valorLiquidoAtivo1,
+          periodosReinvestimento: reinvestmentCDI.diasReinvestidos,
+          taxaReinvestimento: reinvestmentCDI.taxaReinvestimento,
+          valorFinalReinvestimento: reinvestmentCDI.valorFinal,
+          dataInicioReinvestimento: vencimento1.toISOString(),
+          dataFimReinvestimento: vencimento2.toISOString(),
+          diasReinvestidos: reinvestmentCDI.diasReinvestidos,
+          rendimentoReinvestimento: reinvestmentCDI.rendimento,
+          irReinvestimento: reinvestmentCDI.ir,
+          valorTotalComReinvestimento: reinvestmentCDI.valorLiquido
         };
         
         console.log(`💰 Reinvestimento CDI: R$ ${valorLiquidoAtivo1.toLocaleString()} → R$ ${reinvestmentCDI.valorLiquido.toLocaleString()}`);
