@@ -412,7 +412,11 @@ function genCouponDates(startISO: string, endISO: string, freq: Freq, earningsSt
       console.log(`📅 Data inicial: ${currentDate.toISOString()}, Data final: ${endDate.toISOString()}`);
       
       while (currentDate <= endDate) {
-        const couponDate = currentDate.toISOString().slice(0, 10);
+        // Use local formatting to avoid UTC timezone issues
+        const year = currentDate.getFullYear();
+        const month = String(currentDate.getMonth() + 1).padStart(2, '0');
+        const day = String(currentDate.getDate()).padStart(2, '0');
+        const couponDate = `${year}-${month}-${day}`;
         console.log(`📅 Data de cupom gerada: ${couponDate}`);
         out.push(couponDate);
         
@@ -484,7 +488,22 @@ function projectWithReinvestCDI(x: CouponEngineInput, isLimitedAnalysis = false,
   let basePrincipal = x.principal;
 
   // percorre cada período
-  let last = x.earningsStartDate || x.startISO; // Usa data de início dos rendimentos se disponível
+  // Fix initial period for monthly funds like BTDI11
+  let last = x.startISO;
+  if (x.earningsStartDate && x.earningsStartDate.endsWith('-10')) {
+    // For monthly funds on day 10, the first period starts from the previous month
+    const earningsDate = new Date(x.earningsStartDate);
+    const prevMonth = new Date(earningsDate);
+    prevMonth.setMonth(prevMonth.getMonth() - 1);
+    prevMonth.setDate(1); // First day of the previous month
+    const year = prevMonth.getFullYear();
+    const month = String(prevMonth.getMonth() + 1).padStart(2, '0');
+    const day = String(prevMonth.getDate()).padStart(2, '0');
+    last = `${year}-${month}-${day}`;
+    console.log(`📅 Primeiro período ajustado para fundo mensal: ${last} até ${x.earningsStartDate}`);
+  } else {
+    last = x.earningsStartDate || x.startISO; // Usa data de início dos rendimentos se disponível
+  }
   for (const dt of couponDates) {
     // Get CDI rate specific for this coupon period
     const couponMonth = dt.slice(0, 7); // YYYY-MM
