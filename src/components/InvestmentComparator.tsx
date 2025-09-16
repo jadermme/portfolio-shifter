@@ -1169,7 +1169,7 @@ const InvestmentComparator = () => {
         return taxaDefault;
     }
   };
-  const calcularAtivo = (dados: AssetData, anosProjecao: number, vencimentoReal?: number): {
+  const calcularAtivo = (dados: AssetData, anosProjecao: number, vencimentoReal?: number, dataLimite?: string): {
     valores: number[];
     imposto: number;
     couponDetails?: CouponResult[];
@@ -1178,7 +1178,7 @@ const InvestmentComparator = () => {
 
     // Always use cash flow system when asset has coupons
     if (dados.tipoCupom !== 'nenhum') {
-      return calcularAtivoComFluxoCaixa(dados, periodosAtivo);
+      return calcularAtivoComFluxoCaixa(dados, periodosAtivo, dataLimite);
     }
 
     // Legacy calculation for backward compatibility
@@ -1532,8 +1532,8 @@ const InvestmentComparator = () => {
       } else if (vencimento1 > vencimento2) {
         console.log(`📊 CENÁRIO B: Ativo 1 vence depois - limitando comparação até vencimento do Ativo 2`);
         
-        // Calcular Ativo 1 apenas até a data final (vencimento do Ativo 2)
-        resultAtivo1 = calcularAtivo(ativo1, anosAteDataFinal);
+        // Calcular Ativo 1 apenas até a data final (vencimento do Ativo 2) - TRUNCANDO CUPONS
+        resultAtivo1 = calcularAtivo(ativo1, anosAteDataFinal, undefined, ativo2.vencimento);
         
         // Calcular Ativo 2 até seu vencimento natural
         resultAtivo2 = calcularAtivo(ativo2, anosAtivo2);
