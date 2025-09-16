@@ -1011,11 +1011,7 @@ const InvestmentComparator = () => {
 
     // Always use cash flow system when asset has coupons
     if (dados.tipoCupom !== 'nenhum') {
-      // For Asset 1, when it has longer maturity than Asset 2, limit calculation to Asset 2's maturity
-      const dataLimite = dados === ativo1 && new Date(ativo2.vencimento) < new Date(dados.vencimento) 
-        ? ativo2.vencimento 
-        : undefined;
-      return calcularAtivoComFluxoCaixa(dados, periodosAtivo, dataLimite);
+      return calcularAtivoComFluxoCaixa(dados, periodosAtivo);
     }
 
     // Legacy calculation for backward compatibility
@@ -1289,91 +1285,58 @@ const InvestmentComparator = () => {
       console.log(`📅 Ativo 2 (${ativo2.nome}): ${vencimento2.toLocaleDateString()} (${anosAtivo2} anos)`);
       console.log(`⏰ Diferença: ${diferencaDias.toFixed(0)} dias`);
 
-      if (diferencaDias > 30) { // Reinvestir apenas se diferença > 30 dias
-        if (vencimento1 < vencimento2) {
-          // 🎯 ATIVO 1 VENCE PRIMEIRO - Reinvestir no CDI até vencimento do Ativo 2
-          console.log(`🔄 CENÁRIO: Ativo 1 vence primeiro, reinvestir no CDI até Ativo 2`);
-          
-          anosProjecao = anosAtivo2; // Comparar no prazo do ativo mais longo
-          
-          // Calcular ativo 1 até seu vencimento natural
-          resultAtivo1 = calcularAtivo(ativo1, anosAtivo1, anosAtivo1);
-          
-          // Calcular ativo 2 até seu vencimento natural  
-          resultAtivo2 = calcularAtivo(ativo2, anosAtivo2, anosAtivo2);
-          
-          // Calcular reinvestimento do Ativo 1 no CDI
-          const valorTotalAtivo1 = resultAtivo1.valores[resultAtivo1.valores.length - 1];
-          const reinvestimento = calcularReinvestimentoCDI(
-            valorTotalAtivo1, 
-            vencimento1, 
-            vencimento2, 
-            projecoes
-          );
-          
-          reinvestimentoInfo = {
-            ativoReinvestido: 'ativo1' as const,
-            valorResgatado: valorTotalAtivo1,
-            periodosReinvestimento: Math.ceil((vencimento2.getTime() - vencimento1.getTime()) / (1000 * 60 * 60 * 24 * 365.25)),
-            taxaReinvestimento: (projecoes.cdi[vencimento1.getFullYear()] || projecoes.cdi[vencimento2.getFullYear()] || 10) / 100,
-            valorFinalReinvestimento: reinvestimento.valorLiquido,
-            dataInicioReinvestimento: vencimento1.toISOString().slice(0, 10),
-            dataFimReinvestimento: vencimento2.toISOString().slice(0, 10),
-            diasReinvestidos: reinvestimento.diasReinvestidos,
-            rendimentoReinvestimento: reinvestimento.rendimento,
-            irReinvestimento: reinvestimento.ir,
-            valorTotalComReinvestimento: reinvestimento.valorLiquido
-          };
-
-          // Ajustar resultado do Ativo 1 para incluir reinvestimento
-          resultAtivo1.valores[resultAtivo1.valores.length - 1] = reinvestimento.valorLiquido;
-          
-        } else if (vencimento2 < vencimento1) {
-          // 🎯 ATIVO 2 VENCE PRIMEIRO - Reinvestir no CDI até vencimento do Ativo 1
-          console.log(`🔄 CENÁRIO: Ativo 2 vence primeiro, reinvestir no CDI até Ativo 1`);
-          
-          anosProjecao = anosAtivo1; // Comparar no prazo do ativo mais longo
-          
-          // Calcular ativo 1 até seu vencimento natural
-          resultAtivo1 = calcularAtivo(ativo1, anosAtivo1, anosAtivo1);
-          
-          // Calcular ativo 2 até seu vencimento natural
-          resultAtivo2 = calcularAtivo(ativo2, anosAtivo2, anosAtivo2);
-          
-          // Calcular reinvestimento do Ativo 2 no CDI
-          const valorTotalAtivo2 = resultAtivo2.valores[resultAtivo2.valores.length - 1];
-          const reinvestimento = calcularReinvestimentoCDI(
-            valorTotalAtivo2, 
-            vencimento2, 
-            vencimento1, 
-            projecoes
-          );
-          
-          reinvestimentoInfo = {
-            ativoReinvestido: 'ativo2' as const,
-            valorResgatado: valorTotalAtivo2,
-            periodosReinvestimento: Math.ceil((vencimento1.getTime() - vencimento2.getTime()) / (1000 * 60 * 60 * 24 * 365.25)),
-            taxaReinvestimento: (projecoes.cdi[vencimento2.getFullYear()] || projecoes.cdi[vencimento1.getFullYear()] || 10) / 100,
-            valorFinalReinvestimento: reinvestimento.valorLiquido,
-            dataInicioReinvestimento: vencimento2.toISOString().slice(0, 10),
-            dataFimReinvestimento: vencimento1.toISOString().slice(0, 10),
-            diasReinvestidos: reinvestimento.diasReinvestidos,
-            rendimentoReinvestimento: reinvestimento.rendimento,
-            irReinvestimento: reinvestimento.ir,
-            valorTotalComReinvestimento: reinvestimento.valorLiquido
-          };
-
-          // Ajustar resultado do Ativo 2 para incluir reinvestimento
-          resultAtivo2.valores[resultAtivo2.valores.length - 1] = reinvestimento.valorLiquido;
+      // 🎯 NOVA LÓGICA: Comparar ambos os ativos até a data de vencimento mais curta
+      const dataComparacao = vencimento1 < vencimento2 ? vencimento1 : vencimento2;
+      const anosComparacao = vencimento1 < vencimento2 ? anosAtivo1 : anosAtivo2;
+      anosProjecao = anosComparacao;
+      
+      console.log(`⚖️ COMPARAÇÃO JUSTA: Ambos os ativos serão comparados até ${dataComparacao.toISOString().slice(0, 10)} (${anosComparacao.toFixed(2)} anos)`);
+      
+      if (vencimento1 < vencimento2) {
+        console.log(`📅 Ativo 1 vence primeiro - usando sua data como referência`);
+        console.log(`🔢 Ativo 2 será calculado como se vendido antecipadamente em ${dataComparacao.toISOString().slice(0, 10)}`);
+        
+        // Calcular Ativo 1 até seu vencimento natural
+        resultAtivo1 = calcularAtivo(ativo1, anosAtivo1, anosAtivo1);
+        
+        // Calcular Ativo 2 até a data do Ativo 1 (venda antecipada)
+        if (ativo2.tipoCupom !== 'nenhum') {
+          resultAtivo2 = calcularAtivoComFluxoCaixa(ativo2, anosComparacao, dataComparacao.toISOString().slice(0, 10));
+        } else {
+          // For non-coupon assets, calculate with appropriate time adjustment
+          const diasComparacao = daysBetween(new Date().toISOString().slice(0, 10), dataComparacao.toISOString().slice(0, 10));
+          const anosReaisComparacao = diasComparacao / 365.25;
+          resultAtivo2 = calcularAtivo(ativo2, anosReaisComparacao, anosReaisComparacao);
         }
+        
+      } else if (vencimento2 < vencimento1) {
+        console.log(`📅 Ativo 2 vence primeiro - usando sua data como referência`);
+        console.log(`🔢 Ativo 1 será calculado como se vendido antecipadamente em ${dataComparacao.toISOString().slice(0, 10)}`);
+        
+        // Calcular Ativo 2 até seu vencimento natural
+        resultAtivo2 = calcularAtivo(ativo2, anosAtivo2, anosAtivo2);
+        
+        // Calcular Ativo 1 até a data do Ativo 2 (venda antecipada)
+        if (ativo1.tipoCupom !== 'nenhum') {
+          resultAtivo1 = calcularAtivoComFluxoCaixa(ativo1, anosComparacao, dataComparacao.toISOString().slice(0, 10));
+        } else {
+          // For non-coupon assets, calculate with appropriate time adjustment
+          const diasComparacao = daysBetween(new Date().toISOString().slice(0, 10), dataComparacao.toISOString().slice(0, 10));
+          const anosReaisComparacao = diasComparacao / 365.25;
+          resultAtivo1 = calcularAtivo(ativo1, anosReaisComparacao, anosReaisComparacao);
+        }
+        
       } else {
-        // 📅 AMBOS VENCEM NA MESMA DATA OU DIFERENÇA < 30 DIAS
-        console.log(`✅ CENÁRIO: Vencimentos similares, sem reinvestimento necessário`);
+        // 📅 AMBOS VENCEM NA MESMA DATA
+        console.log(`✅ CENÁRIO: Vencimentos iguais - comparação direta`);
         
         anosProjecao = Math.max(anosAtivo1, anosAtivo2);
         resultAtivo1 = calcularAtivo(ativo1, anosAtivo1, anosAtivo1);
         resultAtivo2 = calcularAtivo(ativo2, anosAtivo2, anosAtivo2);
       }
+      
+      // Reinvestimento é sempre nulo na nova lógica
+      reinvestimentoInfo = null;
 
       setResults({
         ativo1: resultAtivo1.valores,
