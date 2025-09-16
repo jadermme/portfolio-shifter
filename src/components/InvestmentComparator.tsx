@@ -2702,7 +2702,7 @@ const InvestmentComparator = () => {
                 <CardHeader className="bg-gradient-to-r from-financial-info to-blue-600 text-white rounded-t-lg">
                   <CardTitle className="flex items-center gap-2 text-lg font-bold">
                     <BarChart3 className="h-6 w-6" />
-                    ATIVO 2 - {ativo2.nome || 'BTDI11'}
+                    Informações - Ativo 2
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="p-6">
