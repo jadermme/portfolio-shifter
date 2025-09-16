@@ -10,10 +10,6 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { useToast } from '@/hooks/use-toast';
 import { CouponManager } from './CouponManager';
 import { CouponSummary } from '@/types/coupon';
-import { genCouponDates as genCouponDatesRobust } from '@/utils/genCouponDates';
-import { getAssetKey } from '@/services/assetKey';
-import { normalizeAssetConfig } from '@/services/prepareAsset';
-import { genAutoCoupons } from '@/utils/genAutoCoupons';
 
 // ===================== UTILITY FUNCTIONS =====================
 const formatCurrency = (value: number): string => {
@@ -371,61 +367,73 @@ function calculatePeriodRate(annualRate: number, fromISO: string, toISO: string,
   
   return Math.pow(1 + dailyRate, days) - 1;
 }
-// Função para construir configuração de cupons usando o novo sistema
-function buildCouponsForCalc(asset: any, idx: number, windowStartISO: string, windowEndISO?: string, debugTag?: string): { key: string; norm: any; autoDates: string[] } {
-  const key = getAssetKey(asset, idx);
-  
-  try {
-    const norm = normalizeAssetConfig({
-      ticker: (asset.ticker ?? asset.nome) ?? asset.codigo,
-      tipoAtivo: asset.tipoAtivo,
-      freq: asset.freq,
-      settlementDateISO: asset.settlementDateISO ?? windowStartISO,
-      earningsStartDate: asset.earningsStartDate,
-      maturityDateISO: (windowEndISO || asset.vencimento) ?? asset.maturityDateISO,
-    });
+function genCouponDates(startISO: string, endISO: string, freq: Freq, earningsStartDate?: string): string[] {
+  const step = freq === "MONTHLY" ? 1 : 6;
+  const out: string[] = [];
 
-    const autoDates = genAutoCoupons({
-      freq: norm.freq as any,
-      firstISO: norm.autoStartISO,
-      endISO: norm.maturityDateISO,
-      anchorDay: norm.anchorDay,
-      windowStartISO,
-    });
-
-    // LOGS ÚTEIS (identificados por chave)
-    if (debugTag) {
-      console.debug(`[${key}] schedule:`, {
-        freq: norm.freq, anchorDay: norm.anchorDay,
-        first: norm.autoStartISO, end: norm.maturityDateISO, count: autoDates.length,
-        head: autoDates.slice(0,3), tail: autoDates.slice(-3),
-      });
-
-      if (autoDates.length === 0) {
-        console.error(`[${key}] nenhuma data de cupom gerada. Verifique: freq=${norm.freq}, anchorDay=${norm.anchorDay}, first=${norm.autoStartISO}, end=${norm.maturityDateISO}`);
+  // Use earnings start date if provided, otherwise use start date
+  if (earningsStartDate) {
+    console.log(`📅 Usando data de início dos rendimentos: ${earningsStartDate}`);
+    
+    // Special handling for CRA ZAMP - cupons em fevereiro e agosto
+    if (earningsStartDate === '2025-09-01') {
+      console.log(`📅 CRA ZAMP: Gerando cupons para fev/ago, excluindo agosto de 2025 (já pago)`);
+      
+      // Start from February 2026 (next coupon after September 2025)
+      let currentYear = 2026;
+      const endYear = new Date(endISO).getFullYear();
+      
+      while (currentYear <= endYear) {
+        // February coupon
+        const febDate = `${currentYear}-02-15`;
+        if (new Date(febDate) <= new Date(endISO)) {
+          console.log(`📅 Data de cupom gerada: ${febDate}`);
+          out.push(febDate);
+        }
+        
+        // August coupon
+        const augDate = `${currentYear}-08-15`;
+        if (new Date(augDate) <= new Date(endISO)) {
+          console.log(`📅 Data de cupom gerada: ${augDate}`);
+          out.push(augDate);
+        }
+        
+        currentYear++;
+      }
+    } else if (earningsStartDate === '2025-10-01') {
+      console.log(`📅 BTDI11: Gerando cupons mensais, primeiro cupom em novembro (referente a outubro)`);
+      
+      // Start from November 2025 (first coupon for October earnings)
+      let currentDate = new Date('2025-11-01');
+      const endDate = new Date(endISO);
+      
+      while (currentDate <= endDate) {
+        const couponDate = currentDate.toISOString().slice(0, 10);
+        console.log(`📅 Data de cupom gerada: ${couponDate}`);
+        out.push(couponDate);
+        currentDate.setMonth(currentDate.getMonth() + 1);
+      }
+    } else {
+      // Standard logic for other assets
+      let d = earningsStartDate;
+      while (new Date(d) <= new Date(endISO)) {
+        console.log(`📅 Data de cupom gerada: ${d}`);
+        out.push(d);
+        d = addMonths(d, step);
       }
     }
-
-    return { key, norm, autoDates };
-  } catch (error) {
-    console.error(`[${key}] Error in buildCouponsForCalc:`, error);
-    return { key, norm: asset, autoDates: [] };
+  } else {
+    // Standard logic - first coupon after one period
+    let d = addMonths(startISO, step);
+    while (new Date(d) <= new Date(endISO)) {
+      console.log(`📅 Data de cupom gerada: ${d}`);
+      out.push(d);
+      d = addMonths(d, step);
+    }
   }
+  console.log(`✅ Datas de cupom finais:`, out);
+  return out;
 }
-
-// Função robusta para gerar datas de cupons usando UTC
-function genCouponDatesNew(
-  startISO: string,
-  endISO: string, 
-  freq: Freq,
-  earningsStartDate: string | undefined,
-  assetData: AssetData
-): string[] {
-  // Use new system for consistency
-  const { autoDates } = buildCouponsForCalc(assetData, 0, startISO, endISO, assetData.nome);
-  return autoDates;
-}
-
 
 // Fator CDI acumulado entre duas datas, usando curva mensal
 function cdiFactor(curve: CDIPoint[], fromISO: string, toISO: string, use252 = false, useDailyCapitalization = false): number {
@@ -452,7 +460,7 @@ function getCDIRateForMonth(curve: CDIPoint[], dateISO: string): number {
   const pt = curve.find(p => p.date.slice(0, 7) === key);
   return pt ? pt.cdiAA : curve[curve.length - 1]?.cdiAA || 10;
 }
-function projectWithReinvestCDI(x: CouponEngineInput, isLimitedAnalysis = false, assetType?: string, indexador?: string, assetData?: AssetData, manualCoupons?: CouponSummary) {
+function projectWithReinvestCDI(x: CouponEngineInput, isLimitedAnalysis = false, assetType?: string, indexador?: string) {
   // Determine calculation rules based on asset type and indexer
   const rules = assetType && indexador ? getCalculationRules(assetType, indexador) : {
     use252: x.use252 || false,
@@ -463,156 +471,17 @@ function projectWithReinvestCDI(x: CouponEngineInput, isLimitedAnalysis = false,
   console.log(`💼 Calculando cupons para ${assetType || 'ativo'} com ${indexador || 'indexador'}`);
   console.log(`📊 Regras aplicadas:`, rules);
   
-  // Use manual coupons if available, otherwise generate automatically
-  let couponDates: string[];
-  const today = new Date().toISOString().slice(0, 10); // Current date in YYYY-MM-DD format
-  
-  // Helper function to normalize date to ISO string for reliable comparison
-  const normalizeToISO = (dateStr: string): string => {
-    try {
-      if (dateStr.includes('/')) {
-        // Brazilian format DD/MM/YYYY
-        const [day, month, year] = dateStr.split('/').map(s => s.padStart(2, '0'));
-        return `${year}-${month}-${day}`;
-      } else if (dateStr.match(/^\d{4}-\d{2}-\d{2}$/)) {
-        // Already ISO format YYYY-MM-DD
-        return dateStr;
-      } else {
-        // Try to parse and convert to ISO
-        const parsed = new Date(dateStr);
-        if (!isNaN(parsed.getTime())) {
-          return parsed.toISOString().slice(0, 10);
-        }
-      }
-    } catch (e) {
-      console.warn('Date parsing error:', e, 'for date:', dateStr);
-    }
-    return dateStr; // Fallback to original string
-  };
-  
-  // Debug: Log manual coupon data
-  if (manualCoupons) {
-    console.log(`🔍 Manual coupons data:`, {
-      hasData: !!manualCoupons,
-      count: manualCoupons.coupons?.length || 0,
-      coupons: manualCoupons.coupons || [],
-      today
-    });
-  }
-  
-  // Process manual coupons and check if we need to generate automatic future coupons
-  let manualCouponDates: string[] = [];
-  let hasFutureManualCoupons = false;
-  
-  if (manualCoupons && manualCoupons.coupons.length > 0) {
-    const validCoupons = manualCoupons.coupons
-      .filter(c => c.date && c.date.trim() !== '')
-      .map(c => ({
-        ...c,
-        normalizedDate: normalizeToISO(c.date)
-      }));
-    
-    // Get all manual coupon dates (past and future)
-    manualCouponDates = validCoupons.map(c => c.date).sort();
-    
-    // Check if there are any future manual coupons
-    hasFutureManualCoupons = validCoupons.some(c => c.normalizedDate >= today);
-      
-    console.log(`🎯 Manual coupons processing:`, {
-      total: manualCoupons.coupons.length,
-      valid: validCoupons.length,
-      manualDates: manualCouponDates,
-      hasFutureManual: hasFutureManualCoupons,
-      today,
-      validCoupons: validCoupons.map(c => ({ 
-        original: c.date, 
-        normalized: c.normalizedDate, 
-        isFuture: c.normalizedDate >= today 
-      }))
-    });
-  }
-  
-  // If no future manual coupons exist, generate automatic future coupons
-  let automaticFutureCoupons: string[] = [];
-  if (!hasFutureManualCoupons && assetData) {
-    // Use the new robust coupon generation system
-    const couponConfig = buildCouponsForCalc(assetData, 1, x.startISO, x.endISO, getAssetKey(assetData, 1));
-    automaticFutureCoupons = couponConfig.autoDates.filter(date => date >= today);
-    console.log(`📅 Automatic future coupons for ${couponConfig.key}:`, {
-      total: couponConfig.autoDates.length,
-      future: automaticFutureCoupons.length,
-      dates: automaticFutureCoupons
-    });
-  }
-  
-  // Combine manual and automatic coupons, then filter for future dates only
-  const allCouponDates = [...manualCouponDates, ...automaticFutureCoupons];
-  couponDates = allCouponDates
-    .filter(date => normalizeToISO(date) >= today)
-    .sort();
-    
-  console.log(`🎯 Final coupon dates:`, {
-    manual: manualCouponDates.length,
-    automatic: automaticFutureCoupons.length,
-    total: allCouponDates.length,
-    future: couponDates.length,
-    finalDates: couponDates
-  });
+  // No administrative fees for direct securities
+  const couponDates = genCouponDates(x.startISO, x.endISO, x.freq, x.earningsStartDate);
   const coupons: CouponResult[] = [];
   let basePrincipal = x.principal;
 
   // percorre cada período
-  // Fix initial period for monthly funds like BTDI11
-  let last = x.startISO;
-  if (x.earningsStartDate && x.earningsStartDate.endsWith('-10')) {
-    // For monthly funds on day 10, the first period starts from the previous month
-    const earningsDate = new Date(x.earningsStartDate);
-    const prevMonth = new Date(earningsDate);
-    prevMonth.setMonth(prevMonth.getMonth() - 1);
-    prevMonth.setDate(1); // First day of the previous month
-    const year = prevMonth.getFullYear();
-    const month = String(prevMonth.getMonth() + 1).padStart(2, '0');
-    const day = String(prevMonth.getDate()).padStart(2, '0');
-    last = `${year}-${month}-${day}`;
-    console.log(`📅 Primeiro período ajustado para fundo mensal: ${last} até ${x.earningsStartDate}`);
-  } else {
-    last = x.earningsStartDate || x.startISO; // Usa data de início dos rendimentos se disponível
-  }
+  let last = x.earningsStartDate || x.startISO; // Usa data de início dos rendimentos se disponível
   for (const dt of couponDates) {
     // Get CDI rate specific for this coupon period
     const couponMonth = dt.slice(0, 7); // YYYY-MM
     const cdiAA = getCDIRateForMonth(x.cdiCurve, dt);
-    
-    // Determine the correct period for this coupon
-    let periodStart, periodEnd;
-    
-    if (x.earningsStartDate && x.earningsStartDate.endsWith('-10')) {
-      // For monthly funds on day 10, each coupon represents the complete previous month
-      const paymentDate = new Date(dt);
-      const prevMonth = new Date(paymentDate);
-      prevMonth.setMonth(prevMonth.getMonth() - 1);
-      
-      // First day of the previous month
-      prevMonth.setDate(1);
-      const year1 = prevMonth.getFullYear();
-      const month1 = String(prevMonth.getMonth() + 1).padStart(2, '0');
-      periodStart = `${year1}-${month1}-01`;
-      
-      // Last day of the previous month
-      const lastDay = new Date(prevMonth);
-      lastDay.setMonth(lastDay.getMonth() + 1);
-      lastDay.setDate(0); // Goes to last day of previous month
-      const year2 = lastDay.getFullYear();
-      const month2 = String(lastDay.getMonth() + 1).padStart(2, '0');
-      const day2 = String(lastDay.getDate()).padStart(2, '0');
-      periodEnd = `${year2}-${month2}-${day2}`;
-      
-      console.log(`📅 Cupom ${dt}: Mês fechado ${periodStart} até ${periodEnd}`);
-    } else {
-      // Original logic for other assets
-      periodStart = last;
-      periodEnd = dt;
-    }
     
     // Calculate rate for the actual period using real days
     const rPeriodGross = rateOfAssetForPeriod(x.rateKind, {
@@ -624,29 +493,13 @@ function projectWithReinvestCDI(x: CouponEngineInput, isLimitedAnalysis = false,
       spreadPreAA: x.spreadPreAA,
       use252: rules.use252,
       useDailyCapitalization: rules.useDailyCapitalization,
-      fromISO: periodStart,
-      toISO: periodEnd
+      fromISO: last,
+      toISO: dt
     });
     
-    // Calculate coupon value - use manual value if available, otherwise calculate automatically
-    let couponGross: number;
-    if (manualCoupons && manualCoupons.coupons.length > 0) {
-      // Find manual coupon for this date
-      const manualCoupon = manualCoupons.coupons.find(c => c.date === dt);
-      if (manualCoupon) {
-        couponGross = manualCoupon.value;
-        console.log(`💰 Usando cupom manual para ${dt}: R$ ${couponGross.toLocaleString('pt-BR')}`);
-      } else {
-        // Fallback to automatic calculation if no manual coupon found for this date
-        couponGross = Math.max(0, basePrincipal * rPeriodGross);
-        console.log(`🔄 Cupom automático (sem manual) para ${dt}: R$ ${couponGross.toLocaleString('pt-BR')}`);
-      }
-    } else {
-      // Automatic calculation when no manual coupons
-      couponGross = Math.max(0, basePrincipal * rPeriodGross);
-    }
+    const couponGross = Math.max(0, basePrincipal * rPeriodGross);
 
-    console.log(`📅 Cupom ${dt}: Período ${periodStart} até ${periodEnd}`);
+    console.log(`📅 Cupom ${dt}: Período ${last} até ${dt}`);
     console.log(`📊 Taxa do período=${(rPeriodGross * 100).toFixed(4)}%, Cupom=R$${couponGross.toLocaleString('pt-BR')}`);
 
     // IR regressivo sobre o cupom pelo tempo desde a aplicação
@@ -664,11 +517,7 @@ function projectWithReinvestCDI(x: CouponEngineInput, isLimitedAnalysis = false,
       reinvestFactor: fReinv,
       reinvested: couponReinv
     });
-    
-    // For non-monthly funds, update last for next period
-    if (!x.earningsStartDate || !x.earningsStartDate.endsWith('-10')) {
-      last = dt;
-    }
+    last = dt; // Atualiza para próximo período
   }
 
   // Calculate principal value at end date
@@ -793,18 +642,6 @@ const PROJECTIONS_VERSION = '2.0';
 
 const saveToLocalStorage = (key: string, data: any) => {
   try {
-    // Enhanced debugging for tipoCupom saving
-    if (key === STORAGE_KEYS.ativo1 && data.nome?.toLowerCase().includes('zamp')) {
-      console.log(`💾 CRITICAL SAVE: CRA ZAMP to localStorage:`, {
-        nome: data.nome,
-        tipoCupom: data.tipoCupom,
-        mesesCupons: data.mesesCupons,
-        hasManualCoupons: data.couponData?.coupons?.length > 0,
-        key,
-        fullData: data,
-        timestamp: new Date().toISOString()
-      });
-    }
     localStorage.setItem(key, JSON.stringify(data));
     localStorage.setItem(STORAGE_KEYS.timestamp, Date.now().toString());
   } catch (error) {
@@ -815,21 +652,7 @@ const saveToLocalStorage = (key: string, data: any) => {
 const loadFromLocalStorage = (key: string, defaultValue: any) => {
   try {
     const saved = localStorage.getItem(key);
-    const result = saved ? JSON.parse(saved) : defaultValue;
-    
-    // Enhanced debugging for tipoCupom loading
-    if (key === STORAGE_KEYS.ativo1 && result?.nome?.toLowerCase().includes('zamp')) {
-      console.log(`📤 CRITICAL LOAD: CRA ZAMP from localStorage:`, {
-        nome: result.nome,
-        tipoCupom: result.tipoCupom,
-        mesesCupons: result.mesesCupons,
-        hasManualCoupons: result.couponData?.coupons?.length > 0,
-        key,
-        fullData: result
-      });
-    }
-    
-    return result;
+    return saved ? JSON.parse(saved) : defaultValue;
   } catch (error) {
     console.error('Erro ao carregar do localStorage:', error);
     return defaultValue;
@@ -1081,29 +904,11 @@ const InvestmentComparator = () => {
     });
   };
   const handleAssetChange = (asset: 'ativo1' | 'ativo2', field: keyof AssetData, value: string | number | boolean | CouponSummary) => {
-    console.log(`🔄 Asset change:`, { asset, field, value, timestamp: new Date().toISOString() });
-    
     if (asset === 'ativo1') {
-      setAtivo1(prev => {
-        const updated = {
-          ...prev,
-          [field]: value
-        };
-        
-        // Enhanced debugging for tipoCupom changes
-        if (field === 'tipoCupom') {
-          console.log(`🚨 CRITICAL: tipoCupom changed for ${asset}:`, {
-            from: prev.tipoCupom,
-            to: value,
-            mesesCupons: updated.mesesCupons,
-            hasManualCoupons: updated.couponData?.coupons?.length > 0,
-            timestamp: new Date().toISOString()
-          });
-        }
-        
-        console.log(`📊 Ativo1 updated:`, { field, value, tipoCupom: updated.tipoCupom });
-        return updated;
-      });
+      setAtivo1(prev => ({
+        ...prev,
+        [field]: value
+      }));
       // Se mudou o valor de venda do ativo1, atualiza o valor investido do ativo2
       if (field === 'valorVenda') {
         setAtivo2(prev => ({
@@ -1128,29 +933,10 @@ const InvestmentComparator = () => {
         }));
       } else if (field !== 'couponData' && field !== 'valorCurva') {
         // Impede alteração de couponData e valorCurva
-        setAtivo2(prev => {
-          const newAsset = {
-            ...prev,
-            [field]: value
-          };
-          
-          // Auto-configure BTDI11 when name is set to "BTDI11"
-          if (field === 'nome' && value === 'BTDI11') {
-            console.log('🎯 Auto-configurando BTDI11 com configurações padrão');
-            return {
-              ...newAsset,
-              tipoAtivo: 'fundo-cetipado',
-              indexador: 'percentual-cdi',
-              taxa: 100, // 100% CDI
-              periodicidadeDistribuicao: 'mensal',
-              earningsStartDate: '2025-11-10', // First coupon payment date
-              vencimento: '2030-04-01',
-              freq: 'MONTHLY'
-            };
-          }
-          
-          return newAsset;
-        });
+        setAtivo2(prev => ({
+          ...prev,
+          [field]: value
+        }));
       }
     }
 
@@ -1234,39 +1020,11 @@ const InvestmentComparator = () => {
     imposto: number;
     couponDetails?: CouponResult[];
   } => {
-    console.log(`🔍 DEBUG calcularAtivo for ${dados.nome}:`, {
-      tipoCupom: dados.tipoCupom,
-      mesesCupons: dados.mesesCupons,
-      tipoAtivo: dados.tipoAtivo,
-      nome: dados.nome,
-      hasManualCoupons: dados.couponData?.coupons?.length > 0
-    });
-    
     const periodosAtivo = vencimentoReal || anosProjecao;
 
-    // 🚨 BYPASS TEMPORÁRIO: Force tipoCupom correction for CRAs with manual coupons
-    let finalDados = { ...dados };
-    if (dados.tipoAtivo?.includes('cri-cra') && dados.couponData?.coupons?.length > 0) {
-      if (dados.tipoCupom === 'nenhum') {
-        console.log(`🚨 BYPASS: Forcing tipoCupom 'semestral' for CRA ${dados.nome} with manual coupons`);
-        finalDados.tipoCupom = 'semestral';
-        finalDados.mesesCupons = '2,8'; // February and August
-      }
-    }
-
-    console.log(`🎯 Checking coupon logic:`, {
-      originalTipoCupom: dados.tipoCupom,
-      finalTipoCupom: finalDados.tipoCupom,
-      condition: finalDados.tipoCupom !== 'nenhum',
-      willUseCashFlow: finalDados.tipoCupom !== 'nenhum',
-      hasManualCoupons: dados.couponData?.coupons?.length > 0,
-      tipoAtivo: dados.tipoAtivo
-    });
-
     // Always use cash flow system when asset has coupons
-    if (finalDados.tipoCupom !== 'nenhum') {
-      console.log(`💰 Asset ${finalDados.nome} has coupons - using cash flow calculation`);
-      return calcularAtivoComFluxoCaixa(finalDados, periodosAtivo);
+    if (dados.tipoCupom !== 'nenhum') {
+      return calcularAtivoComFluxoCaixa(dados, periodosAtivo);
     }
 
     // Legacy calculation for backward compatibility
@@ -1370,9 +1128,7 @@ const InvestmentComparator = () => {
        cashFlowInput, 
        isLimitedAnalysis, 
        dados.tipoAtivo, 
-       dados.indexador || dados.tipoTaxa || 'pre-fixada',
-       dados,
-       dados.couponData
+       dados.indexador || dados.tipoTaxa || 'pre-fixada'
      );
 
     // Build annual values array for compatibility
@@ -1509,28 +1265,6 @@ const InvestmentComparator = () => {
   };
 
   const calcular = () => {
-    console.log(`🚀 Starting calculation - ENHANCED DEBUG DATA:`, {
-      ativo1: {
-        nome: ativo1.nome,
-        tipoCupom: ativo1.tipoCupom,
-        mesesCupons: ativo1.mesesCupons,
-        tipoAtivo: ativo1.tipoAtivo,
-        hasManualCoupons: ativo1.couponData?.coupons?.length > 0,
-        couponCount: ativo1.couponData?.coupons?.length || 0,
-        earningsStartDate: ativo1.earningsStartDate
-      },
-      ativo2: {
-        nome: ativo2.nome,
-        tipoCupom: ativo2.tipoCupom,
-        mesesCupons: ativo2.mesesCupons,
-        tipoAtivo: ativo2.tipoAtivo,
-        hasManualCoupons: ativo2.couponData?.coupons?.length > 0,
-        couponCount: ativo2.couponData?.coupons?.length || 0,
-        earningsStartDate: ativo2.earningsStartDate
-      },
-      timestamp: new Date().toISOString()
-    });
-    
     try {
       // Validate data before calculation
       const validation = validateDataForCalculation();
@@ -1538,48 +1272,6 @@ const InvestmentComparator = () => {
         alert('Dados incompletos:\n' + validation.errors.join('\n'));
         return;
       }
-      
-      // Auto-normalize asset configurations before calculation
-      const todayISO = new Date().toISOString().slice(0, 10);
-      const normalizedAtivo1 = normalizeAssetConfig({
-        ticker: ativo1.nome,
-        tipoAtivo: ativo1.tipoAtivo,
-        freq: ativo1.freq as any,
-        earningsStartDate: ativo1.earningsStartDate,
-        settlementDateISO: todayISO,          // << ÂNCORA CORRETA
-        maturityDateISO: ativo1.vencimento    //   (mantém vencimento separado)
-      });
-      
-      const normalizedAtivo2 = normalizeAssetConfig({
-        ticker: ativo2.nome,
-        tipoAtivo: ativo2.tipoAtivo,
-        freq: ativo2.freq as any,
-        earningsStartDate: ativo2.earningsStartDate,
-        settlementDateISO: todayISO,          // idem
-        maturityDateISO: ativo2.vencimento
-      });
-
-      // Apply normalized configurations
-      if (normalizedAtivo1.freq !== ativo1.freq || normalizedAtivo1.earningsStartDate !== ativo1.earningsStartDate) {
-        console.log('🔧 Auto-normalizando Ativo 1:', normalizedAtivo1);
-        setAtivo1(prev => ({
-          ...prev,
-          freq: (normalizedAtivo1.freq || prev.freq) as Freq,
-          earningsStartDate: normalizedAtivo1.earningsStartDate || prev.earningsStartDate
-        }));
-        return;
-      }
-      
-      if (normalizedAtivo2.freq !== ativo2.freq || normalizedAtivo2.earningsStartDate !== ativo2.earningsStartDate) {
-        console.log('🔧 Auto-normalizando Ativo 2:', normalizedAtivo2);
-        setAtivo2(prev => ({
-          ...prev,
-          freq: (normalizedAtivo2.freq || prev.freq) as Freq,
-          earningsStartDate: normalizedAtivo2.earningsStartDate || prev.earningsStartDate
-        }));
-        return;
-      }
-
       const hoje = new Date();
       const vencimento1 = new Date(ativo1.vencimento);
       const vencimento2 = new Date(ativo2.vencimento);
@@ -1618,20 +1310,14 @@ const InvestmentComparator = () => {
         console.log(`📅 Data final da comparação: ${dataFinal.toISOString().slice(0, 10)} (${anosFinal.toFixed(2)} anos)`);
         
         if (vencimento1 < vencimento2) {
-      const key1 = getAssetKey(ativo1, 1);
-      const key2 = getAssetKey(ativo2, 2);
-      console.log(`💎 CENÁRIO: ${key1} vence primeiro, reinveste no CDI até vencimento do ${key2}`);
-      console.log(`🔍 DEBUGGING - Calculating ${key1} first`);
-      
-      // Calcular Ativo 1 até seu vencimento natural usando novo sistema de cupons
-      resultAtivo1 = calcularAtivoComFluxoCaixa(ativo1, anosAtivo1, ativo1.vencimento);
-      console.log(`✅ DEBUGGING - ${key1} calculated, couponDetails:`, resultAtivo1.couponDetails?.length || 'none');
-      const valorLiquidoAtivo1 = resultAtivo1.valores[resultAtivo1.valores.length - 1];
-      
-      // Calcular Ativo 2 até seu vencimento natural usando novo sistema de cupons
-      console.log(`🔍 DEBUGGING - Calculating ${key2} second`);
-      resultAtivo2 = calcularAtivoComFluxoCaixa(ativo2, anosAtivo2, ativo2.vencimento);
-      console.log(`✅ DEBUGGING - ${key2} calculated, couponDetails:`, resultAtivo2.couponDetails?.length || 'none');
+          console.log(`💎 CENÁRIO: Ativo 1 vence primeiro, reinveste no CDI até vencimento do Ativo 2`);
+          
+          // Calcular Ativo 1 até seu vencimento natural
+          resultAtivo1 = calcularAtivo(ativo1, anosAtivo1);
+          const valorLiquidoAtivo1 = resultAtivo1.valores[resultAtivo1.valores.length - 1];
+          
+          // Calcular Ativo 2 até seu vencimento natural
+          resultAtivo2 = calcularAtivo(ativo2, anosAtivo2);
           
           // Calcular reinvestimento do Ativo 1 no CDI
           const dataInicioReinvestimento = vencimento1;
@@ -1661,20 +1347,14 @@ const InvestmentComparator = () => {
           };
           
         } else if (vencimento2 < vencimento1) {
-      const key1 = getAssetKey(ativo1, 1);
-      const key2 = getAssetKey(ativo2, 2);
-      console.log(`💎 CENÁRIO: ${key2} vence primeiro, reinveste no CDI até vencimento do ${key1}`);
-      console.log(`🔍 DEBUGGING - Calculating ${key2} first`);
-      
-      // Calcular Ativo 2 até seu vencimento natural usando novo sistema de cupons
-      resultAtivo2 = calcularAtivoComFluxoCaixa(ativo2, anosAtivo2, ativo2.vencimento);
-      console.log(`✅ DEBUGGING - ${key2} calculated, couponDetails:`, resultAtivo2.couponDetails?.length || 'none');
-      const valorLiquidoAtivo2 = resultAtivo2.valores[resultAtivo2.valores.length - 1];
-      
-      // Calcular Ativo 1 até seu vencimento natural usando novo sistema de cupons
-      console.log(`🔍 DEBUGGING - Calculating ${key1} second`);
-      resultAtivo1 = calcularAtivoComFluxoCaixa(ativo1, anosAtivo1, ativo1.vencimento);
-      console.log(`✅ DEBUGGING - ${key1} calculated, couponDetails:`, resultAtivo1.couponDetails?.length || 'none');
+          console.log(`💎 CENÁRIO: Ativo 2 vence primeiro, reinveste no CDI até vencimento do Ativo 1`);
+          
+          // Calcular Ativo 2 até seu vencimento natural
+          resultAtivo2 = calcularAtivo(ativo2, anosAtivo2);
+          const valorLiquidoAtivo2 = resultAtivo2.valores[resultAtivo2.valores.length - 1];
+          
+          // Calcular Ativo 1 até seu vencimento natural
+          resultAtivo1 = calcularAtivo(ativo1, anosAtivo1);
           
           // Calcular reinvestimento do Ativo 2 no CDI
           const dataInicioReinvestimento = vencimento2;
@@ -1706,22 +1386,17 @@ const InvestmentComparator = () => {
         } else {
           // Nunca deveria chegar aqui com diferencaDias > 30, mas como fallback
           anosProjecao = Math.max(anosAtivo1, anosAtivo2);
-          resultAtivo1 = calcularAtivoComFluxoCaixa(ativo1, anosAtivo1, ativo1.vencimento);
-          resultAtivo2 = calcularAtivoComFluxoCaixa(ativo2, anosAtivo2, ativo2.vencimento);
+          resultAtivo1 = calcularAtivo(ativo1, anosAtivo1);
+          resultAtivo2 = calcularAtivo(ativo2, anosAtivo2);
           reinvestimentoInfo = null;
         }
       } else {
         // Diferença pequena (≤ 30 dias) - comparação direta sem reinvestimento
-        const key1 = getAssetKey(ativo1, 1);
-        const key2 = getAssetKey(ativo2, 2);
         console.log(`✅ CENÁRIO: Diferença pequena (${diferencaDias.toFixed(0)} dias) - comparação direta`);
-        console.log(`🔍 DEBUGGING - Calculating both assets directly`);
         
         anosProjecao = Math.max(anosAtivo1, anosAtivo2);
-        resultAtivo1 = calcularAtivoComFluxoCaixa(ativo1, anosAtivo1, ativo1.vencimento);
-        console.log(`✅ DEBUGGING - ${key1} calculated, couponDetails:`, resultAtivo1.couponDetails?.length || 'none');
-        resultAtivo2 = calcularAtivoComFluxoCaixa(ativo2, anosAtivo2, ativo2.vencimento);
-        console.log(`✅ DEBUGGING - ${key2} calculated, couponDetails:`, resultAtivo2.couponDetails?.length || 'none');
+        resultAtivo1 = calcularAtivo(ativo1, anosAtivo1);
+        resultAtivo2 = calcularAtivo(ativo2, anosAtivo2);
         reinvestimentoInfo = null;
       }
 
@@ -1735,20 +1410,6 @@ const InvestmentComparator = () => {
         couponDetails: {
           ativo1: resultAtivo1.couponDetails,
           ativo2: resultAtivo2.couponDetails
-        }
-      });
-      
-      const key1 = getAssetKey(ativo1, 1);
-      const key2 = getAssetKey(ativo2, 2);
-      
-      console.log(`🚨 SETTING RESULTS - COUPON DETAILS CHECK:`, {
-        [`${key1}.couponDetails length`]: resultAtivo1.couponDetails?.length,
-        [`${key2}.couponDetails length`]: resultAtivo2.couponDetails?.length,
-        [`${key1}.couponDetails[0]`]: resultAtivo1.couponDetails?.[0],
-        [`${key2}.couponDetails[0]`]: resultAtivo2.couponDetails?.[0],
-        'FINAL ASSIGNMENT': {
-          'couponDetails.ativo1 will get': resultAtivo1.couponDetails?.length || 0,
-          'couponDetails.ativo2 will get': resultAtivo2.couponDetails?.length || 0,
         }
       });
       setShowResults(true);
@@ -2979,30 +2640,10 @@ const InvestmentComparator = () => {
 
                   // Calculate detailed breakdown for each asset
                   const calculateDetailedBreakdown = (ativo: any, couponDetails: any[], valorInvestido: number) => {
-                    console.log(`📊 CRITICAL DEBUG: Calculating breakdown for ${ativo.nome}:`, { 
-                      couponCount: couponDetails?.length,
-                      firstCoupon: couponDetails?.[0],
-                      couponDetails: couponDetails
-                    });
-                    
                     const principalInvestido = valorInvestido;
                     
                     // Sum all gross coupons
-                    const cupomsBrutos = couponDetails?.reduce((sum, coupon) => {
-                      console.log(`💰 Processing coupon:`, {
-                        gross: coupon.gross,
-                        net: coupon.net,
-                        reinvested: coupon.reinvested,
-                        date: coupon.couponDate
-                      });
-                      return sum + (coupon.gross || 0);
-                    }, 0) || 0;
-                    
-                    console.log(`💰 BREAKDOWN RESULTS for ${ativo.nome}:`, {
-                      cupomsBrutos,
-                      couponCount: couponDetails?.length,
-                      totalGross: couponDetails?.reduce((sum, c) => sum + (c.gross || 0), 0)
-                    });
+                    const cupomsBrutos = couponDetails?.reduce((sum, coupon) => sum + (coupon.gross || 0), 0) || 0;
                     
                     // Sum all IR on coupons (difference between gross and net)
                     const irSobreCupons = couponDetails?.reduce((sum, coupon) => sum + ((coupon.gross || 0) - (coupon.net || 0)), 0) || 0;
@@ -3042,14 +2683,6 @@ const InvestmentComparator = () => {
 
                   const breakdown1 = calculateDetailedBreakdown(results.ativo1, results.couponDetails?.ativo1 || [], ativo1.valorCurva);
                   const breakdown2 = calculateDetailedBreakdown(results.ativo2, results.couponDetails?.ativo2 || [], ativo2.valorCurva);
-                  
-                  console.log(`🚨 RESULTS STRUCTURE DEBUG:`, {
-                    'results.couponDetails': results.couponDetails,
-                    'results.couponDetails?.ativo1': results.couponDetails?.ativo1,
-                    'results.couponDetails?.ativo2': results.couponDetails?.ativo2,
-                    'results.couponDetails?.ativo1?.length': results.couponDetails?.ativo1?.length,
-                    'results.couponDetails?.ativo2?.length': results.couponDetails?.ativo2?.length
-                  });
 
                   return (
                     <>
