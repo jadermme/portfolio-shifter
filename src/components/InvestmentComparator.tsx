@@ -483,12 +483,29 @@ function projectWithReinvestCDI(x: CouponEngineInput, isLimitedAnalysis = false,
   const coupons: CouponResult[] = [];
   let basePrincipal = x.principal;
 
+  // BTDI11 Debug logging
+  if (assetType === 'fundo-cetipado') {
+    console.log(`🔍 BTDI11 Debug - Período de análise: ${x.earningsStartDate || x.startISO} até ${x.endISO}`);
+    console.log(`🔍 BTDI11 Debug - Datas de cupom:`, couponDates);
+    console.log(`🔍 BTDI11 Debug - Principal inicial: R$ ${x.principal.toLocaleString('pt-BR', {minimumFractionDigits: 2})}`);
+  }
+
   // percorre cada período
   let last = x.earningsStartDate || x.startISO; // Usa data de início dos rendimentos se disponível
-  for (const dt of couponDates) {
+  for (let i = 0; i < couponDates.length; i++) {
+    const dt = couponDates[i];
+    
     // Get CDI rate specific for this coupon period
     const couponMonth = dt.slice(0, 7); // YYYY-MM
     const cdiAA = getCDIRateForMonth(x.cdiCurve, dt);
+    
+    // BTDI11 Debug - período específico
+    if (assetType === 'fundo-cetipado') {
+      console.log(`\n🔍 BTDI11 Cupom ${i + 1} (${dt}):`);
+      console.log(`  📅 Período: ${last} até ${dt}`);
+      console.log(`  📊 CDI no período: ${cdiAA}% a.a.`);
+      console.log(`  📝 Dias no período: ${daysBetween(last, dt)} dias corridos`);
+    }
     
     // Calculate rate for the actual period using real days
     const rPeriodGross = rateOfAssetForPeriod(x.rateKind, {
@@ -505,6 +522,19 @@ function projectWithReinvestCDI(x: CouponEngineInput, isLimitedAnalysis = false,
     });
     
     const couponGross = Math.max(0, basePrincipal * rPeriodGross);
+
+    // BTDI11 Debug - análise detalhada do cupom
+    if (assetType === 'fundo-cetipado') {
+      console.log(`  💰 Taxa período bruta: ${(rPeriodGross * 100).toFixed(6)}%`);
+      console.log(`  💰 Principal base: R$ ${basePrincipal.toLocaleString('pt-BR', {minimumFractionDigits: 2})}`);
+      console.log(`  💰 Cupom bruto: R$ ${couponGross.toLocaleString('pt-BR', {minimumFractionDigits: 2})}`);
+      
+      if (i === 0) {
+        console.log(`  🚨 PRIMEIRO CUPOM - Período especial: ${last} até ${dt}`);
+        console.log(`  🚨 PRIMEIRO CUPOM - Dias acumulados: ${daysBetween(last, dt)} dias`);
+        console.log(`  🚨 PRIMEIRO CUPOM - Este período inclui todo outubro + parte de novembro?`);
+      }
+    }
 
     console.log(`📅 Cupom ${dt}: Período ${last} até ${dt}`);
     console.log(`📊 Taxa do período=${(rPeriodGross * 100).toFixed(4)}%, Cupom=R$${couponGross.toLocaleString('pt-BR')}`);
