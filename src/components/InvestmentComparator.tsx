@@ -2755,7 +2755,27 @@ const InvestmentComparator = () => {
                       </div>
                        <div>
                          <span className="text-muted-foreground">Taxa:</span>
-                         <div className="font-mono font-semibold">{(ativo2?.taxa || 0).toFixed(2)}% a.a.</div>
+                         <div className="font-mono font-semibold">
+                           {(() => {
+                             if (!ativo2) return "N/A";
+                             
+                             const rateKind = ativo2.rateKind || ativo2.indexador;
+                             const taxa = ativo2.taxa || 0;
+                             
+                             switch (rateKind) {
+                               case '%CDI':
+                                 return `${taxa.toFixed(1)}% do CDI`;
+                               case 'CDI+PRE':
+                                 return `CDI + ${taxa.toFixed(1)}%`;
+                               case 'PRE':
+                                 return `${taxa.toFixed(2)}% a.a. (Pré)`;
+                               case 'IPCA+PRE':
+                                 return `IPCA + ${taxa.toFixed(1)}%`;
+                               default:
+                                 return `CDI + ${taxa.toFixed(1)}%`;
+                             }
+                           })()}
+                         </div>
                        </div>
                     </div>
                     
