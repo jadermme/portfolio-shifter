@@ -10,6 +10,8 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { useToast } from '@/hooks/use-toast';
 import { CouponManager } from './CouponManager';
 import { CouponSummary } from '@/types/coupon';
+import { normalizeAssetConfig } from '@/utils/assetConfig';
+import { genCouponDates as genCouponDatesRobust } from '@/utils/genCouponDates';
 
 // ===================== UTILITY FUNCTIONS =====================
 const formatCurrency = (value: number): string => {
@@ -367,7 +369,44 @@ function calculatePeriodRate(annualRate: number, fromISO: string, toISO: string,
   
   return Math.pow(1 + dailyRate, days) - 1;
 }
-function genCouponDates(startISO: string, endISO: string, freq: Freq, earningsStartDate?: string): string[] {
+// Função robusta para gerar datas de cupons usando UTC
+function genCouponDatesNew(
+  startISO: string,
+  endISO: string, 
+  freq: Freq,
+  earningsStartDate: string | undefined,
+  assetData: AssetData
+): string[] {
+  try {
+    // Normalize asset configuration to get anchor day
+    const normalized = normalizeAssetConfig({
+      ticker: assetData.nome,
+      tipoAtivo: assetData.tipoAtivo,
+      freq: freq,
+      earningsStartDate: earningsStartDate,
+      vencimento: endISO
+    });
+
+    // Use the new robust coupon date generator
+    const dates = genCouponDatesRobust({
+      freq: freq.toUpperCase() as any,
+      earningsStartDate: normalized.earningsStartDate || earningsStartDate || startISO,
+      maturityDateISO: endISO,
+      anchorDay: normalized.anchorDay,
+      debugTag: assetData.nome
+    });
+
+    console.log(`📅 Generated ${dates.length} coupon dates for ${assetData.nome} (anchor day ${normalized.anchorDay}):`, dates);
+    return dates;
+  } catch (error) {
+    console.error('Error generating coupon dates:', error);
+    // Fallback to old logic if new logic fails
+    return genCouponDatesOld(startISO, endISO, freq, earningsStartDate);
+  }
+}
+
+// Keep old logic as fallback
+function genCouponDatesOld(startISO: string, endISO: string, freq: Freq, earningsStartDate?: string): string[] {
   console.log(`🔍 genCouponDates called with:`, { startISO, endISO, freq, earningsStartDate });
   
   const step = freq === "MONTHLY" ? 1 : 6;
@@ -487,7 +526,7 @@ function projectWithReinvestCDI(x: CouponEngineInput, isLimitedAnalysis = false,
   console.log(`📊 Regras aplicadas:`, rules);
   
   // No administrative fees for direct securities
-  const couponDates = genCouponDates(x.startISO, x.endISO, x.freq, x.earningsStartDate);
+  const couponDates = genCouponDatesOld(x.startISO, x.endISO, x.freq, x.earningsStartDate);
   const coupons: CouponResult[] = [];
   let basePrincipal = x.principal;
 
@@ -1357,35 +1396,42 @@ const InvestmentComparator = () => {
         return;
       }
       
-      // Ensure BTDI11 configuration is correct before calculation
-      if (ativo1.nome === 'BTDI11' && ativo1.freq !== 'MONTHLY') {
-        console.log('🎯 Corrigindo configuração BTDI11 para Ativo 1');
+      // Auto-normalize asset configurations before calculation  
+      const normalizedAtivo1 = normalizeAssetConfig({
+        ticker: ativo1.nome,
+        tipoAtivo: ativo1.tipoAtivo,
+        freq: ativo1.freq,
+        earningsStartDate: ativo1.earningsStartDate,
+        vencimento: ativo1.vencimento
+      });
+      
+      const normalizedAtivo2 = normalizeAssetConfig({
+        ticker: ativo2.nome,
+        tipoAtivo: ativo2.tipoAtivo,
+        freq: ativo2.freq,
+        earningsStartDate: ativo2.earningsStartDate,
+        vencimento: ativo2.vencimento
+      });
+
+      // Apply normalized configurations
+      if (normalizedAtivo1.freq !== ativo1.freq || normalizedAtivo1.earningsStartDate !== ativo1.earningsStartDate) {
+        console.log('🔧 Auto-normalizando Ativo 1:', normalizedAtivo1);
         setAtivo1(prev => ({
           ...prev,
-          tipoAtivo: 'fundo-cetipado',
-          indexador: 'percentual-cdi',
-          taxa: 100,
-          periodicidadeDistribuicao: 'mensal',
-          earningsStartDate: '2025-11-10',
-          vencimento: '2030-04-01',
-          freq: 'MONTHLY'
+          freq: (normalizedAtivo1.freq || prev.freq) as Freq,
+          earningsStartDate: normalizedAtivo1.earningsStartDate || prev.earningsStartDate
         }));
-        return; // Re-trigger calculation with corrected data
+        return;
       }
       
-      if (ativo2.nome === 'BTDI11' && ativo2.freq !== 'MONTHLY') {
-        console.log('🎯 Corrigindo configuração BTDI11 para Ativo 2');
+      if (normalizedAtivo2.freq !== ativo2.freq || normalizedAtivo2.earningsStartDate !== ativo2.earningsStartDate) {
+        console.log('🔧 Auto-normalizando Ativo 2:', normalizedAtivo2);
         setAtivo2(prev => ({
           ...prev,
-          tipoAtivo: 'fundo-cetipado',
-          indexador: 'percentual-cdi',
-          taxa: 100,
-          periodicidadeDistribuicao: 'mensal',
-          earningsStartDate: '2025-11-10',
-          vencimento: '2030-04-01',
-          freq: 'MONTHLY'
+          freq: (normalizedAtivo2.freq || prev.freq) as Freq,
+          earningsStartDate: normalizedAtivo2.earningsStartDate || prev.earningsStartDate
         }));
-        return; // Re-trigger calculation with corrected data
+        return;
       }
 
       const hoje = new Date();
