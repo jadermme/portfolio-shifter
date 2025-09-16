@@ -402,7 +402,7 @@ function genCouponDates(startISO: string, endISO: string, freq: Freq, earningsSt
         
         currentYear++;
       }
-    } else if (earningsStartDate && earningsStartDate.endsWith('-10')) {
+    } else if (freq === 'MONTHLY' && earningsStartDate && earningsStartDate.endsWith('-10')) {
       console.log(`📅 Fundo: Gerando cupons mensais no dia 10, primeiro cupom em ${earningsStartDate}`);
       console.log(`📅 Configuração: freq=${freq}, earningsStartDate=${earningsStartDate}`);
       console.log(`📅 Intervalo: ${startISO} até ${endISO}`);
@@ -1356,6 +1356,38 @@ const InvestmentComparator = () => {
         alert('Dados incompletos:\n' + validation.errors.join('\n'));
         return;
       }
+      
+      // Ensure BTDI11 configuration is correct before calculation
+      if (ativo1.nome === 'BTDI11' && ativo1.freq !== 'MONTHLY') {
+        console.log('🎯 Corrigindo configuração BTDI11 para Ativo 1');
+        setAtivo1(prev => ({
+          ...prev,
+          tipoAtivo: 'fundo-cetipado',
+          indexador: 'percentual-cdi',
+          taxa: 100,
+          periodicidadeDistribuicao: 'mensal',
+          earningsStartDate: '2025-11-10',
+          vencimento: '2030-04-01',
+          freq: 'MONTHLY'
+        }));
+        return; // Re-trigger calculation with corrected data
+      }
+      
+      if (ativo2.nome === 'BTDI11' && ativo2.freq !== 'MONTHLY') {
+        console.log('🎯 Corrigindo configuração BTDI11 para Ativo 2');
+        setAtivo2(prev => ({
+          ...prev,
+          tipoAtivo: 'fundo-cetipado',
+          indexador: 'percentual-cdi',
+          taxa: 100,
+          periodicidadeDistribuicao: 'mensal',
+          earningsStartDate: '2025-11-10',
+          vencimento: '2030-04-01',
+          freq: 'MONTHLY'
+        }));
+        return; // Re-trigger calculation with corrected data
+      }
+
       const hoje = new Date();
       const vencimento1 = new Date(ativo1.vencimento);
       const vencimento2 = new Date(ativo2.vencimento);
