@@ -2004,7 +2004,7 @@ const InvestmentComparator = () => {
         </div>
 
         {/* Asset Forms */}
-        <div className="grid grid-cols-1 gap-6 mb-6 print:gap-3 print:mb-3">
+        <div className="grid grid-cols-1 gap-6 mb-6 print:gap-3 print:mb-3 print:hidden">
           {renderAssetForm(ativo1, 'ativo1', `📊 ${ativo1.nome || 'Ativo 1'}`, 'financial-primary')}
           
           <div className="flex items-center justify-center xl:hidden">
@@ -2017,7 +2017,7 @@ const InvestmentComparator = () => {
         </div>
 
         {/* Projections */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6 print:gap-3 print:mb-3">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6 print:gap-3 print:mb-3 print:hidden">
           {/* CDI Projections */}
           <Card className="border-financial-secondary/20 shadow-lg">
             <CardHeader className="bg-gradient-to-r from-financial-secondary to-financial-primary text-white rounded-t-lg">
@@ -2060,7 +2060,7 @@ const InvestmentComparator = () => {
         </div>
 
          {/* Action Buttons */}
-        <div className="flex flex-wrap justify-center gap-4 mb-8">
+        <div className="flex flex-wrap justify-center gap-4 mb-8 print:hidden">
           <Button onClick={calcular} size="lg" className="bg-gradient-to-r from-financial-primary to-financial-secondary hover:from-financial-secondary hover:to-financial-primary text-white font-bold shadow-lg transform transition-all duration-300 hover:scale-105">
             <Calculator className="h-5 w-5 mr-2" />
             🔄 Calcular Comparação
@@ -2130,8 +2130,200 @@ const InvestmentComparator = () => {
               return null;
             })()}
             
-            {/* Executive Summary - Restructured into Two Separate Tables */}
-            <div className="space-y-6 print-section">
+            {/* Print-Only Executive Summary and Analysis - NEW */}
+            <div className="print-show hidden">
+              {/* Print Header */}
+              <div className="print-header">
+                <div className="print-title">ANÁLISE COMPARATIVA</div>
+                <div className="print-subtitle">
+                  {ativo1.nome || 'Ativo 1'} vs {ativo2.nome || 'Ativo 2'} • {new Date().toLocaleDateString('pt-BR')}
+                </div>
+              </div>
+
+              {/* Executive Summary Section */}
+              <div className="print-section">
+                <h3 className="print-section-title">RESUMO EXECUTIVO - SITUAÇÃO ATUAL</h3>
+                <table className="print-table">
+                  <thead>
+                    <tr>
+                      <th>Papel</th>
+                      <th>Valor Investido</th>
+                      <th>Valor Venda/Curva</th>
+                      <th>Cupons Recebidos</th>
+                      <th>Total Disponível</th>
+                      <th>Resultado</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>{ativo1.nome || 'Ativo 1'}</td>
+                      <td>{formatCurrency(ativo1.valorInvestido)}</td>
+                      <td>{formatCurrency(results.ativo1[results.ativo1.length - 1])}</td>
+                      <td>{formatCurrency(ativo1.couponData?.total || 0)}</td>
+                      <td>{formatCurrency((results.ativo1[results.ativo1.length - 1]) + (ativo1.couponData?.total || 0))}</td>
+                      <td style={{color: ((results.ativo1[results.ativo1.length - 1]) + (ativo1.couponData?.total || 0) - ativo1.valorInvestido) >= 0 ? '#22c55e' : '#ef4444'}}>
+                        {formatCurrency((results.ativo1[results.ativo1.length - 1]) + (ativo1.couponData?.total || 0) - ativo1.valorInvestido)}
+                      </td>
+                    </tr>
+                    <tr>
+                      <td>{ativo2.nome || 'Ativo 2'}</td>
+                      <td>{formatCurrency(ativo2.valorInvestido)}</td>
+                      <td>{formatCurrency(results.ativo2[results.ativo2.length - 1])}</td>
+                      <td>{formatCurrency(ativo2.couponData?.total || 0)}</td>
+                      <td>{formatCurrency((results.ativo2[results.ativo2.length - 1]) + (ativo2.couponData?.total || 0))}</td>
+                      <td style={{color: ((results.ativo2[results.ativo2.length - 1]) + (ativo2.couponData?.total || 0) - ativo2.valorInvestido) >= 0 ? '#22c55e' : '#ef4444'}}>
+                        {formatCurrency((results.ativo2[results.ativo2.length - 1]) + (ativo2.couponData?.total || 0) - ativo2.valorInvestido)}
+                      </td>
+                    </tr>
+                    <tr style={{fontWeight: 'bold', backgroundColor: '#f8f9fa'}}>
+                      <td>TOTAL</td>
+                      <td>{formatCurrency(ativo1.valorInvestido + ativo2.valorInvestido)}</td>
+                      <td>{formatCurrency(results.ativo1[results.ativo1.length - 1] + results.ativo2[results.ativo2.length - 1])}</td>
+                      <td>{formatCurrency((ativo1.couponData?.total || 0) + (ativo2.couponData?.total || 0))}</td>
+                      <td>{formatCurrency((results.ativo1[results.ativo1.length - 1]) + (ativo1.couponData?.total || 0) + (results.ativo2[results.ativo2.length - 1]) + (ativo2.couponData?.total || 0))}</td>
+                      <td style={{color: ((results.ativo1[results.ativo1.length - 1]) + (ativo1.couponData?.total || 0) + (results.ativo2[results.ativo2.length - 1]) + (ativo2.couponData?.total || 0) - ativo1.valorInvestido - ativo2.valorInvestido) >= 0 ? '#22c55e' : '#ef4444'}}>
+                        {formatCurrency((results.ativo1[results.ativo1.length - 1]) + (ativo1.couponData?.total || 0) + (results.ativo2[results.ativo2.length - 1]) + (ativo2.couponData?.total || 0) - ativo1.valorInvestido - ativo2.valorInvestido)}
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Economic Projections Section */}
+              <div className="print-section">
+                <h3 className="print-section-title">PROJEÇÕES ECONÔMICAS UTILIZADAS</h3>
+                <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem'}}>
+                  <div>
+                    <table className="print-table">
+                      <thead>
+                        <tr><th colSpan={2}>CDI (%)</th></tr>
+                        <tr><th>Ano</th><th>Taxa</th></tr>
+                      </thead>
+                      <tbody>
+                        {Object.entries(projecoes.cdi).map(([ano, taxa]) => (
+                          <tr key={ano}>
+                            <td>{ano}</td>
+                            <td>{taxa}%</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                  <div>
+                    <table className="print-table">
+                      <thead>
+                        <tr><th colSpan={2}>IPCA (%)</th></tr>
+                        <tr><th>Ano</th><th>Taxa</th></tr>
+                      </thead>
+                      <tbody>
+                        {Object.entries(projecoes.ipca).map(([ano, taxa]) => (
+                          <tr key={ano}>
+                            <td>{ano}</td>
+                            <td>{taxa}%</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+
+              {/* Scenario Analysis */}
+              <div className="print-section">
+                <h3 className="print-section-title">ANÁLISE DE CENÁRIOS</h3>
+                <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem'}}>
+                  <div>
+                    <h4 style={{fontSize: '12px', fontWeight: 'bold', marginBottom: '0.5rem'}}>Cenário 1 - Manter Carteira Atual</h4>
+                    <table className="print-table">
+                      <thead>
+                        <tr>
+                          <th>Papel</th>
+                          <th>Rentabilidade</th>
+                          <th>Valor Final Est.</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr>
+                          <td>{ativo1.nome || 'Ativo 1'}</td>
+                          <td>{getTaxaLabel(ativo1.indexador || ativo1.tipoTaxa || 'pre-fixada')}</td>
+                          <td>{formatCurrency((results.ativo1[results.ativo1.length - 1]) + (ativo1.couponData?.total || 0))}</td>
+                        </tr>
+                        <tr>
+                          <td>{ativo2.nome || 'Ativo 2'}</td>
+                          <td>{getTaxaLabel(ativo2.indexador || ativo2.tipoTaxa || 'pre-fixada')}</td>
+                          <td>{formatCurrency((results.ativo2[results.ativo2.length - 1]) + (ativo2.couponData?.total || 0))}</td>
+                        </tr>
+                        <tr style={{fontWeight: 'bold'}}>
+                          <td>TOTAL</td>
+                          <td>-</td>
+                          <td>{formatCurrency((results.ativo1[results.ativo1.length - 1]) + (ativo1.couponData?.total || 0) + (results.ativo2[results.ativo2.length - 1]) + (ativo2.couponData?.total || 0))}</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                  
+                  <div>
+                    <h4 style={{fontSize: '12px', fontWeight: 'bold', marginBottom: '0.5rem'}}>Cenário 2 - Migração Total para {ativo2.nome || 'Ativo 2'}</h4>
+                    <table className="print-table">
+                      <thead>
+                        <tr>
+                          <th>Descrição</th>
+                          <th>Valor</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr>
+                          <td>Valor Total Migrado</td>
+                          <td>{formatCurrency(ativo1.valorInvestido + ativo2.valorInvestido)}</td>
+                        </tr>
+                        <tr>
+                          <td>Rentabilidade</td>
+                          <td>{getTaxaLabel(ativo2.indexador || ativo2.tipoTaxa || 'pre-fixada')}</td>
+                        </tr>
+                        <tr>
+                          <td>Valor Final Estimado</td>
+                          <td>{formatCurrency(((results.ativo2[results.ativo2.length - 1]) + (ativo2.couponData?.total || 0)) * (ativo1.valorInvestido + ativo2.valorInvestido) / ativo2.valorInvestido)}</td>
+                        </tr>
+                        <tr style={{fontWeight: 'bold', color: (((results.ativo2[results.ativo2.length - 1]) + (ativo2.couponData?.total || 0)) * (ativo1.valorInvestido + ativo2.valorInvestido) / ativo2.valorInvestido) > ((results.ativo1[results.ativo1.length - 1]) + (ativo1.couponData?.total || 0) + (results.ativo2[results.ativo2.length - 1]) + (ativo2.couponData?.total || 0)) ? '#22c55e' : '#ef4444'}}>
+                          <td>Vantagem vs Cenário 1</td>
+                          <td>{formatCurrency((((results.ativo2[results.ativo2.length - 1]) + (ativo2.couponData?.total || 0)) * (ativo1.valorInvestido + ativo2.valorInvestido) / ativo2.valorInvestido) - ((results.ativo1[results.ativo1.length - 1]) + (ativo1.couponData?.total || 0) + (results.ativo2[results.ativo2.length - 1]) + (ativo2.couponData?.total || 0)))}</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+
+              {/* Asset Characteristics */}
+              <div className="print-section">
+                <h3 className="print-section-title">{ativo2.nome || 'ATIVO 2'} - CARACTERÍSTICAS PRINCIPAIS</h3>
+                <table className="print-table">
+                  <thead>
+                    <tr>
+                      <th>Tipo</th>
+                      <th>Rentabilidade</th>
+                      <th>Tributação</th>
+                      <th>Distribuição</th>
+                      <th>Prazo</th>
+                      <th>Gestão</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>{getTipoAtivoDisplay(ativo2.tipoAtivo)}</td>
+                      <td>{getTaxaLabel(ativo2.indexador || ativo2.tipoTaxa || 'pre-fixada')}</td>
+                      <td>{getIRDisplay(ativo2, results?.anosProjecao || 0)}</td>
+                      <td>{ativo2.periodicidadeDistribuicao || 'N/A'}</td>
+                      <td>{ativo2.vencimento ? new Date(ativo2.vencimento).toLocaleDateString('pt-BR') : 'Indefinido'}</td>
+                      <td>N/A</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+            
+            {/* Executive Summary - Restructured into Two Separate Tables (Screen View) */}
+            <div className="space-y-6 print-section print:hidden">
               <div className="print-show hidden">
                 <h2 className="print-section-title">ANÁLISE DETALHADA DOS INVESTIMENTOS</h2>
               </div>
