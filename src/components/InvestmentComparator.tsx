@@ -1813,51 +1813,46 @@ const InvestmentComparator = () => {
               </SelectContent>
             </Select>
           </div>
-          {asset.tipoAtivo !== 'fundo-cetipado' && (
+          <div className="space-y-2">
+            <Label htmlFor={`${assetKey}-indexador`}>Indexador</Label>
+            <Select value={asset.indexador} onValueChange={value => {
+              handleAssetChange(assetKey, 'indexador', value);
+              handleAssetChange(assetKey, 'tipoTaxa', value); // Keep legacy field in sync
+            }}>
+              <SelectTrigger className="bg-background border-border z-50">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent className="bg-background border-border shadow-lg z-50">
+                <SelectItem value="pre-fixada">Pré-fixada</SelectItem>
+                <SelectItem value="percentual-cdi">% CDI</SelectItem>
+                <SelectItem value="cdi-mais">CDI + Taxa Pré</SelectItem>
+                <SelectItem value="ipca-mais">IPCA + Taxa Pré</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor={`${assetKey}-taxa`}>{getTaxaLabel(asset.indexador || asset.tipoTaxa || 'pre-fixada')}</Label>
+            <Input 
+              id={`${assetKey}-taxa`} 
+              type="number" 
+              step="0.01" 
+              value={asset.taxa} 
+              onChange={e => handleAssetChange(assetKey, 'taxa', parseFloat(e.target.value) || 0)} 
+              placeholder={getTaxaPlaceholder(asset.indexador || asset.tipoTaxa || 'pre-fixada')} 
+            />
+          </div>
+          {asset.tipoAtivo === 'fundo-cetipado' && (
             <div className="space-y-2">
-              <Label htmlFor={`${assetKey}-indexador`}>Indexador</Label>
-              <Select value={asset.indexador} onValueChange={value => {
-                handleAssetChange(assetKey, 'indexador', value);
-                handleAssetChange(assetKey, 'tipoTaxa', value); // Keep legacy field in sync
-              }}>
+              <Label htmlFor={`${assetKey}-periodicidade`}>Periodicidade</Label>
+              <Select value={asset.periodicidadeDistribuicao || 'mensal'} onValueChange={value => handleAssetChange(assetKey, 'periodicidadeDistribuicao', value)}>
                 <SelectTrigger className="bg-background border-border z-50">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent className="bg-background border-border shadow-lg z-50">
-                  <SelectItem value="pre-fixada">Pré-fixada</SelectItem>
-                  <SelectItem value="percentual-cdi">% CDI</SelectItem>
-                  <SelectItem value="cdi-mais">CDI + Taxa Pré</SelectItem>
-                  <SelectItem value="ipca-mais">IPCA + Taxa Pré</SelectItem>
+                  <SelectItem value="mensal">Mensal</SelectItem>
+                  <SelectItem value="trimestral">Trimestral</SelectItem>
                 </SelectContent>
               </Select>
-            </div>
-          )}
-          {asset.tipoAtivo === 'fundo-cetipado' ? (
-            <>
-              <div className="space-y-2">
-                <Label htmlFor={`${assetKey}-periodicidade`}>Periodicidade</Label>
-                <Select value={asset.periodicidadeDistribuicao || 'mensal'} onValueChange={value => handleAssetChange(assetKey, 'periodicidadeDistribuicao', value)}>
-                  <SelectTrigger className="bg-background border-border z-50">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent className="bg-background border-border shadow-lg z-50">
-                    <SelectItem value="mensal">Mensal</SelectItem>
-                    <SelectItem value="trimestral">Trimestral</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </>
-          ) : (
-            <div className="space-y-2">
-              <Label htmlFor={`${assetKey}-taxa`}>{getTaxaLabel(asset.indexador || asset.tipoTaxa || 'pre-fixada')}</Label>
-              <Input 
-                id={`${assetKey}-taxa`} 
-                type="number" 
-                step="0.01" 
-                value={asset.taxa} 
-                onChange={e => handleAssetChange(assetKey, 'taxa', parseFloat(e.target.value) || 0)} 
-                placeholder={getTaxaPlaceholder(asset.indexador || asset.tipoTaxa || 'pre-fixada')} 
-              />
             </div>
           )}
           <div className="space-y-2">
