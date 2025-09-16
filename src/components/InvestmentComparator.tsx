@@ -2004,7 +2004,7 @@ const InvestmentComparator = () => {
         </div>
 
         {/* Asset Forms */}
-        <div className="grid grid-cols-1 gap-6 mb-6">
+        <div className="grid grid-cols-1 gap-6 mb-6 print:gap-3 print:mb-3">
           {renderAssetForm(ativo1, 'ativo1', `📊 ${ativo1.nome || 'Ativo 1'}`, 'financial-primary')}
           
           <div className="flex items-center justify-center xl:hidden">
@@ -2017,7 +2017,7 @@ const InvestmentComparator = () => {
         </div>
 
         {/* Projections */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6 print:gap-3 print:mb-3">
           {/* CDI Projections */}
           <Card className="border-financial-secondary/20 shadow-lg">
             <CardHeader className="bg-gradient-to-r from-financial-secondary to-financial-primary text-white rounded-t-lg">
@@ -2150,9 +2150,9 @@ const InvestmentComparator = () => {
                   <h3 className="print-section-title">{ativo1.nome} - ANÁLISE DE VENDA ANTECIPADA</h3>
                 </div>
 
-                <CardContent className="p-6 print:p-4">
+                <CardContent className="p-6 print:p-2">
                   {/* Screen view - existing grid layout */}
-                  <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 text-sm print-hide">
+                  <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 text-sm print-hide print:gap-2">
                     {/* ... keep existing grid content */}
                     <div className="space-y-3">
                       <div>
