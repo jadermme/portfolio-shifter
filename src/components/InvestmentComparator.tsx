@@ -443,14 +443,22 @@ function projectWithReinvestCDI(x: CouponEngineInput, isLimitedAnalysis = false,
   
   // Use manual coupons if available, otherwise generate automatically
   let couponDates: string[];
+  const today = new Date().toISOString().slice(0, 10); // Current date in YYYY-MM-DD format
+  
   if (manualCoupons && manualCoupons.coupons.length > 0) {
-    couponDates = manualCoupons.coupons.map(c => c.date).sort();
-    console.log(`🎯 Usando cupons manuais (${couponDates.length}):`, couponDates);
+    // Filter manual coupons to only include future dates
+    couponDates = manualCoupons.coupons
+      .filter(c => c.date >= today)
+      .map(c => c.date)
+      .sort();
+    console.log(`🎯 Usando cupons manuais futuros (${couponDates.length}):`, couponDates);
   } else {
-    // Use new robust coupon date generation
-    couponDates = assetData ? 
+    // Use new robust coupon date generation and filter for future dates
+    const allDates = assetData ? 
       genCouponDatesNew(x.startISO, x.endISO, x.freq, x.earningsStartDate, assetData) :
       [];
+    couponDates = allDates.filter(date => date >= today);
+    console.log(`📅 Cupons automáticos futuros filtrados (${couponDates.length}/${allDates.length}):`, couponDates);
   }
   const coupons: CouponResult[] = [];
   let basePrincipal = x.principal;
