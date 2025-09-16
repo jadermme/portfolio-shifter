@@ -1100,10 +1100,10 @@ const InvestmentComparator = () => {
      let inferredFreq = mapCoupomFreq(dados.tipoCupom); // fallback para lógica atual
 
      if (dados.nome?.toUpperCase().includes('CRA ZAMP')) {
-       inferredEarningsStartDate = inferredEarningsStartDate || '2025-09-01';
+       inferredEarningsStartDate = '2025-09-01'; // Force correct value
        inferredFreq = 'SEMIANNUAL';
      } else if (dados.nome?.toUpperCase().includes('BTDI11')) {
-       inferredEarningsStartDate = inferredEarningsStartDate || '2025-10-01';
+       inferredEarningsStartDate = '2025-10-01'; // Force correct value
        inferredFreq = 'MONTHLY';
      }
 
