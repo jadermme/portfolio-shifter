@@ -2731,7 +2731,7 @@ const InvestmentComparator = () => {
                          </h4>
                          
                          {/* Methodology indicator */}
-                         <div className="mb-3 p-3 bg-orange-50 dark:bg-orange-900/20 rounded-lg border border-orange-200 dark:border-orange-800">
+                         <div className="hidden mb-3 p-3 bg-orange-50 dark:bg-orange-900/20 rounded-lg border border-orange-200 dark:border-orange-800">
                            <div className="flex items-center gap-2 text-sm">
                              <span className="text-orange-600 dark:text-orange-400 font-medium">📊 Metodologia de Cálculo:</span>
                              <span className="font-mono text-orange-800 dark:text-orange-300">
