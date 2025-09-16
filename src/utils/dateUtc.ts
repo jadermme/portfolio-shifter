@@ -18,6 +18,16 @@ export const firstAnchorAfter = (fromUTC: Date, anchorDay: number): Date => {
   return makeUTC(fromUTC.getUTCFullYear(), fromUTC.getUTCMonth() + 1, anchorDay);
 };
 
+/** Primeiro <anchorDay> em ou após `fromUTC` */
+export const firstAnchorOnOrAfter = (fromUTC: Date, anchorDay: number): Date => {
+  const cand = makeUTC(fromUTC.getUTCFullYear(), fromUTC.getUTCMonth(), anchorDay);
+  if (cand.getTime() >= fromUTC.getTime()) return cand;
+  return makeUTC(fromUTC.getUTCFullYear(), fromUTC.getUTCMonth() + 1, anchorDay);
+};
+
 /** Soma meses preservando o <anchorDay> (10, 15, etc.) sempre em UTC */
 export const monthAddKeepingAnchor = (fromUTC: Date, months: number, anchorDay: number): Date =>
   makeUTC(fromUTC.getUTCFullYear(), fromUTC.getUTCMonth() + months, anchorDay);
+
+/** Alias para monthAddKeepingAnchor */
+export const addMonthsAnchor = monthAddKeepingAnchor;

@@ -12,6 +12,9 @@ import { CouponManager } from './CouponManager';
 import { CouponSummary } from '@/types/coupon';
 import { normalizeAssetConfig } from '@/utils/assetConfig';
 import { genCouponDates as genCouponDatesRobust } from '@/utils/genCouponDates';
+import { getAssetKey } from '@/services/assetKey';
+import { normalizeAssetConfig as normalizeAssetNew } from '@/services/prepareAsset';
+import { genAutoCoupons } from '@/utils/genAutoCoupons';
 
 // ===================== UTILITY FUNCTIONS =====================
 const formatCurrency = (value: number): string => {
@@ -369,6 +372,48 @@ function calculatePeriodRate(annualRate: number, fromISO: string, toISO: string,
   
   return Math.pow(1 + dailyRate, days) - 1;
 }
+// Função para construir configuração de cupons usando o novo sistema
+function buildCouponsForCalc(asset: any, idx: number, windowStartISO: string, windowEndISO?: string, debugTag?: string): { key: string; norm: any; autoDates: string[] } {
+  const key = getAssetKey(asset, idx);
+  
+  try {
+    const norm = normalizeAssetNew({
+      ticker: (asset.ticker ?? asset.nome) ?? asset.codigo,
+      tipoAtivo: asset.tipoAtivo,
+      freq: asset.freq,
+      settlementDateISO: asset.settlementDateISO ?? windowStartISO,
+      earningsStartDate: asset.earningsStartDate,
+      maturityDateISO: (windowEndISO || asset.vencimento) ?? asset.maturityDateISO,
+    });
+
+    const autoDates = genAutoCoupons({
+      freq: norm.freq as any,
+      firstISO: norm.autoStartISO,
+      endISO: norm.maturityDateISO,
+      anchorDay: norm.anchorDay,
+      windowStartISO,
+    });
+
+    // LOGS ÚTEIS (identificados por chave)
+    if (debugTag) {
+      console.debug(`[${key}] schedule:`, {
+        freq: norm.freq, anchorDay: norm.anchorDay,
+        first: norm.autoStartISO, end: norm.maturityDateISO, count: autoDates.length,
+        head: autoDates.slice(0,3), tail: autoDates.slice(-3),
+      });
+
+      if (autoDates.length === 0) {
+        console.error(`[${key}] nenhuma data de cupom gerada. Verifique: freq=${norm.freq}, anchorDay=${norm.anchorDay}, first=${norm.autoStartISO}, end=${norm.maturityDateISO}`);
+      }
+    }
+
+    return { key, norm, autoDates };
+  } catch (error) {
+    console.error(`[${key}] Error in buildCouponsForCalc:`, error);
+    return { key, norm: asset, autoDates: [] };
+  }
+}
+
 // Função robusta para gerar datas de cupons usando UTC
 function genCouponDatesNew(
   startISO: string,
@@ -377,32 +422,9 @@ function genCouponDatesNew(
   earningsStartDate: string | undefined,
   assetData: AssetData
 ): string[] {
-  try {
-    // Normalize asset configuration to get anchor day
-    const normalized = normalizeAssetConfig({
-      ticker: assetData.nome || assetData.codigo,
-      tipoAtivo: assetData.tipoAtivo,
-      freq: freq as any,
-      earningsStartDate: earningsStartDate,
-      settlementDateISO: startISO,      // << usa início como base
-      maturityDateISO: endISO
-    });
-
-    // Use the new robust coupon date generator
-    const dates = genCouponDatesRobust({
-      freq: freq.toUpperCase() as any,
-      earningsStartDate: normalized.earningsStartDate || earningsStartDate || startISO,
-      maturityDateISO: endISO,
-      anchorDay: normalized.anchorDay,
-      debugTag: assetData.nome
-    });
-
-    console.log(`📅 Generated ${dates.length} coupon dates for ${assetData.nome} (anchor day ${normalized.anchorDay}):`, dates);
-    return dates;
-  } catch (error) {
-    console.error('Error generating coupon dates:', error);
-    throw new Error(`Failed to generate coupon dates: ${error}`);
-  }
+  // Use new system for consistency
+  const { autoDates } = buildCouponsForCalc(assetData, 0, startISO, endISO, assetData.nome);
+  return autoDates;
 }
 
 
@@ -1597,18 +1619,20 @@ const InvestmentComparator = () => {
         console.log(`📅 Data final da comparação: ${dataFinal.toISOString().slice(0, 10)} (${anosFinal.toFixed(2)} anos)`);
         
         if (vencimento1 < vencimento2) {
-      console.log(`💎 CENÁRIO: Ativo 1 vence primeiro, reinveste no CDI até vencimento do Ativo 2`);
-      console.log(`🔍 DEBUGGING - Calculating Ativo 1 (${ativo1.nome}) first`);
+      const key1 = getAssetKey(ativo1, 1);
+      const key2 = getAssetKey(ativo2, 2);
+      console.log(`💎 CENÁRIO: ${key1} vence primeiro, reinveste no CDI até vencimento do ${key2}`);
+      console.log(`🔍 DEBUGGING - Calculating ${key1} first`);
       
       // Calcular Ativo 1 até seu vencimento natural
       resultAtivo1 = calcularAtivo(ativo1, anosAtivo1);
-      console.log(`✅ DEBUGGING - Ativo 1 (${ativo1.nome}) calculated, couponDetails:`, resultAtivo1.couponDetails?.length || 'none');
+      console.log(`✅ DEBUGGING - ${key1} calculated, couponDetails:`, resultAtivo1.couponDetails?.length || 'none');
       const valorLiquidoAtivo1 = resultAtivo1.valores[resultAtivo1.valores.length - 1];
       
       // Calcular Ativo 2 até seu vencimento natural
-      console.log(`🔍 DEBUGGING - Calculating Ativo 2 (${ativo2.nome}) second`);
+      console.log(`🔍 DEBUGGING - Calculating ${key2} second`);
       resultAtivo2 = calcularAtivo(ativo2, anosAtivo2);
-      console.log(`✅ DEBUGGING - Ativo 2 (${ativo2.nome}) calculated, couponDetails:`, resultAtivo2.couponDetails?.length || 'none');
+      console.log(`✅ DEBUGGING - ${key2} calculated, couponDetails:`, resultAtivo2.couponDetails?.length || 'none');
           
           // Calcular reinvestimento do Ativo 1 no CDI
           const dataInicioReinvestimento = vencimento1;
@@ -1638,18 +1662,20 @@ const InvestmentComparator = () => {
           };
           
         } else if (vencimento2 < vencimento1) {
-      console.log(`💎 CENÁRIO: Ativo 2 vence primeiro, reinveste no CDI até vencimento do Ativo 1`);
-      console.log(`🔍 DEBUGGING - Calculating Ativo 2 (${ativo2.nome}) first`);
+      const key1 = getAssetKey(ativo1, 1);
+      const key2 = getAssetKey(ativo2, 2);
+      console.log(`💎 CENÁRIO: ${key2} vence primeiro, reinveste no CDI até vencimento do ${key1}`);
+      console.log(`🔍 DEBUGGING - Calculating ${key2} first`);
       
       // Calcular Ativo 2 até seu vencimento natural
       resultAtivo2 = calcularAtivo(ativo2, anosAtivo2);
-      console.log(`✅ DEBUGGING - Ativo 2 (${ativo2.nome}) calculated, couponDetails:`, resultAtivo2.couponDetails?.length || 'none');
+      console.log(`✅ DEBUGGING - ${key2} calculated, couponDetails:`, resultAtivo2.couponDetails?.length || 'none');
       const valorLiquidoAtivo2 = resultAtivo2.valores[resultAtivo2.valores.length - 1];
       
       // Calcular Ativo 1 até seu vencimento natural
-      console.log(`🔍 DEBUGGING - Calculating Ativo 1 (${ativo1.nome}) second`);
+      console.log(`🔍 DEBUGGING - Calculating ${key1} second`);
       resultAtivo1 = calcularAtivo(ativo1, anosAtivo1);
-      console.log(`✅ DEBUGGING - Ativo 1 (${ativo1.nome}) calculated, couponDetails:`, resultAtivo1.couponDetails?.length || 'none');
+      console.log(`✅ DEBUGGING - ${key1} calculated, couponDetails:`, resultAtivo1.couponDetails?.length || 'none');
           
           // Calcular reinvestimento do Ativo 2 no CDI
           const dataInicioReinvestimento = vencimento2;
@@ -1687,14 +1713,16 @@ const InvestmentComparator = () => {
         }
       } else {
         // Diferença pequena (≤ 30 dias) - comparação direta sem reinvestimento
+        const key1 = getAssetKey(ativo1, 1);
+        const key2 = getAssetKey(ativo2, 2);
         console.log(`✅ CENÁRIO: Diferença pequena (${diferencaDias.toFixed(0)} dias) - comparação direta`);
         console.log(`🔍 DEBUGGING - Calculating both assets directly`);
         
         anosProjecao = Math.max(anosAtivo1, anosAtivo2);
         resultAtivo1 = calcularAtivo(ativo1, anosAtivo1);
-        console.log(`✅ DEBUGGING - Ativo 1 (${ativo1.nome}) calculated, couponDetails:`, resultAtivo1.couponDetails?.length || 'none');
+        console.log(`✅ DEBUGGING - ${key1} calculated, couponDetails:`, resultAtivo1.couponDetails?.length || 'none');
         resultAtivo2 = calcularAtivo(ativo2, anosAtivo2);
-        console.log(`✅ DEBUGGING - Ativo 2 (${ativo2.nome}) calculated, couponDetails:`, resultAtivo2.couponDetails?.length || 'none');
+        console.log(`✅ DEBUGGING - ${key2} calculated, couponDetails:`, resultAtivo2.couponDetails?.length || 'none');
         reinvestimentoInfo = null;
       }
 
@@ -1711,16 +1739,15 @@ const InvestmentComparator = () => {
         }
       });
       
+      const key1 = getAssetKey(ativo1, 1);
+      const key2 = getAssetKey(ativo2, 2);
+      
       console.log(`🚨 SETTING RESULTS - COUPON DETAILS CHECK:`, {
-        'resultAtivo1.couponDetails length': resultAtivo1.couponDetails?.length,
-        'resultAtivo2.couponDetails length': resultAtivo2.couponDetails?.length,
-        'resultAtivo1.couponDetails[0]': resultAtivo1.couponDetails?.[0],
-        'resultAtivo2.couponDetails[0]': resultAtivo2.couponDetails?.[0],
-        'ativo1.nome': ativo1.nome,
-        'ativo2.nome': ativo2.nome,
-        'resultAtivo1 asset name should be': ativo1.nome,
-        'resultAtivo2 asset name should be': ativo2.nome,
-        'ASSIGNMENT CHECK': {
+        [`${key1}.couponDetails length`]: resultAtivo1.couponDetails?.length,
+        [`${key2}.couponDetails length`]: resultAtivo2.couponDetails?.length,
+        [`${key1}.couponDetails[0]`]: resultAtivo1.couponDetails?.[0],
+        [`${key2}.couponDetails[0]`]: resultAtivo2.couponDetails?.[0],
+        'FINAL ASSIGNMENT': {
           'couponDetails.ativo1 will get': resultAtivo1.couponDetails?.length || 0,
           'couponDetails.ativo2 will get': resultAtivo2.couponDetails?.length || 0,
         }
