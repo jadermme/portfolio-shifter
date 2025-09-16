@@ -368,6 +368,8 @@ function calculatePeriodRate(annualRate: number, fromISO: string, toISO: string,
   return Math.pow(1 + dailyRate, days) - 1;
 }
 function genCouponDates(startISO: string, endISO: string, freq: Freq, earningsStartDate?: string): string[] {
+  console.log(`🔍 genCouponDates called with:`, { startISO, endISO, freq, earningsStartDate });
+  
   const step = freq === "MONTHLY" ? 1 : 6;
   const out: string[] = [];
 
