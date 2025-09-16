@@ -2590,11 +2590,11 @@ const InvestmentComparator = () => {
                 <div className="space-y-4">
                   <div className="flex justify-between items-center py-2 border-b border-financial-primary/20">
                     <span className="font-medium text-financial-primary">Valor Futuro ({ativo1.nome}):</span>
-                    <span className="font-mono font-bold text-lg">R$ {results.ativo1[results.ativo1.length - 1].toLocaleString('pt-BR')}</span>
+                    <span className="font-mono font-bold text-lg">R$ {formatCurrency(results.ativo1[results.ativo1.length - 1])}</span>
                   </div>
                   <div className="flex justify-between items-center py-2 border-b border-financial-primary/20">
                     <span className="font-medium text-financial-primary">Valor Futuro ({ativo2.nome}):</span>
-                    <span className="font-mono font-bold text-lg">R$ {results.ativo2[results.ativo2.length - 1].toLocaleString('pt-BR')}</span>
+                    <span className="font-mono font-bold text-lg">R$ {formatCurrency(results.ativo2[results.ativo2.length - 1])}</span>
                   </div>
                   
                   <div className="flex justify-between items-center py-3 bg-gradient-to-r from-financial-light/20 to-financial-light/10 rounded-lg px-4">
@@ -2606,7 +2606,7 @@ const InvestmentComparator = () => {
                         return (
                           <div>
                             <span className={`font-mono font-bold text-xl ${diferenca >= 0 ? 'text-financial-success' : 'text-financial-danger'}`}>
-                              R$ {Math.abs(diferenca).toLocaleString('pt-BR')}
+                              R$ {formatCurrency(Math.abs(diferenca))}
                             </span>
                             <div className="text-sm font-medium text-muted-foreground">a favor de <span className="font-bold text-financial-primary">{melhorOpcao}</span></div>
                           </div>
