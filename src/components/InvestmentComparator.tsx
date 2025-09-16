@@ -1285,58 +1285,107 @@ const InvestmentComparator = () => {
       console.log(`📅 Ativo 2 (${ativo2.nome}): ${vencimento2.toLocaleDateString()} (${anosAtivo2} anos)`);
       console.log(`⏰ Diferença: ${diferencaDias.toFixed(0)} dias`);
 
-      // 🎯 NOVA LÓGICA: Comparar ambos os ativos até a data de vencimento mais curta
-      const dataComparacao = vencimento1 < vencimento2 ? vencimento1 : vencimento2;
-      const anosComparacao = vencimento1 < vencimento2 ? anosAtivo1 : anosAtivo2;
-      anosProjecao = anosComparacao;
-      
-      console.log(`⚖️ COMPARAÇÃO JUSTA: Ambos os ativos serão comparados até ${dataComparacao.toISOString().slice(0, 10)} (${anosComparacao.toFixed(2)} anos)`);
-      
-      if (vencimento1 < vencimento2) {
-        console.log(`📅 Ativo 1 vence primeiro - usando sua data como referência`);
-        console.log(`🔢 Ativo 2 será calculado como se vendido antecipadamente em ${dataComparacao.toISOString().slice(0, 10)}`);
+      // 🎯 NOVA LÓGICA: Comparar ambos os ativos até o vencimento mais longo com reinvestimento inteligente
+      if (diferencaDias > 30) {
+        console.log(`🚀 DIFERENÇA SIGNIFICATIVA (${diferencaDias.toFixed(0)} dias) - APLICANDO REINVESTIMENTO INTELIGENTE`);
         
-        // Calcular Ativo 1 até seu vencimento natural
-        resultAtivo1 = calcularAtivo(ativo1, anosAtivo1, anosAtivo1);
+        // Comparar até o vencimento mais longo
+        const dataFinal = vencimento1 > vencimento2 ? vencimento1 : vencimento2;
+        const anosFinal = vencimento1 > vencimento2 ? anosAtivo1 : anosAtivo2;
+        anosProjecao = anosFinal;
         
-        // Calcular Ativo 2 até a data do Ativo 1 (venda antecipada)
-        if (ativo2.tipoCupom !== 'nenhum') {
-          resultAtivo2 = calcularAtivoComFluxoCaixa(ativo2, anosComparacao, dataComparacao.toISOString().slice(0, 10));
+        console.log(`📅 Data final da comparação: ${dataFinal.toISOString().slice(0, 10)} (${anosFinal.toFixed(2)} anos)`);
+        
+        if (vencimento1 < vencimento2) {
+          console.log(`💎 CENÁRIO: Ativo 1 vence primeiro, reinveste no CDI até vencimento do Ativo 2`);
+          
+          // Calcular Ativo 1 até seu vencimento natural
+          resultAtivo1 = calcularAtivo(ativo1, anosAtivo1);
+          const valorLiquidoAtivo1 = resultAtivo1.valores[resultAtivo1.valores.length - 1];
+          
+          // Calcular Ativo 2 até seu vencimento natural
+          resultAtivo2 = calcularAtivo(ativo2, anosAtivo2);
+          
+          // Calcular reinvestimento do Ativo 1 no CDI
+          const dataInicioReinvestimento = vencimento1;
+          const dataFimReinvestimento = vencimento2;
+          const reinvestimentoCDI = calcularReinvestimentoCDI(
+            valorLiquidoAtivo1,
+            dataInicioReinvestimento,
+            dataFimReinvestimento,
+            projecoes
+          );
+          
+          // Atualizar valor final do Ativo 1 com reinvestimento
+          resultAtivo1.valores[resultAtivo1.valores.length - 1] = reinvestimentoCDI.valorLiquido;
+          
+          reinvestimentoInfo = {
+            ativoReinvestido: 'ativo1' as const,
+            valorResgatado: valorLiquidoAtivo1,
+            periodosReinvestimento: Math.ceil(diferencaDias / 30),
+            taxaReinvestimento: projecoes.cdi[2025] || 13.25,
+            valorFinalReinvestimento: reinvestimentoCDI.valorLiquido,
+            dataInicioReinvestimento: dataInicioReinvestimento.toISOString().slice(0, 10),
+            dataFimReinvestimento: dataFimReinvestimento.toISOString().slice(0, 10),
+            diasReinvestidos: reinvestimentoCDI.diasReinvestidos,
+            rendimentoReinvestimento: reinvestimentoCDI.rendimento,
+            irReinvestimento: reinvestimentoCDI.ir,
+            valorTotalComReinvestimento: reinvestimentoCDI.valorLiquido
+          };
+          
+        } else if (vencimento2 < vencimento1) {
+          console.log(`💎 CENÁRIO: Ativo 2 vence primeiro, reinveste no CDI até vencimento do Ativo 1`);
+          
+          // Calcular Ativo 2 até seu vencimento natural
+          resultAtivo2 = calcularAtivo(ativo2, anosAtivo2);
+          const valorLiquidoAtivo2 = resultAtivo2.valores[resultAtivo2.valores.length - 1];
+          
+          // Calcular Ativo 1 até seu vencimento natural
+          resultAtivo1 = calcularAtivo(ativo1, anosAtivo1);
+          
+          // Calcular reinvestimento do Ativo 2 no CDI
+          const dataInicioReinvestimento = vencimento2;
+          const dataFimReinvestimento = vencimento1;
+          const reinvestimentoCDI = calcularReinvestimentoCDI(
+            valorLiquidoAtivo2,
+            dataInicioReinvestimento,
+            dataFimReinvestimento,
+            projecoes
+          );
+          
+          // Atualizar valor final do Ativo 2 com reinvestimento
+          resultAtivo2.valores[resultAtivo2.valores.length - 1] = reinvestimentoCDI.valorLiquido;
+          
+          reinvestimentoInfo = {
+            ativoReinvestido: 'ativo2' as const,
+            valorResgatado: valorLiquidoAtivo2,
+            periodosReinvestimento: Math.ceil(diferencaDias / 30),
+            taxaReinvestimento: projecoes.cdi[2025] || 13.25,
+            valorFinalReinvestimento: reinvestimentoCDI.valorLiquido,
+            dataInicioReinvestimento: dataInicioReinvestimento.toISOString().slice(0, 10),
+            dataFimReinvestimento: dataFimReinvestimento.toISOString().slice(0, 10),
+            diasReinvestidos: reinvestimentoCDI.diasReinvestidos,
+            rendimentoReinvestimento: reinvestimentoCDI.rendimento,
+            irReinvestimento: reinvestimentoCDI.ir,
+            valorTotalComReinvestimento: reinvestimentoCDI.valorLiquido
+          };
+          
         } else {
-          // For non-coupon assets, calculate with appropriate time adjustment
-          const diasComparacao = daysBetween(new Date().toISOString().slice(0, 10), dataComparacao.toISOString().slice(0, 10));
-          const anosReaisComparacao = diasComparacao / 365.25;
-          resultAtivo2 = calcularAtivo(ativo2, anosReaisComparacao, anosReaisComparacao);
+          // Nunca deveria chegar aqui com diferencaDias > 30, mas como fallback
+          anosProjecao = Math.max(anosAtivo1, anosAtivo2);
+          resultAtivo1 = calcularAtivo(ativo1, anosAtivo1);
+          resultAtivo2 = calcularAtivo(ativo2, anosAtivo2);
+          reinvestimentoInfo = null;
         }
-        
-      } else if (vencimento2 < vencimento1) {
-        console.log(`📅 Ativo 2 vence primeiro - usando sua data como referência`);
-        console.log(`🔢 Ativo 1 será calculado como se vendido antecipadamente em ${dataComparacao.toISOString().slice(0, 10)}`);
-        
-        // Calcular Ativo 2 até seu vencimento natural
-        resultAtivo2 = calcularAtivo(ativo2, anosAtivo2, anosAtivo2);
-        
-        // Calcular Ativo 1 até a data do Ativo 2 (venda antecipada)
-        if (ativo1.tipoCupom !== 'nenhum') {
-          resultAtivo1 = calcularAtivoComFluxoCaixa(ativo1, anosComparacao, dataComparacao.toISOString().slice(0, 10));
-        } else {
-          // For non-coupon assets, calculate with appropriate time adjustment
-          const diasComparacao = daysBetween(new Date().toISOString().slice(0, 10), dataComparacao.toISOString().slice(0, 10));
-          const anosReaisComparacao = diasComparacao / 365.25;
-          resultAtivo1 = calcularAtivo(ativo1, anosReaisComparacao, anosReaisComparacao);
-        }
-        
       } else {
-        // 📅 AMBOS VENCEM NA MESMA DATA
-        console.log(`✅ CENÁRIO: Vencimentos iguais - comparação direta`);
+        // Diferença pequena (≤ 30 dias) - comparação direta sem reinvestimento
+        console.log(`✅ CENÁRIO: Diferença pequena (${diferencaDias.toFixed(0)} dias) - comparação direta`);
         
         anosProjecao = Math.max(anosAtivo1, anosAtivo2);
-        resultAtivo1 = calcularAtivo(ativo1, anosAtivo1, anosAtivo1);
-        resultAtivo2 = calcularAtivo(ativo2, anosAtivo2, anosAtivo2);
+        resultAtivo1 = calcularAtivo(ativo1, anosAtivo1);
+        resultAtivo2 = calcularAtivo(ativo2, anosAtivo2);
+        reinvestimentoInfo = null;
       }
-      
-      // Reinvestimento é sempre nulo na nova lógica
-      reinvestimentoInfo = null;
 
       setResults({
         ativo1: resultAtivo1.valores,
@@ -2799,6 +2848,105 @@ const InvestmentComparator = () => {
                 })()}
               </CardContent>
             </Card>
+            
+            {/* Reinvestment Details Section - NEW */}
+            {results.reinvestimento && (
+              <Card className="border-financial-warning/30 shadow-xl">
+                <CardHeader className="bg-gradient-to-r from-financial-warning to-orange-500 text-white rounded-t-lg print:hidden">
+                  <CardTitle className="flex items-center gap-2">
+                    <ArrowRight className="h-5 w-5" />
+                    Reinvestimento Inteligente - Detalhamento
+                  </CardTitle>
+                </CardHeader>
+                
+                {/* Print-only compact header */}
+                <div className="hidden print:block print-section-header">
+                  REINVESTIMENTO INTELIGENTE
+                </div>
+                
+                <CardContent className="p-6 print:p-2">
+                  <div className="space-y-4 print:space-y-1">
+                    <div className="flex items-start gap-3 p-4 bg-financial-warning/10 rounded-lg border border-financial-warning/20 print:p-1 print:bg-transparent">
+                      <AlertTriangle className="h-5 w-5 text-financial-warning mt-0.5 print:hidden" />
+                      <div className="flex-1">
+                        <h4 className="font-semibold text-financial-warning mb-2 print:text-xs print:mb-0">
+                          Estratégia Aplicada:
+                        </h4>
+                        <p className="text-sm text-muted-foreground print:text-xs">
+                          Como o {results.reinvestimento.ativoReinvestido === 'ativo1' ? ativo1.nome : ativo2.nome} vence 
+                          antes do {results.reinvestimento.ativoReinvestido === 'ativo1' ? ativo2.nome : ativo1.nome}, 
+                          seu valor foi automaticamente reaplicado no CDI pelo período restante para uma comparação equitativa.
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Screen view - detailed breakdown */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 print:hidden">
+                      <div className="space-y-2">
+                        <div className="flex justify-between items-center p-2 border rounded">
+                          <span className="text-sm font-medium">Valor Resgatado:</span>
+                          <span className="font-mono">R$ {formatCurrency(results.reinvestimento.valorResgatado)}</span>
+                        </div>
+                        <div className="flex justify-between items-center p-2 border rounded">
+                          <span className="text-sm font-medium">Período Reinvestimento:</span>
+                          <span className="font-mono">{results.reinvestimento.diasReinvestidos} dias</span>
+                        </div>
+                        <div className="flex justify-between items-center p-2 border rounded">
+                          <span className="text-sm font-medium">De:</span>
+                          <span className="font-mono">{new Date(results.reinvestimento.dataInicioReinvestimento).toLocaleDateString('pt-BR')}</span>
+                        </div>
+                        <div className="flex justify-between items-center p-2 border rounded">
+                          <span className="text-sm font-medium">Até:</span>
+                          <span className="font-mono">{new Date(results.reinvestimento.dataFimReinvestimento).toLocaleDateString('pt-BR')}</span>
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <div className="flex justify-between items-center p-2 border rounded">
+                          <span className="text-sm font-medium">Rendimento Bruto CDI:</span>
+                          <span className="font-mono text-financial-success">R$ {formatCurrency(results.reinvestimento.rendimentoReinvestimento)}</span>
+                        </div>
+                        <div className="flex justify-between items-center p-2 border rounded">
+                          <span className="text-sm font-medium">IR s/ Reinvestimento:</span>
+                          <span className="font-mono text-red-600">- R$ {formatCurrency(results.reinvestimento.irReinvestimento)}</span>
+                        </div>
+                        <div className="flex justify-between items-center p-3 bg-financial-success/10 rounded border-2 border-financial-success/30">
+                          <span className="font-bold text-financial-success">Valor Final Total:</span>
+                          <span className="font-mono font-bold text-lg text-financial-success">R$ {formatCurrency(results.reinvestimento.valorTotalComReinvestimento)}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Print view - ultra-compact table */}
+                    <div className="hidden print:block">
+                      <table className="print-reinvestment-table">
+                        <tbody>
+                          <tr>
+                            <td>Valor Resgatado:</td>
+                            <td>R$ {formatCurrency(results.reinvestimento.valorResgatado)}</td>
+                          </tr>
+                          <tr>
+                            <td>Período CDI:</td>
+                            <td>{results.reinvestimento.diasReinvestidos} dias ({new Date(results.reinvestimento.dataInicioReinvestimento).toLocaleDateString('pt-BR')} - {new Date(results.reinvestimento.dataFimReinvestimento).toLocaleDateString('pt-BR')})</td>
+                          </tr>
+                          <tr>
+                            <td>Rendimento CDI:</td>
+                            <td>R$ {formatCurrency(results.reinvestimento.rendimentoReinvestimento)}</td>
+                          </tr>
+                          <tr>
+                            <td>IR Reinvestimento:</td>
+                            <td>-R$ {formatCurrency(results.reinvestimento.irReinvestimento)}</td>
+                          </tr>
+                          <tr className="highlight-row">
+                            <td><strong>Valor Final Total:</strong></td>
+                            <td><strong>R$ {formatCurrency(results.reinvestimento.valorTotalComReinvestimento)}</strong></td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
             
             {/* Final Analysis Summary */}
             <Card className="border-financial-primary/30 shadow-xl">
