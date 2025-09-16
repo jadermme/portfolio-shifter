@@ -400,94 +400,10 @@ function genCouponDatesNew(
     return dates;
   } catch (error) {
     console.error('Error generating coupon dates:', error);
-    // Fallback to old logic if new logic fails
-    return genCouponDatesOld(startISO, endISO, freq, earningsStartDate);
+    throw new Error(`Failed to generate coupon dates: ${error}`);
   }
 }
 
-// Keep old logic as fallback
-function genCouponDatesOld(startISO: string, endISO: string, freq: Freq, earningsStartDate?: string): string[] {
-  console.log(`🔍 genCouponDates called with:`, { startISO, endISO, freq, earningsStartDate });
-  
-  const step = freq === "MONTHLY" ? 1 : 6;
-  const out: string[] = [];
-
-  // Use earnings start date if provided, otherwise use start date
-  if (earningsStartDate) {
-    console.log(`📅 Usando data de início dos rendimentos: ${earningsStartDate}`);
-    
-    // Special handling for CRA ZAMP - cupons em fevereiro e agosto
-    if (earningsStartDate === '2025-09-01') {
-      console.log(`📅 CRA ZAMP: Gerando cupons para fev/ago, excluindo agosto de 2025 (já pago)`);
-      
-      // Start from February 2026 (next coupon after September 2025)
-      let currentYear = 2026;
-      const endYear = new Date(endISO).getFullYear();
-      
-      while (currentYear <= endYear) {
-        // February coupon
-        const febDate = `${currentYear}-02-15`;
-        if (new Date(febDate) <= new Date(endISO)) {
-          console.log(`📅 Data de cupom gerada: ${febDate}`);
-          out.push(febDate);
-        }
-        
-        // August coupon
-        const augDate = `${currentYear}-08-15`;
-        if (new Date(augDate) <= new Date(endISO)) {
-          console.log(`📅 Data de cupom gerada: ${augDate}`);
-          out.push(augDate);
-        }
-        
-        currentYear++;
-      }
-    } else if (freq === 'MONTHLY' && earningsStartDate && earningsStartDate.endsWith('-10')) {
-      console.log(`📅 Fundo: Gerando cupons mensais no dia 10, primeiro cupom em ${earningsStartDate}`);
-      console.log(`📅 Configuração: freq=${freq}, earningsStartDate=${earningsStartDate}`);
-      console.log(`📅 Intervalo: ${startISO} até ${endISO}`);
-      
-      // Use the earningsStartDate as the first payment date (day 10 of the month)
-      let currentDate = new Date(earningsStartDate);
-      const endDate = new Date(endISO);
-      
-      console.log(`📅 Data inicial: ${currentDate.toISOString()}, Data final: ${endDate.toISOString()}`);
-      
-      while (currentDate <= endDate) {
-        // Use local formatting to avoid UTC timezone issues
-        const year = currentDate.getFullYear();
-        const month = String(currentDate.getMonth() + 1).padStart(2, '0');
-        const day = String(currentDate.getDate()).padStart(2, '0');
-        const couponDate = `${year}-${month}-${day}`;
-        console.log(`📅 Data de cupom gerada: ${couponDate}`);
-        out.push(couponDate);
-        
-        // Create new Date instance for next month to avoid mutation issues
-        const nextMonth = new Date(currentDate);
-        nextMonth.setMonth(nextMonth.getMonth() + 1);
-        nextMonth.setDate(10);
-        currentDate = nextMonth;
-      }
-    } else {
-      // Standard logic for other assets
-      let d = earningsStartDate;
-      while (new Date(d) <= new Date(endISO)) {
-        console.log(`📅 Data de cupom gerada: ${d}`);
-        out.push(d);
-        d = addMonths(d, step);
-      }
-    }
-  } else {
-    // Standard logic - first coupon after one period
-    let d = addMonths(startISO, step);
-    while (new Date(d) <= new Date(endISO)) {
-      console.log(`📅 Data de cupom gerada: ${d}`);
-      out.push(d);
-      d = addMonths(d, step);
-    }
-  }
-  console.log(`✅ Datas de cupom finais:`, out);
-  return out;
-}
 
 // Fator CDI acumulado entre duas datas, usando curva mensal
 function cdiFactor(curve: CDIPoint[], fromISO: string, toISO: string, use252 = false, useDailyCapitalization = false): number {
@@ -514,7 +430,7 @@ function getCDIRateForMonth(curve: CDIPoint[], dateISO: string): number {
   const pt = curve.find(p => p.date.slice(0, 7) === key);
   return pt ? pt.cdiAA : curve[curve.length - 1]?.cdiAA || 10;
 }
-function projectWithReinvestCDI(x: CouponEngineInput, isLimitedAnalysis = false, assetType?: string, indexador?: string) {
+function projectWithReinvestCDI(x: CouponEngineInput, isLimitedAnalysis = false, assetType?: string, indexador?: string, assetData?: AssetData, manualCoupons?: CouponSummary) {
   // Determine calculation rules based on asset type and indexer
   const rules = assetType && indexador ? getCalculationRules(assetType, indexador) : {
     use252: x.use252 || false,
@@ -525,8 +441,17 @@ function projectWithReinvestCDI(x: CouponEngineInput, isLimitedAnalysis = false,
   console.log(`💼 Calculando cupons para ${assetType || 'ativo'} com ${indexador || 'indexador'}`);
   console.log(`📊 Regras aplicadas:`, rules);
   
-  // No administrative fees for direct securities
-  const couponDates = genCouponDatesOld(x.startISO, x.endISO, x.freq, x.earningsStartDate);
+  // Use manual coupons if available, otherwise generate automatically
+  let couponDates: string[];
+  if (manualCoupons && manualCoupons.coupons.length > 0) {
+    couponDates = manualCoupons.coupons.map(c => c.date).sort();
+    console.log(`🎯 Usando cupons manuais (${couponDates.length}):`, couponDates);
+  } else {
+    // Use new robust coupon date generation
+    couponDates = assetData ? 
+      genCouponDatesNew(x.startISO, x.endISO, x.freq, x.earningsStartDate, assetData) :
+      [];
+  }
   const coupons: CouponResult[] = [];
   let basePrincipal = x.principal;
 
@@ -597,7 +522,23 @@ function projectWithReinvestCDI(x: CouponEngineInput, isLimitedAnalysis = false,
       toISO: periodEnd
     });
     
-    const couponGross = Math.max(0, basePrincipal * rPeriodGross);
+    // Calculate coupon value - use manual value if available, otherwise calculate automatically
+    let couponGross: number;
+    if (manualCoupons && manualCoupons.coupons.length > 0) {
+      // Find manual coupon for this date
+      const manualCoupon = manualCoupons.coupons.find(c => c.date === dt);
+      if (manualCoupon) {
+        couponGross = manualCoupon.value;
+        console.log(`💰 Usando cupom manual para ${dt}: R$ ${couponGross.toLocaleString('pt-BR')}`);
+      } else {
+        // Fallback to automatic calculation if no manual coupon found for this date
+        couponGross = Math.max(0, basePrincipal * rPeriodGross);
+        console.log(`🔄 Cupom automático (sem manual) para ${dt}: R$ ${couponGross.toLocaleString('pt-BR')}`);
+      }
+    } else {
+      // Automatic calculation when no manual coupons
+      couponGross = Math.max(0, basePrincipal * rPeriodGross);
+    }
 
     console.log(`📅 Cupom ${dt}: Período ${periodStart} até ${periodEnd}`);
     console.log(`📊 Taxa do período=${(rPeriodGross * 100).toFixed(4)}%, Cupom=R$${couponGross.toLocaleString('pt-BR')}`);
@@ -1251,7 +1192,9 @@ const InvestmentComparator = () => {
        cashFlowInput, 
        isLimitedAnalysis, 
        dados.tipoAtivo, 
-       dados.indexador || dados.tipoTaxa || 'pre-fixada'
+       dados.indexador || dados.tipoTaxa || 'pre-fixada',
+       dados,
+       dados.couponData
      );
 
     // Build annual values array for compatibility
