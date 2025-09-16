@@ -2155,7 +2155,7 @@ const InvestmentComparator = () => {
                   <strong>Melhor Investimento:</strong> {results.ativo1[results.ativo1.length - 1] > results.ativo2[results.ativo2.length - 1] ? 'Ativo 1' : 'Ativo 2'}
                 </div>
                 <div>
-                  <strong>Diferença:</strong> R$ {Math.abs(results.ativo1[results.ativo1.length - 1] - results.ativo2[results.ativo2.length - 1]).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                  <strong>Diferença:</strong> R$ {formatCurrency(Math.abs(results.ativo1[results.ativo1.length - 1] - results.ativo2[results.ativo2.length - 1]))}
                 </div>
               </div>
             </div>
@@ -3084,43 +3084,31 @@ const InvestmentComparator = () => {
                                   <td className="p-2 border text-xs">
                                     {new Date(coupon.couponDate).toLocaleDateString('pt-BR')}
                                   </td>
-                                  <td className="p-2 border text-right font-mono text-xs">
-                                    R$ {coupon.gross.toLocaleString('pt-BR', {
-                            minimumFractionDigits: 2
-                          })}
-                                  </td>
-                                  <td className="p-2 border text-right font-mono text-xs text-financial-success">
-                                    R$ {coupon.net.toLocaleString('pt-BR', {
-                            minimumFractionDigits: 2
-                          })}
-                                  </td>
-                                  <td className="p-2 border text-right font-mono text-xs">
-                                    {coupon.reinvestFactor.toFixed(4)}
-                                  </td>
-                                  <td className="p-2 border text-right font-mono text-xs font-bold text-blue-600">
-                                    R$ {coupon.reinvested.toLocaleString('pt-BR', {
-                            minimumFractionDigits: 2
-                          })}
-                                  </td>
+                                   <td className="p-2 border text-right font-mono text-xs">
+                                     R$ {formatCurrency(coupon.gross)}
+                                   </td>
+                                   <td className="p-2 border text-right font-mono text-xs text-financial-success">
+                                     R$ {formatCurrency(coupon.net)}
+                                   </td>
+                                   <td className="p-2 border text-right font-mono text-xs">
+                                     {coupon.reinvestFactor.toFixed(4)}
+                                   </td>
+                                   <td className="p-2 border text-right font-mono text-xs font-bold text-blue-600">
+                                     R$ {formatCurrency(coupon.reinvested)}
+                                   </td>
                                 </tr>)}
                               <tr className="bg-financial-primary/20 font-bold">
                                 <td className="p-2 border text-xs">TOTAL</td>
-                                <td className="p-2 border text-right font-mono text-xs">
-                                  R$ {results.couponDetails.ativo1.reduce((sum, c) => sum + c.gross, 0).toLocaleString('pt-BR', {
-                            minimumFractionDigits: 2
-                          })}
-                                </td>
-                                <td className="p-2 border text-right font-mono text-xs">
-                                  R$ {results.couponDetails.ativo1.reduce((sum, c) => sum + c.net, 0).toLocaleString('pt-BR', {
-                            minimumFractionDigits: 2
-                          })}
-                                </td>
-                                <td className="p-2 border text-right font-mono text-xs">-</td>
-                                <td className="p-2 border text-right font-mono text-xs">
-                                  R$ {results.couponDetails.ativo1.reduce((sum, c) => sum + c.reinvested, 0).toLocaleString('pt-BR', {
-                            minimumFractionDigits: 2
-                          })}
-                                </td>
+                                 <td className="p-2 border text-right font-mono text-xs">
+                                   R$ {formatCurrency(results.couponDetails.ativo1.reduce((sum, c) => sum + c.gross, 0))}
+                                 </td>
+                                 <td className="p-2 border text-right font-mono text-xs">
+                                   R$ {formatCurrency(results.couponDetails.ativo1.reduce((sum, c) => sum + c.net, 0))}
+                                 </td>
+                                 <td className="p-2 border text-right font-mono text-xs">-</td>
+                                 <td className="p-2 border text-right font-mono text-xs">
+                                   R$ {formatCurrency(results.couponDetails.ativo1.reduce((sum, c) => sum + c.reinvested, 0))}
+                                 </td>
                               </tr>
                             </tbody>
                           </table>
@@ -3137,20 +3125,20 @@ const InvestmentComparator = () => {
                               </tr>
                             </thead>
                             <tbody>
-                              {results.couponDetails.ativo1.map((coupon, index) => <tr key={index}>
-                                <td>{new Date(coupon.couponDate).toLocaleDateString('pt-BR', {day: '2-digit', month: '2-digit'})}</td>
-                                <td>{coupon.gross.toLocaleString('pt-BR', {minimumFractionDigits: 0})}</td>
-                                <td>{coupon.net.toLocaleString('pt-BR', {minimumFractionDigits: 0})}</td>
-                                <td>{coupon.reinvestFactor.toFixed(2)}</td>
-                                <td>{coupon.reinvested.toLocaleString('pt-BR', {minimumFractionDigits: 0})}</td>
-                              </tr>)}
-                              <tr style={{fontWeight: 'bold', borderTop: '0.3px solid #000'}}>
-                                <td>TOT</td>
-                                <td>{results.couponDetails.ativo1.reduce((sum, c) => sum + c.gross, 0).toLocaleString('pt-BR', {minimumFractionDigits: 0})}</td>
-                                <td>{results.couponDetails.ativo1.reduce((sum, c) => sum + c.net, 0).toLocaleString('pt-BR', {minimumFractionDigits: 0})}</td>
-                                <td>-</td>
-                                <td>{results.couponDetails.ativo1.reduce((sum, c) => sum + c.reinvested, 0).toLocaleString('pt-BR', {minimumFractionDigits: 0})}</td>
-                              </tr>
+                               {results.couponDetails.ativo1.map((coupon, index) => <tr key={index}>
+                                 <td>{new Date(coupon.couponDate).toLocaleDateString('pt-BR', {day: '2-digit', month: '2-digit'})}</td>
+                                 <td>{formatCurrency(coupon.gross)}</td>
+                                 <td>{formatCurrency(coupon.net)}</td>
+                                 <td>{coupon.reinvestFactor.toFixed(2)}</td>
+                                 <td>{formatCurrency(coupon.reinvested)}</td>
+                               </tr>)}
+                               <tr style={{fontWeight: 'bold', borderTop: '0.3px solid #000'}}>
+                                 <td>TOT</td>
+                                 <td>{formatCurrency(results.couponDetails.ativo1.reduce((sum, c) => sum + c.gross, 0))}</td>
+                                 <td>{formatCurrency(results.couponDetails.ativo1.reduce((sum, c) => sum + c.net, 0))}</td>
+                                 <td>-</td>
+                                 <td>{formatCurrency(results.couponDetails.ativo1.reduce((sum, c) => sum + c.reinvested, 0))}</td>
+                               </tr>
                             </tbody>
                           </table>
                         </div>
@@ -3183,43 +3171,31 @@ const InvestmentComparator = () => {
                                    <td className="p-2 border text-xs">
                                      {new Date(coupon.couponDate).toLocaleDateString('pt-BR')}
                                    </td>
-                                   <td className="p-2 border text-right font-mono text-xs">
-                                     R$ {coupon.gross.toLocaleString('pt-BR', {
-                             minimumFractionDigits: 2
-                           })}
-                                   </td>
-                                   <td className="p-2 border text-right font-mono text-xs text-financial-success">
-                                     R$ {coupon.net.toLocaleString('pt-BR', {
-                             minimumFractionDigits: 2
-                           })}
-                                   </td>
-                                   <td className="p-2 border text-right font-mono text-xs">
-                                     {coupon.reinvestFactor.toFixed(4)}
-                                   </td>
-                                   <td className="p-2 border text-right font-mono text-xs font-bold text-blue-600">
-                                     R$ {coupon.reinvested.toLocaleString('pt-BR', {
-                             minimumFractionDigits: 2
-                           })}
-                                   </td>
+                                    <td className="p-2 border text-right font-mono text-xs">
+                                      R$ {formatCurrency(coupon.gross)}
+                                    </td>
+                                    <td className="p-2 border text-right font-mono text-xs text-financial-success">
+                                      R$ {formatCurrency(coupon.net)}
+                                    </td>
+                                    <td className="p-2 border text-right font-mono text-xs">
+                                      {coupon.reinvestFactor.toFixed(4)}
+                                    </td>
+                                    <td className="p-2 border text-right font-mono text-xs font-bold text-blue-600">
+                                      R$ {formatCurrency(coupon.reinvested)}
+                                    </td>
                                  </tr>)}
                                <tr className="bg-financial-secondary/20 font-bold">
                                  <td className="p-2 border text-xs">TOTAL</td>
-                                 <td className="p-2 border text-right font-mono text-xs">
-                                   R$ {results.couponDetails.ativo2.reduce((sum, c) => sum + c.gross, 0).toLocaleString('pt-BR', {
-                             minimumFractionDigits: 2
-                           })}
-                                 </td>
-                                 <td className="p-2 border text-right font-mono text-xs">
-                                   R$ {results.couponDetails.ativo2.reduce((sum, c) => sum + c.net, 0).toLocaleString('pt-BR', {
-                             minimumFractionDigits: 2
-                           })}
-                                 </td>
-                                 <td className="p-2 border text-right font-mono text-xs">-</td>
-                                 <td className="p-2 border text-right font-mono text-xs">
-                                   R$ {results.couponDetails.ativo2.reduce((sum, c) => sum + c.reinvested, 0).toLocaleString('pt-BR', {
-                             minimumFractionDigits: 2
-                           })}
-                                 </td>
+                                  <td className="p-2 border text-right font-mono text-xs">
+                                    R$ {formatCurrency(results.couponDetails.ativo2.reduce((sum, c) => sum + c.gross, 0))}
+                                  </td>
+                                  <td className="p-2 border text-right font-mono text-xs">
+                                    R$ {formatCurrency(results.couponDetails.ativo2.reduce((sum, c) => sum + c.net, 0))}
+                                  </td>
+                                  <td className="p-2 border text-right font-mono text-xs">-</td>
+                                  <td className="p-2 border text-right font-mono text-xs">
+                                    R$ {formatCurrency(results.couponDetails.ativo2.reduce((sum, c) => sum + c.reinvested, 0))}
+                                  </td>
                                </tr>
                              </tbody>
                            </table>
@@ -3236,20 +3212,20 @@ const InvestmentComparator = () => {
                                </tr>
                              </thead>
                              <tbody>
-                               {results.couponDetails.ativo2.map((coupon, index) => <tr key={index}>
-                                 <td>{new Date(coupon.couponDate).toLocaleDateString('pt-BR', {day: '2-digit', month: '2-digit'})}</td>
-                                 <td>{coupon.gross.toLocaleString('pt-BR', {minimumFractionDigits: 0})}</td>
-                                 <td>{coupon.net.toLocaleString('pt-BR', {minimumFractionDigits: 0})}</td>
-                                 <td>{coupon.reinvestFactor.toFixed(2)}</td>
-                                 <td>{coupon.reinvested.toLocaleString('pt-BR', {minimumFractionDigits: 0})}</td>
-                               </tr>)}
-                               <tr style={{fontWeight: 'bold', borderTop: '0.3px solid #000'}}>
-                                 <td>TOT</td>
-                                 <td>{results.couponDetails.ativo2.reduce((sum, c) => sum + c.gross, 0).toLocaleString('pt-BR', {minimumFractionDigits: 0})}</td>
-                                 <td>{results.couponDetails.ativo2.reduce((sum, c) => sum + c.net, 0).toLocaleString('pt-BR', {minimumFractionDigits: 0})}</td>
-                                 <td>-</td>
-                                 <td>{results.couponDetails.ativo2.reduce((sum, c) => sum + c.reinvested, 0).toLocaleString('pt-BR', {minimumFractionDigits: 0})}</td>
-                               </tr>
+                                {results.couponDetails.ativo2.map((coupon, index) => <tr key={index}>
+                                  <td>{new Date(coupon.couponDate).toLocaleDateString('pt-BR', {day: '2-digit', month: '2-digit'})}</td>
+                                  <td>{formatCurrency(coupon.gross)}</td>
+                                  <td>{formatCurrency(coupon.net)}</td>
+                                  <td>{coupon.reinvestFactor.toFixed(2)}</td>
+                                  <td>{formatCurrency(coupon.reinvested)}</td>
+                                </tr>)}
+                                <tr style={{fontWeight: 'bold', borderTop: '0.3px solid #000'}}>
+                                  <td>TOT</td>
+                                  <td>{formatCurrency(results.couponDetails.ativo2.reduce((sum, c) => sum + c.gross, 0))}</td>
+                                  <td>{formatCurrency(results.couponDetails.ativo2.reduce((sum, c) => sum + c.net, 0))}</td>
+                                  <td>-</td>
+                                  <td>{formatCurrency(results.couponDetails.ativo2.reduce((sum, c) => sum + c.reinvested, 0))}</td>
+                                </tr>
                              </tbody>
                            </table>
                          </div>
