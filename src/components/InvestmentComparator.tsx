@@ -771,6 +771,14 @@ const PROJECTIONS_VERSION = '2.0';
 
 const saveToLocalStorage = (key: string, data: any) => {
   try {
+    if (key === STORAGE_KEYS.ativo1 && data.nome?.toLowerCase().includes('zamp')) {
+      console.log(`💾 Saving CRA ZAMP to localStorage:`, {
+        nome: data.nome,
+        tipoCupom: data.tipoCupom,
+        mesesCupons: data.mesesCupons,
+        key
+      });
+    }
     localStorage.setItem(key, JSON.stringify(data));
     localStorage.setItem(STORAGE_KEYS.timestamp, Date.now().toString());
   } catch (error) {
@@ -781,7 +789,16 @@ const saveToLocalStorage = (key: string, data: any) => {
 const loadFromLocalStorage = (key: string, defaultValue: any) => {
   try {
     const saved = localStorage.getItem(key);
-    return saved ? JSON.parse(saved) : defaultValue;
+    const result = saved ? JSON.parse(saved) : defaultValue;
+    if (key === STORAGE_KEYS.ativo1 && result?.nome?.toLowerCase().includes('zamp')) {
+      console.log(`📤 Loading CRA ZAMP from localStorage:`, {
+        nome: result.nome,
+        tipoCupom: result.tipoCupom,
+        mesesCupons: result.mesesCupons,
+        key
+      });
+    }
+    return result;
   } catch (error) {
     console.error('Erro ao carregar do localStorage:', error);
     return defaultValue;
@@ -1033,11 +1050,17 @@ const InvestmentComparator = () => {
     });
   };
   const handleAssetChange = (asset: 'ativo1' | 'ativo2', field: keyof AssetData, value: string | number | boolean | CouponSummary) => {
+    console.log(`🔄 Asset change:`, { asset, field, value, timestamp: new Date().toISOString() });
+    
     if (asset === 'ativo1') {
-      setAtivo1(prev => ({
-        ...prev,
-        [field]: value
-      }));
+      setAtivo1(prev => {
+        const updated = {
+          ...prev,
+          [field]: value
+        };
+        console.log(`📊 Ativo1 updated:`, { field, value, tipoCupom: updated.tipoCupom });
+        return updated;
+      });
       // Se mudou o valor de venda do ativo1, atualiza o valor investido do ativo2
       if (field === 'valorVenda') {
         setAtivo2(prev => ({
@@ -1168,10 +1191,25 @@ const InvestmentComparator = () => {
     imposto: number;
     couponDetails?: CouponResult[];
   } => {
+    console.log(`🔍 DEBUG calcularAtivo for ${dados.nome}:`, {
+      tipoCupom: dados.tipoCupom,
+      mesesCupons: dados.mesesCupons,
+      tipoAtivo: dados.tipoAtivo,
+      nome: dados.nome,
+      hasManualCoupons: dados.couponData?.coupons?.length > 0
+    });
+    
     const periodosAtivo = vencimentoReal || anosProjecao;
+
+    console.log(`🎯 Checking coupon logic:`, {
+      tipoCupom: dados.tipoCupom,
+      condition: dados.tipoCupom !== 'nenhum',
+      willUseCashFlow: dados.tipoCupom !== 'nenhum'
+    });
 
     // Always use cash flow system when asset has coupons
     if (dados.tipoCupom !== 'nenhum') {
+      console.log(`💰 Asset ${dados.nome} has coupons - using cash flow calculation`);
       return calcularAtivoComFluxoCaixa(dados, periodosAtivo);
     }
 
@@ -1415,6 +1453,21 @@ const InvestmentComparator = () => {
   };
 
   const calcular = () => {
+    console.log(`🚀 Starting calculation - DEBUG DATA:`, {
+      ativo1: {
+        nome: ativo1.nome,
+        tipoCupom: ativo1.tipoCupom,
+        mesesCupons: ativo1.mesesCupons,
+        tipoAtivo: ativo1.tipoAtivo
+      },
+      ativo2: {
+        nome: ativo2.nome,
+        tipoCupom: ativo2.tipoCupom,
+        mesesCupons: ativo2.mesesCupons,
+        tipoAtivo: ativo2.tipoAtivo
+      }
+    });
+    
     try {
       // Validate data before calculation
       const validation = validateDataForCalculation();
