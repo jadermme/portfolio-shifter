@@ -645,7 +645,7 @@ const STORAGE_KEYS = {
 };
 
 // Version for default projections - increment when changing defaults
-const PROJECTIONS_VERSION = '2.0';
+const PROJECTIONS_VERSION = '3.0'; // Incrementado para forçar regeneração e limpar cache BTDI11
 
 const saveToLocalStorage = (key: string, data: any) => {
   try {
@@ -694,6 +694,37 @@ const clearFromLocalStorage = (key: string) => {
   } catch (error) {
     console.error('Erro ao limpar localStorage:', error);
   }
+};
+
+// ===================== BTDI11 CACHE CLEANUP FUNCTIONS =====================
+const clearBTDI11Data = () => {
+  console.log("🧹 Limpando cache antigo do BTDI11...");
+
+  const keysToClear = Object.keys(localStorage).filter(key =>
+    key.includes('BTDI11') || 
+    key.includes('coupon') || 
+    key.includes('activePeriods') ||
+    key.includes('investment_comparator_ativo') ||
+    key.includes('calcularRendimentosAnuaisLegacy') ||
+    key.includes('CouponResults') ||
+    key.includes('projectionsCache')
+  );
+
+  for (const key of keysToClear) {
+    localStorage.removeItem(key);
+    console.log(`🗑 Removido: ${key}`);
+  }
+  
+  console.log(`✅ Cache BTDI11 limpo: ${keysToClear.length} chaves removidas`);
+};
+
+const detectSuspiciousCouponDates = (couponDates: string[]): boolean => {
+  const suspiciousDates = couponDates.filter(date => date.endsWith('-09'));
+  if (suspiciousDates.length > 0) {
+    console.warn("⚠️ Detectadas datas suspeitas (dia 09):", suspiciousDates);
+    return true;
+  }
+  return false;
 };
 
 // ===================== DEFAULT STATE VALUES =====================
@@ -821,6 +852,12 @@ const InvestmentComparator = () => {
     loadProjectionsWithVersionCheck()
   );
   const [results, setResults] = useState<CalculationResult | null>(null);
+
+  // ===================== BTDI11 CACHE CLEANUP ON MOUNT =====================
+  useEffect(() => {
+    console.log("🚀 Inicializando componente - verificando cache BTDI11...");
+    clearBTDI11Data(); // Limpeza automática na inicialização
+  }, []); // Executa apenas uma vez na montagem
   const [showResults, setShowResults] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [lastCalculationHash, setLastCalculationHash] = useState<string>('');
@@ -907,6 +944,20 @@ const InvestmentComparator = () => {
     toast({
       title: "Projeções restauradas",
       description: "Todas as projeções foram restauradas aos valores padrão.",
+      variant: "default",
+    });
+  };
+
+  // ===================== BTDI11 SPECIFIC RESET FUNCTION =====================
+  const resetBTDI11Cache = () => {
+    clearBTDI11Data();
+    // Force reload of both assets to clear any cached data
+    setAtivo1(loadAssetWithMigration(STORAGE_KEYS.ativo1, getDefaultAtivo1()));
+    setAtivo2(loadAssetWithMigration(STORAGE_KEYS.ativo2, getDefaultAtivo2()));
+    invalidateResults();
+    toast({
+      title: "🧼 Cache BTDI11 Limpo",
+      description: "Todos os dados antigos do BTDI11 foram removidos. Os cupons agora serão gerados corretamente no dia 10.",
       variant: "default",
     });
   };
@@ -2149,6 +2200,9 @@ const InvestmentComparator = () => {
           <Button variant="outline" onClick={limparDados} size="lg" className="border-financial-danger text-financial-danger hover:bg-financial-danger hover:text-white">
             <Trash2 className="h-5 w-5 mr-2" />
             🗑️ Limpar Dados
+          </Button>
+          <Button variant="outline" onClick={resetBTDI11Cache} size="lg" className="border-yellow-500 text-yellow-600 hover:bg-yellow-500 hover:text-white">
+            🧼 Reset BTDI11 Cache
           </Button>
           <Button variant="outline" onClick={() => window.print()} size="lg" className="border-financial-primary text-financial-primary hover:bg-financial-primary hover:text-white">
             <Printer className="h-5 w-5 mr-2" />
