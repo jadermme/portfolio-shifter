@@ -85,7 +85,7 @@ interface AssetData {
   feesAA?: number;
   use252?: boolean;
   // NEW FIELDS FOR EARNINGS PERIODS
-  earningsStartDate?: string; // ISO date when earnings begin (e.g., "2025-11-01" for BTDI11)
+  earningsStartDate?: string; // ISO date when earnings begin (e.g., "2025-10-01" for BTDI11)
   activePeriods?: {
     year: number;
     months: number[];
@@ -399,6 +399,19 @@ function genCouponDates(startISO: string, endISO: string, freq: Freq, earningsSt
         }
         
         currentYear++;
+      }
+    } else if (earningsStartDate === '2025-10-01') {
+      console.log(`📅 BTDI11: Gerando cupons mensais, primeiro cupom em novembro (referente a outubro)`);
+      
+      // Start from November 2025 (first coupon for October earnings)
+      let currentDate = new Date('2025-11-01');
+      const endDate = new Date(endISO);
+      
+      while (currentDate <= endDate) {
+        const couponDate = currentDate.toISOString().slice(0, 10);
+        console.log(`📅 Data de cupom gerada: ${couponDate}`);
+        out.push(couponDate);
+        currentDate.setMonth(currentDate.getMonth() + 1);
       }
     } else {
       // Standard logic for other assets
