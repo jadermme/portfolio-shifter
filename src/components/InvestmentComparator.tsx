@@ -490,7 +490,7 @@ function projectWithReinvestCDI(x: CouponEngineInput, isLimitedAnalysis = false,
     console.log(`🔍 BTDI11 Debug - Principal inicial: R$ ${x.principal.toLocaleString('pt-BR', {minimumFractionDigits: 2})}`);
   }
 
-  // Função para calcular o período de um cupom (mês anterior ao pagamento)
+  // Função para calcular o período de um cupom mensal (mês anterior ao pagamento)
   const getCouponPeriod = (couponDate: string) => {
     const [year, month, day] = couponDate.split('-').map(Number);
     const couponDateObj = new Date(year, month - 1, day);
@@ -511,24 +511,69 @@ function projectWithReinvestCDI(x: CouponEngineInput, isLimitedAnalysis = false,
     return { periodStart, periodEnd };
   };
 
-  // percorre cada período usando meses fechados
+  // Função para calcular o período de um cupom semestral (6 meses de acumulação)
+  const getSemestralCouponPeriod = (couponDate: string, couponIndex: number, earningsStartDate: string) => {
+    const [year, month, day] = couponDate.split('-').map(Number);
+    const couponDateObj = new Date(year, month - 1, day);
+    
+    if (couponIndex === 0) {
+      // Primeiro cupom: acumula desde o earnings start date até o mês anterior ao cupom
+      const startDate = new Date(earningsStartDate + 'T00:00:00');
+      
+      // Fim do mês anterior ao cupom
+      const endMonth = new Date(couponDateObj);
+      endMonth.setMonth(endMonth.getMonth() - 1 + 1);
+      endMonth.setDate(0); // Último dia do mês anterior
+      
+      const periodStart = startDate.toISOString().split('T')[0];
+      const periodEnd = endMonth.toISOString().split('T')[0];
+      
+      return { periodStart, periodEnd };
+    } else {
+      // Cupons seguintes: acumula 6 meses completos desde o cupom anterior
+      const endMonth = new Date(couponDateObj);
+      endMonth.setMonth(endMonth.getMonth() - 1 + 1);
+      endMonth.setDate(0); // Último dia do mês anterior ao cupom
+      
+      const startMonth = new Date(endMonth);
+      startMonth.setMonth(startMonth.getMonth() - 5); // 6 meses no total (incluindo o mês final)
+      startMonth.setDate(1);
+      
+      const periodStart = startMonth.toISOString().split('T')[0];
+      const periodEnd = endMonth.toISOString().split('T')[0];
+      
+      return { periodStart, periodEnd };
+    }
+  };
+
+  // percorre cada período usando lógica específica por frequência
   for (let i = 0; i < couponDates.length; i++) {
     const dt = couponDates[i];
-    const { periodStart, periodEnd } = getCouponPeriod(dt);
+    
+    // Escolhe a função de período baseada na frequência do cupom
+    const { periodStart, periodEnd } = x.freq === 'MONTHLY' 
+      ? getCouponPeriod(dt)
+      : getSemestralCouponPeriod(dt, i, x.earningsStartDate || x.startISO);
     
     // Get CDI rate specific for this coupon period
     const couponMonth = dt.slice(0, 7); // YYYY-MM
     const cdiAA = getCDIRateForMonth(x.cdiCurve, dt);
     
-    // BTDI11 Debug - período específico
+    // Debug - período específico para ambos os tipos
     if (assetType === 'fundo-cetipado') {
-      console.log(`\n🔍 BTDI11 Cupom ${i + 1} (${dt}):`);
+      console.log(`\n🔍 BTDI11 Cupom ${i + 1} (${dt}) - MENSAL:`);
       console.log(`  📅 Período correto: ${periodStart} até ${periodEnd} (mês fechado)`);
       console.log(`  📊 CDI no período: ${cdiAA}% a.a.`);
       console.log(`  📝 Dias no período: ${daysBetween(periodStart, periodEnd)} dias corridos`);
+    } else if (x.freq === 'SEMIANNUAL') {
+      console.log(`\n🔍 CRA ZAMP Cupom ${i + 1} (${dt}) - SEMESTRAL:`);
+      console.log(`  📅 Período de acumulação: ${periodStart} até ${periodEnd} (${i === 0 ? 'primeiro cupom' : '6 meses completos'})`);
+      console.log(`  📊 CDI no período: ${cdiAA}% a.a.`);
+      console.log(`  📝 Dias no período: ${daysBetween(periodStart, periodEnd)} dias corridos`);
+      console.log(`  💡 Método: ${i === 0 ? 'Desde início dos rendimentos' : 'Acumulação de 6 meses'}`);
     }
     
-    // Calculate rate for the monthly period
+    // Calculate rate for the period (monthly or semiannual)
     const rPeriodGross = rateOfAssetForPeriod(x.rateKind, {
       taxaPreAA: x.taxaPreAA,
       taxaRealAA: x.taxaRealAA,
