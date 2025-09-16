@@ -10,10 +10,9 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { useToast } from '@/hooks/use-toast';
 import { CouponManager } from './CouponManager';
 import { CouponSummary } from '@/types/coupon';
-import { normalizeAssetConfig } from '@/utils/assetConfig';
 import { genCouponDates as genCouponDatesRobust } from '@/utils/genCouponDates';
 import { getAssetKey } from '@/services/assetKey';
-import { normalizeAssetConfig as normalizeAssetNew } from '@/services/prepareAsset';
+import { normalizeAssetConfig } from '@/services/prepareAsset';
 import { genAutoCoupons } from '@/utils/genAutoCoupons';
 
 // ===================== UTILITY FUNCTIONS =====================
@@ -377,7 +376,7 @@ function buildCouponsForCalc(asset: any, idx: number, windowStartISO: string, wi
   const key = getAssetKey(asset, idx);
   
   try {
-    const norm = normalizeAssetNew({
+    const norm = normalizeAssetConfig({
       ticker: (asset.ticker ?? asset.nome) ?? asset.codigo,
       tipoAtivo: asset.tipoAtivo,
       freq: asset.freq,
@@ -536,11 +535,11 @@ function projectWithReinvestCDI(x: CouponEngineInput, isLimitedAnalysis = false,
   // If no future manual coupons exist, generate automatic future coupons
   let automaticFutureCoupons: string[] = [];
   if (!hasFutureManualCoupons && assetData) {
-    // Use new robust coupon date generation and filter for future dates
-    const allDates = genCouponDatesNew(x.startISO, x.endISO, x.freq, x.earningsStartDate, assetData);
-    automaticFutureCoupons = allDates.filter(date => date >= today);
-    console.log(`📅 Automatic future coupons:`, {
-      total: allDates.length,
+    // Use the new robust coupon generation system
+    const couponConfig = buildCouponsForCalc(assetData, 1, x.startISO, x.endISO, getAssetKey(assetData, 1));
+    automaticFutureCoupons = couponConfig.autoDates.filter(date => date >= today);
+    console.log(`📅 Automatic future coupons for ${couponConfig.key}:`, {
+      total: couponConfig.autoDates.length,
       future: automaticFutureCoupons.length,
       dates: automaticFutureCoupons
     });
@@ -1624,14 +1623,14 @@ const InvestmentComparator = () => {
       console.log(`💎 CENÁRIO: ${key1} vence primeiro, reinveste no CDI até vencimento do ${key2}`);
       console.log(`🔍 DEBUGGING - Calculating ${key1} first`);
       
-      // Calcular Ativo 1 até seu vencimento natural
-      resultAtivo1 = calcularAtivo(ativo1, anosAtivo1);
+      // Calcular Ativo 1 até seu vencimento natural usando novo sistema de cupons
+      resultAtivo1 = calcularAtivoComFluxoCaixa(ativo1, anosAtivo1, ativo1.vencimento);
       console.log(`✅ DEBUGGING - ${key1} calculated, couponDetails:`, resultAtivo1.couponDetails?.length || 'none');
       const valorLiquidoAtivo1 = resultAtivo1.valores[resultAtivo1.valores.length - 1];
       
-      // Calcular Ativo 2 até seu vencimento natural
+      // Calcular Ativo 2 até seu vencimento natural usando novo sistema de cupons
       console.log(`🔍 DEBUGGING - Calculating ${key2} second`);
-      resultAtivo2 = calcularAtivo(ativo2, anosAtivo2);
+      resultAtivo2 = calcularAtivoComFluxoCaixa(ativo2, anosAtivo2, ativo2.vencimento);
       console.log(`✅ DEBUGGING - ${key2} calculated, couponDetails:`, resultAtivo2.couponDetails?.length || 'none');
           
           // Calcular reinvestimento do Ativo 1 no CDI
@@ -1667,14 +1666,14 @@ const InvestmentComparator = () => {
       console.log(`💎 CENÁRIO: ${key2} vence primeiro, reinveste no CDI até vencimento do ${key1}`);
       console.log(`🔍 DEBUGGING - Calculating ${key2} first`);
       
-      // Calcular Ativo 2 até seu vencimento natural
-      resultAtivo2 = calcularAtivo(ativo2, anosAtivo2);
+      // Calcular Ativo 2 até seu vencimento natural usando novo sistema de cupons
+      resultAtivo2 = calcularAtivoComFluxoCaixa(ativo2, anosAtivo2, ativo2.vencimento);
       console.log(`✅ DEBUGGING - ${key2} calculated, couponDetails:`, resultAtivo2.couponDetails?.length || 'none');
       const valorLiquidoAtivo2 = resultAtivo2.valores[resultAtivo2.valores.length - 1];
       
-      // Calcular Ativo 1 até seu vencimento natural
+      // Calcular Ativo 1 até seu vencimento natural usando novo sistema de cupons
       console.log(`🔍 DEBUGGING - Calculating ${key1} second`);
-      resultAtivo1 = calcularAtivo(ativo1, anosAtivo1);
+      resultAtivo1 = calcularAtivoComFluxoCaixa(ativo1, anosAtivo1, ativo1.vencimento);
       console.log(`✅ DEBUGGING - ${key1} calculated, couponDetails:`, resultAtivo1.couponDetails?.length || 'none');
           
           // Calcular reinvestimento do Ativo 2 no CDI
@@ -1707,8 +1706,8 @@ const InvestmentComparator = () => {
         } else {
           // Nunca deveria chegar aqui com diferencaDias > 30, mas como fallback
           anosProjecao = Math.max(anosAtivo1, anosAtivo2);
-          resultAtivo1 = calcularAtivo(ativo1, anosAtivo1);
-          resultAtivo2 = calcularAtivo(ativo2, anosAtivo2);
+          resultAtivo1 = calcularAtivoComFluxoCaixa(ativo1, anosAtivo1, ativo1.vencimento);
+          resultAtivo2 = calcularAtivoComFluxoCaixa(ativo2, anosAtivo2, ativo2.vencimento);
           reinvestimentoInfo = null;
         }
       } else {
@@ -1719,9 +1718,9 @@ const InvestmentComparator = () => {
         console.log(`🔍 DEBUGGING - Calculating both assets directly`);
         
         anosProjecao = Math.max(anosAtivo1, anosAtivo2);
-        resultAtivo1 = calcularAtivo(ativo1, anosAtivo1);
+        resultAtivo1 = calcularAtivoComFluxoCaixa(ativo1, anosAtivo1, ativo1.vencimento);
         console.log(`✅ DEBUGGING - ${key1} calculated, couponDetails:`, resultAtivo1.couponDetails?.length || 'none');
-        resultAtivo2 = calcularAtivo(ativo2, anosAtivo2);
+        resultAtivo2 = calcularAtivoComFluxoCaixa(ativo2, anosAtivo2, ativo2.vencimento);
         console.log(`✅ DEBUGGING - ${key2} calculated, couponDetails:`, resultAtivo2.couponDetails?.length || 'none');
         reinvestimentoInfo = null;
       }
