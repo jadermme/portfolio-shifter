@@ -380,11 +380,12 @@ function genCouponDatesNew(
   try {
     // Normalize asset configuration to get anchor day
     const normalized = normalizeAssetConfig({
-      ticker: assetData.nome,
+      ticker: assetData.nome || assetData.codigo,
       tipoAtivo: assetData.tipoAtivo,
-      freq: freq,
+      freq: freq as any,
       earningsStartDate: earningsStartDate,
-      vencimento: endISO
+      settlementDateISO: startISO,      // << usa início como base
+      maturityDateISO: endISO
     });
 
     // Use the new robust coupon date generator
@@ -1476,21 +1477,24 @@ const InvestmentComparator = () => {
         return;
       }
       
-      // Auto-normalize asset configurations before calculation  
+      // Auto-normalize asset configurations before calculation
+      const todayISO = new Date().toISOString().slice(0, 10);
       const normalizedAtivo1 = normalizeAssetConfig({
         ticker: ativo1.nome,
         tipoAtivo: ativo1.tipoAtivo,
-        freq: ativo1.freq,
+        freq: ativo1.freq as any,
         earningsStartDate: ativo1.earningsStartDate,
-        vencimento: ativo1.vencimento
+        settlementDateISO: todayISO,          // << ÂNCORA CORRETA
+        maturityDateISO: ativo1.vencimento    //   (mantém vencimento separado)
       });
       
       const normalizedAtivo2 = normalizeAssetConfig({
         ticker: ativo2.nome,
         tipoAtivo: ativo2.tipoAtivo,
-        freq: ativo2.freq,
+        freq: ativo2.freq as any,
         earningsStartDate: ativo2.earningsStartDate,
-        vencimento: ativo2.vencimento
+        settlementDateISO: todayISO,          // idem
+        maturityDateISO: ativo2.vencimento
       });
 
       // Apply normalized configurations
