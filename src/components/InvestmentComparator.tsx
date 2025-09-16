@@ -378,6 +378,10 @@ function genCouponDates(startISO: string, endISO: string, freq: Freq, earningsSt
     // Special handling for CRA ZAMP - cupons em fevereiro e agosto
     if (earningsStartDate === '2025-09-01') {
       console.log(`📅 CRA ZAMP: Gerando cupons para fev/ago, excluindo agosto de 2025 (já pago)`);
+      console.log(`📅 CRA ZAMP: Cupons limitados até 30/04/2029 para comparação`);
+      
+      // Data limite: 30/04/2029
+      const limitDate = new Date('2029-04-30');
       
       // Start from February 2026 (next coupon after September 2025)
       let currentYear = 2026;
@@ -386,14 +390,16 @@ function genCouponDates(startISO: string, endISO: string, freq: Freq, earningsSt
       while (currentYear <= endYear) {
         // February coupon
         const febDate = `${currentYear}-02-15`;
-        if (new Date(febDate) <= new Date(endISO)) {
+        const febDateObj = new Date(febDate);
+        if (febDateObj <= new Date(endISO) && febDateObj <= limitDate) {
           console.log(`📅 Data de cupom gerada: ${febDate}`);
           out.push(febDate);
         }
         
         // August coupon
         const augDate = `${currentYear}-08-15`;
-        if (new Date(augDate) <= new Date(endISO)) {
+        const augDateObj = new Date(augDate);
+        if (augDateObj <= new Date(endISO) && augDateObj <= limitDate) {
           console.log(`📅 Data de cupom gerada: ${augDate}`);
           out.push(augDate);
         }
@@ -1464,28 +1470,40 @@ const InvestmentComparator = () => {
       // 🎯 NOVA LÓGICA: Comparar ambos os ativos até o vencimento do Ativo 2 (prazo mais curto)
       console.log(`🚀 COMPARAÇÃO ATÉ VENCIMENTO DO ATIVO 2 - PRAZO LIMITADO`);
       
-      // SEMPRE comparar até o vencimento do Ativo 2 (prazo mais curto)
-      const dataFinal = vencimento2; // Sempre usa o vencimento do ativo 2
-      const anosAteAtivo2 = anosAtivo2; // Prazo até o vencimento do ativo 2
-      anosProjecao = anosAteAtivo2;
+      // Para CRA ZAMP (Eneva), limitar a comparação até 30/04/2029
+      let dataFinal = vencimento2; // Default: usa o vencimento do ativo 2
       
-      console.log(`📅 Data final da comparação: ${dataFinal.toISOString().slice(0, 10)} (${anosAteAtivo2.toFixed(2)} anos)`);
+      // Se o Ativo 1 é CRA ZAMP (earningsStartDate === '2025-09-01'), limita até 30/04/2029
+      if (ativo1.earningsStartDate === '2025-09-01') {
+        const limiteCRAZAMP = new Date('2029-04-30');
+        console.log(`📅 CRA ZAMP detectado - limitando comparação até 30/04/2029`);
+        console.log(`📅 Vencimento original Ativo 2: ${vencimento2.toLocaleDateString()}`);
+        
+        // Usa a menor data entre o limite da CRA ZAMP e o vencimento do Ativo 2
+        dataFinal = limiteCRAZAMP < vencimento2 ? limiteCRAZAMP : vencimento2;
+        console.log(`📅 Data final da comparação: ${dataFinal.toLocaleDateString()}`);
+      }
+      
+      const anosAteDataFinal = Math.ceil((dataFinal.getTime() - hoje.getTime()) / (1000 * 60 * 60 * 24 * 365.25));
+      anosProjecao = anosAteDataFinal;
+      
+      console.log(`📅 Data final da comparação: ${dataFinal.toISOString().slice(0, 10)} (${anosAteDataFinal.toFixed(2)} anos)`);
       
       // Calcular ambos os ativos até o prazo do Ativo 2
       if (vencimento1 > vencimento2) {
         console.log(`💎 CENÁRIO: Ativo 1 tem vencimento mais longo - calculando até vencimento do Ativo 2`);
         
-        // Calcular Ativo 1 apenas até o vencimento do Ativo 2
-        resultAtivo1 = calcularAtivo(ativo1, anosAteAtivo2);
+        // Calcular Ativo 1 apenas até a data final
+        resultAtivo1 = calcularAtivo(ativo1, anosAteDataFinal);
         
-        // Calcular Ativo 2 até seu vencimento natural
-        resultAtivo2 = calcularAtivo(ativo2, anosAtivo2);
+        // Calcular Ativo 2 até a data final
+        resultAtivo2 = calcularAtivo(ativo2, anosAteDataFinal);
         
       } else {
         console.log(`💎 CENÁRIO: Ambos os ativos têm prazo similar ou Ativo 2 tem vencimento mais longo`);
         
         // Calcular ambos normalmente até o prazo do Ativo 2
-        resultAtivo1 = calcularAtivo(ativo1, anosAteAtivo2);
+        resultAtivo1 = calcularAtivo(ativo1, anosAteDataFinal);
         resultAtivo2 = calcularAtivo(ativo2, anosAtivo2);
       }
       
