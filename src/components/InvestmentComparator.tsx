@@ -445,20 +445,61 @@ function projectWithReinvestCDI(x: CouponEngineInput, isLimitedAnalysis = false,
   let couponDates: string[];
   const today = new Date().toISOString().slice(0, 10); // Current date in YYYY-MM-DD format
   
+  // Helper function to convert date to comparable format
+  const parseDate = (dateStr: string): Date => {
+    try {
+      // Handle both ISO (YYYY-MM-DD) and Brazilian (DD/MM/YYYY) formats
+      if (dateStr.includes('/')) {
+        const [day, month, year] = dateStr.split('/');
+        return new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+      }
+      return new Date(dateStr);
+    } catch {
+      return new Date(dateStr);
+    }
+  };
+  
+  // Debug: Log manual coupon data
+  if (manualCoupons) {
+    console.log(`🔍 Manual coupons data:`, {
+      hasData: !!manualCoupons,
+      count: manualCoupons.coupons?.length || 0,
+      coupons: manualCoupons.coupons || [],
+      today
+    });
+  }
+  
   if (manualCoupons && manualCoupons.coupons.length > 0) {
     // Filter manual coupons to only include future dates
-    couponDates = manualCoupons.coupons
-      .filter(c => c.date >= today)
+    const allManualCoupons = manualCoupons.coupons.map(c => ({
+      ...c,
+      parsedDate: parseDate(c.date),
+      isValid: c.date && c.date.trim() !== ''
+    }));
+    
+    const todayDate = new Date(today);
+    couponDates = allManualCoupons
+      .filter(c => c.isValid && c.parsedDate >= todayDate)
       .map(c => c.date)
       .sort();
-    console.log(`🎯 Usando cupons manuais futuros (${couponDates.length}):`, couponDates);
+      
+    console.log(`🎯 Manual coupons processing:`, {
+      total: allManualCoupons.length,
+      valid: allManualCoupons.filter(c => c.isValid).length,
+      future: couponDates.length,
+      dates: couponDates
+    });
   } else {
     // Use new robust coupon date generation and filter for future dates
     const allDates = assetData ? 
       genCouponDatesNew(x.startISO, x.endISO, x.freq, x.earningsStartDate, assetData) :
       [];
     couponDates = allDates.filter(date => date >= today);
-    console.log(`📅 Cupons automáticos futuros filtrados (${couponDates.length}/${allDates.length}):`, couponDates);
+    console.log(`📅 Automatic coupons:`, {
+      total: allDates.length,
+      future: couponDates.length,
+      dates: couponDates
+    });
   }
   const coupons: CouponResult[] = [];
   let basePrincipal = x.principal;
