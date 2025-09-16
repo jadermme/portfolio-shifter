@@ -445,18 +445,27 @@ function projectWithReinvestCDI(x: CouponEngineInput, isLimitedAnalysis = false,
   let couponDates: string[];
   const today = new Date().toISOString().slice(0, 10); // Current date in YYYY-MM-DD format
   
-  // Helper function to convert date to comparable format
-  const parseDate = (dateStr: string): Date => {
+  // Helper function to normalize date to ISO string for reliable comparison
+  const normalizeToISO = (dateStr: string): string => {
     try {
-      // Handle both ISO (YYYY-MM-DD) and Brazilian (DD/MM/YYYY) formats
       if (dateStr.includes('/')) {
-        const [day, month, year] = dateStr.split('/');
-        return new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+        // Brazilian format DD/MM/YYYY
+        const [day, month, year] = dateStr.split('/').map(s => s.padStart(2, '0'));
+        return `${year}-${month}-${day}`;
+      } else if (dateStr.match(/^\d{4}-\d{2}-\d{2}$/)) {
+        // Already ISO format YYYY-MM-DD
+        return dateStr;
+      } else {
+        // Try to parse and convert to ISO
+        const parsed = new Date(dateStr);
+        if (!isNaN(parsed.getTime())) {
+          return parsed.toISOString().slice(0, 10);
+        }
       }
-      return new Date(dateStr);
-    } catch {
-      return new Date(dateStr);
+    } catch (e) {
+      console.warn('Date parsing error:', e, 'for date:', dateStr);
     }
+    return dateStr; // Fallback to original string
   };
   
   // Debug: Log manual coupon data
@@ -470,24 +479,30 @@ function projectWithReinvestCDI(x: CouponEngineInput, isLimitedAnalysis = false,
   }
   
   if (manualCoupons && manualCoupons.coupons.length > 0) {
-    // Filter manual coupons to only include future dates
-    const allManualCoupons = manualCoupons.coupons.map(c => ({
-      ...c,
-      parsedDate: parseDate(c.date),
-      isValid: c.date && c.date.trim() !== ''
-    }));
+    // Filter manual coupons to only include future dates using ISO string comparison
+    const validCoupons = manualCoupons.coupons
+      .filter(c => c.date && c.date.trim() !== '')
+      .map(c => ({
+        ...c,
+        normalizedDate: normalizeToISO(c.date)
+      }));
     
-    const todayDate = new Date(today);
-    couponDates = allManualCoupons
-      .filter(c => c.isValid && c.parsedDate >= todayDate)
+    couponDates = validCoupons
+      .filter(c => c.normalizedDate >= today)
       .map(c => c.date)
       .sort();
       
     console.log(`🎯 Manual coupons processing:`, {
-      total: allManualCoupons.length,
-      valid: allManualCoupons.filter(c => c.isValid).length,
+      total: manualCoupons.coupons.length,
+      valid: validCoupons.length,
       future: couponDates.length,
-      dates: couponDates
+      today,
+      validCoupons: validCoupons.map(c => ({ 
+        original: c.date, 
+        normalized: c.normalizedDate, 
+        isFuture: c.normalizedDate >= today 
+      })),
+      finalDates: couponDates
     });
   } else {
     // Use new robust coupon date generation and filter for future dates
