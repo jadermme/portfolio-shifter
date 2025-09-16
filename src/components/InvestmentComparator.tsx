@@ -2605,7 +2605,7 @@ const InvestmentComparator = () => {
                         const melhorOpcao = diferenca >= 0 ? ativo1.nome : ativo2.nome;
                         return (
                           <div>
-                            <span className={`font-mono font-bold text-xl ${diferenca >= 0 ? 'text-financial-success' : 'text-financial-danger'}`}>
+                            <span className={`font-mono font-bold text-xl ${diferenca < 0 ? 'text-financial-success' : 'text-financial-danger'}`}>
                               R$ {formatCurrency(Math.abs(diferenca))}
                             </span>
                             <div className="text-sm font-medium text-muted-foreground">a favor de <span className="font-bold text-financial-primary">{melhorOpcao}</span></div>
