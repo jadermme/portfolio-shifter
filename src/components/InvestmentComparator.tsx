@@ -478,8 +478,11 @@ function projectWithReinvestCDI(x: CouponEngineInput, isLimitedAnalysis = false,
     });
   }
   
+  // Process manual coupons and check if we need to generate automatic future coupons
+  let manualCouponDates: string[] = [];
+  let hasFutureManualCoupons = false;
+  
   if (manualCoupons && manualCoupons.coupons.length > 0) {
-    // Filter manual coupons to only include future dates using ISO string comparison
     const validCoupons = manualCoupons.coupons
       .filter(c => c.date && c.date.trim() !== '')
       .map(c => ({
@@ -487,35 +490,52 @@ function projectWithReinvestCDI(x: CouponEngineInput, isLimitedAnalysis = false,
         normalizedDate: normalizeToISO(c.date)
       }));
     
-    couponDates = validCoupons
-      .filter(c => c.normalizedDate >= today)
-      .map(c => c.date)
-      .sort();
+    // Get all manual coupon dates (past and future)
+    manualCouponDates = validCoupons.map(c => c.date).sort();
+    
+    // Check if there are any future manual coupons
+    hasFutureManualCoupons = validCoupons.some(c => c.normalizedDate >= today);
       
     console.log(`🎯 Manual coupons processing:`, {
       total: manualCoupons.coupons.length,
       valid: validCoupons.length,
-      future: couponDates.length,
+      manualDates: manualCouponDates,
+      hasFutureManual: hasFutureManualCoupons,
       today,
       validCoupons: validCoupons.map(c => ({ 
         original: c.date, 
         normalized: c.normalizedDate, 
         isFuture: c.normalizedDate >= today 
-      })),
-      finalDates: couponDates
-    });
-  } else {
-    // Use new robust coupon date generation and filter for future dates
-    const allDates = assetData ? 
-      genCouponDatesNew(x.startISO, x.endISO, x.freq, x.earningsStartDate, assetData) :
-      [];
-    couponDates = allDates.filter(date => date >= today);
-    console.log(`📅 Automatic coupons:`, {
-      total: allDates.length,
-      future: couponDates.length,
-      dates: couponDates
+      }))
     });
   }
+  
+  // If no future manual coupons exist, generate automatic future coupons
+  let automaticFutureCoupons: string[] = [];
+  if (!hasFutureManualCoupons && assetData) {
+    // Use new robust coupon date generation and filter for future dates
+    const allDates = genCouponDatesNew(x.startISO, x.endISO, x.freq, x.earningsStartDate, assetData);
+    automaticFutureCoupons = allDates.filter(date => date >= today);
+    console.log(`📅 Automatic future coupons:`, {
+      total: allDates.length,
+      future: automaticFutureCoupons.length,
+      dates: automaticFutureCoupons
+    });
+  }
+  
+  // Combine manual and automatic coupons, then filter for future dates only
+  const allCouponDates = [...manualCouponDates, ...automaticFutureCoupons];
+  couponDates = allCouponDates
+    .filter(date => normalizeToISO(date) >= today)
+    .sort();
+    
+  console.log(`🎯 Final coupon dates:`, {
+    manual: manualCouponDates.length,
+    automatic: automaticFutureCoupons.length,
+    total: allCouponDates.length,
+    future: couponDates.length,
+    finalDates: couponDates
+  });
   const coupons: CouponResult[] = [];
   let basePrincipal = x.principal;
 
