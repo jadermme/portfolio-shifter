@@ -420,9 +420,11 @@ function genCouponDates(startISO: string, endISO: string, freq: Freq, earningsSt
         console.log(`📅 Data de cupom gerada: ${couponDate}`);
         out.push(couponDate);
         
-        // Increment month and ensure we stay on day 10
-        currentDate.setMonth(currentDate.getMonth() + 1);
-        currentDate.setDate(10);
+        // Create new Date instance for next month to avoid mutation issues
+        const nextMonth = new Date(currentDate);
+        nextMonth.setMonth(nextMonth.getMonth() + 1);
+        nextMonth.setDate(10);
+        currentDate = nextMonth;
       }
     } else {
       // Standard logic for other assets
@@ -509,6 +511,37 @@ function projectWithReinvestCDI(x: CouponEngineInput, isLimitedAnalysis = false,
     const couponMonth = dt.slice(0, 7); // YYYY-MM
     const cdiAA = getCDIRateForMonth(x.cdiCurve, dt);
     
+    // Determine the correct period for this coupon
+    let periodStart, periodEnd;
+    
+    if (x.earningsStartDate && x.earningsStartDate.endsWith('-10')) {
+      // For monthly funds on day 10, each coupon represents the complete previous month
+      const paymentDate = new Date(dt);
+      const prevMonth = new Date(paymentDate);
+      prevMonth.setMonth(prevMonth.getMonth() - 1);
+      
+      // First day of the previous month
+      prevMonth.setDate(1);
+      const year1 = prevMonth.getFullYear();
+      const month1 = String(prevMonth.getMonth() + 1).padStart(2, '0');
+      periodStart = `${year1}-${month1}-01`;
+      
+      // Last day of the previous month
+      const lastDay = new Date(prevMonth);
+      lastDay.setMonth(lastDay.getMonth() + 1);
+      lastDay.setDate(0); // Goes to last day of previous month
+      const year2 = lastDay.getFullYear();
+      const month2 = String(lastDay.getMonth() + 1).padStart(2, '0');
+      const day2 = String(lastDay.getDate()).padStart(2, '0');
+      periodEnd = `${year2}-${month2}-${day2}`;
+      
+      console.log(`📅 Cupom ${dt}: Mês fechado ${periodStart} até ${periodEnd}`);
+    } else {
+      // Original logic for other assets
+      periodStart = last;
+      periodEnd = dt;
+    }
+    
     // Calculate rate for the actual period using real days
     const rPeriodGross = rateOfAssetForPeriod(x.rateKind, {
       taxaPreAA: x.taxaPreAA,
@@ -519,13 +552,13 @@ function projectWithReinvestCDI(x: CouponEngineInput, isLimitedAnalysis = false,
       spreadPreAA: x.spreadPreAA,
       use252: rules.use252,
       useDailyCapitalization: rules.useDailyCapitalization,
-      fromISO: last,
-      toISO: dt
+      fromISO: periodStart,
+      toISO: periodEnd
     });
     
     const couponGross = Math.max(0, basePrincipal * rPeriodGross);
 
-    console.log(`📅 Cupom ${dt}: Período ${last} até ${dt}`);
+    console.log(`📅 Cupom ${dt}: Período ${periodStart} até ${periodEnd}`);
     console.log(`📊 Taxa do período=${(rPeriodGross * 100).toFixed(4)}%, Cupom=R$${couponGross.toLocaleString('pt-BR')}`);
 
     // IR regressivo sobre o cupom pelo tempo desde a aplicação
@@ -543,7 +576,11 @@ function projectWithReinvestCDI(x: CouponEngineInput, isLimitedAnalysis = false,
       reinvestFactor: fReinv,
       reinvested: couponReinv
     });
-    last = dt; // Atualiza para próximo período
+    
+    // For non-monthly funds, update last for next period
+    if (!x.earningsStartDate || !x.earningsStartDate.endsWith('-10')) {
+      last = dt;
+    }
   }
 
   // Calculate principal value at end date
