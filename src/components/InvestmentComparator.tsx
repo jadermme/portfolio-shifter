@@ -2784,16 +2784,6 @@ const InvestmentComparator = () => {
                           </div>
                         </div>
                     </div>
-                    
-                    {/* Coluna 4 - Cupons */}
-                    <div className="space-y-3">
-                      <div>
-                        <span className="text-muted-foreground">Cupons Recebidos:</span>
-                        <div className="font-mono font-semibold text-financial-success">
-                          R$ {formatCurrency(ativo2?.couponData?.total || 0)}
-                        </div>
-                      </div>
-                    </div>
                   </div>
                 </CardContent>
               </Card>
