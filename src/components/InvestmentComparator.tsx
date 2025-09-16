@@ -2802,14 +2802,21 @@ const InvestmentComparator = () => {
             
             {/* Final Analysis Summary */}
             <Card className="border-financial-primary/30 shadow-xl">
-              <CardHeader className="bg-gradient-to-r from-financial-primary to-financial-secondary text-white rounded-t-lg">
+              <CardHeader className="bg-gradient-to-r from-financial-primary to-financial-secondary text-white rounded-t-lg print:hidden">
                 <CardTitle className="flex items-center gap-2">
                   <BarChart3 className="h-5 w-5" />
                   Análise Final da Comparação
                 </CardTitle>
               </CardHeader>
-              <CardContent className="p-6">
-                <div className="space-y-4">
+              
+              {/* Print-only compact header */}
+              <div className="hidden print:block print-section-header">
+                ANÁLISE FINAL DA COMPARAÇÃO
+              </div>
+              
+              <CardContent className="p-6 print:p-0">
+                {/* Screen view - existing layout */}
+                <div className="space-y-4 print:hidden">
                   <div className="flex justify-between items-center py-2 border-b border-financial-primary/20">
                     <span className="font-medium text-financial-primary">Valor Futuro ({ativo1.nome}):</span>
                     <span className="font-mono font-bold text-lg">R$ {formatCurrency(results.ativo1[results.ativo1.length - 1])}</span>
@@ -2850,6 +2857,43 @@ const InvestmentComparator = () => {
                       </div>
                     </div>
                   </div>
+                </div>
+
+                {/* Print view - Ultra-compact table layout */}
+                <div className="hidden print:block">
+                  <table className="print-final-analysis-table">
+                    <tbody>
+                      <tr>
+                        <td>Valor Final {ativo1.nome}:</td>
+                        <td>R$ {formatCurrency(results.ativo1[results.ativo1.length - 1])}</td>
+                      </tr>
+                      <tr>
+                        <td>Valor Final {ativo2.nome}:</td>
+                        <td>R$ {formatCurrency(results.ativo2[results.ativo2.length - 1])}</td>
+                      </tr>
+                      <tr className="highlight-row">
+                        <td>Vantagem Final:</td>
+                        <td>
+                          {(() => {
+                            const diferenca = results.ativo1[results.ativo1.length - 1] - results.ativo2[results.ativo2.length - 1];
+                            const melhorOpcao = diferenca >= 0 ? ativo1.nome : ativo2.nome;
+                            return `R$ ${formatCurrency(Math.abs(diferenca))} (${melhorOpcao})`;
+                          })()}
+                        </td>
+                      </tr>
+                      <tr>
+                        <td>Conclusão:</td>
+                        <td>
+                          {(() => {
+                            const diferenca = results.ativo1[results.ativo1.length - 1] - results.ativo2[results.ativo2.length - 1];
+                            return diferenca >= 0 
+                              ? `${ativo1.nome} superior` 
+                              : `${ativo2.nome} superior`;
+                          })()}
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
                 </div>
               </CardContent>
             </Card>

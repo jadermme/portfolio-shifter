@@ -362,26 +362,28 @@ All colors MUST be HSL.
 
   /* Ultra-compact coupon tables */
   .print-coupon-table-ultra {
-    font-size: 4px;
-    line-height: 1.0;
+    font-size: 3px;
+    line-height: 0.9;
     width: 100%;
     border-collapse: collapse;
     page-break-inside: avoid;
+    margin: 0.5px 0;
   }
   
   .print-coupon-table-ultra th,
   .print-coupon-table-ultra td {
     border: 0.2px solid #666;
-    padding: 0.5px 1px;
+    padding: 0.2px 0.5px;
     text-align: center;
-    font-size: 4px;
+    font-size: 3px;
+    line-height: 0.9;
   }
   
   .print-coupon-table-ultra th {
     background: #f0f0f0;
     font-weight: bold;
-    font-size: 4px;
-    padding: 0.5px;
+    font-size: 3px;
+    padding: 0.2px;
   }
   
   .print-coupon-section {
@@ -390,10 +392,40 @@ All colors MUST be HSL.
   }
   
   .print-coupon-title {
-    font-size: 5px;
+    font-size: 4px;
     font-weight: bold;
-    margin: 0.5px 0;
+    margin: 0.3px 0;
     page-break-after: avoid;
+  }
+
+  /* Ultra-compact final analysis table */
+  .print-final-analysis-table {
+    font-size: 4px;
+    line-height: 1.0;
+    width: 100%;
+    border-collapse: collapse;
+    page-break-inside: avoid;
+    margin: 0.5px 0;
+  }
+  
+  .print-final-analysis-table th,
+  .print-final-analysis-table td {
+    border: 0.3px solid #333;
+    padding: 0.5px 1px;
+    text-align: left;
+    font-size: 4px;
+    line-height: 1.0;
+  }
+  
+  .print-final-analysis-table th {
+    background: #f0f0f0;
+    font-weight: bold;
+    font-size: 4px;
+  }
+
+  .print-final-analysis-table .highlight-row {
+    background: #e8f4f8;
+    font-weight: bold;
   }
 
   /* Print section headers with better page break control */
