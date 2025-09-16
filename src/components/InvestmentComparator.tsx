@@ -490,10 +490,31 @@ function projectWithReinvestCDI(x: CouponEngineInput, isLimitedAnalysis = false,
     console.log(`🔍 BTDI11 Debug - Principal inicial: R$ ${x.principal.toLocaleString('pt-BR', {minimumFractionDigits: 2})}`);
   }
 
-  // percorre cada período
-  let last = x.earningsStartDate || x.startISO; // Usa data de início dos rendimentos se disponível
+  // Função para calcular o período de um cupom (mês anterior ao pagamento)
+  const getCouponPeriod = (couponDate: string) => {
+    const [year, month, day] = couponDate.split('-').map(Number);
+    const couponDateObj = new Date(year, month - 1, day);
+    
+    // Início do mês anterior
+    const startMonth = new Date(couponDateObj);
+    startMonth.setMonth(startMonth.getMonth() - 1);
+    startMonth.setDate(1);
+    
+    // Fim do mês anterior (último dia)
+    const endMonth = new Date(couponDateObj);
+    endMonth.setMonth(endMonth.getMonth() - 1 + 1);
+    endMonth.setDate(0); // Vai para o último dia do mês anterior
+    
+    const periodStart = startMonth.toISOString().split('T')[0];
+    const periodEnd = endMonth.toISOString().split('T')[0];
+    
+    return { periodStart, periodEnd };
+  };
+
+  // percorre cada período usando meses fechados
   for (let i = 0; i < couponDates.length; i++) {
     const dt = couponDates[i];
+    const { periodStart, periodEnd } = getCouponPeriod(dt);
     
     // Get CDI rate specific for this coupon period
     const couponMonth = dt.slice(0, 7); // YYYY-MM
@@ -502,12 +523,12 @@ function projectWithReinvestCDI(x: CouponEngineInput, isLimitedAnalysis = false,
     // BTDI11 Debug - período específico
     if (assetType === 'fundo-cetipado') {
       console.log(`\n🔍 BTDI11 Cupom ${i + 1} (${dt}):`);
-      console.log(`  📅 Período: ${last} até ${dt}`);
+      console.log(`  📅 Período correto: ${periodStart} até ${periodEnd} (mês fechado)`);
       console.log(`  📊 CDI no período: ${cdiAA}% a.a.`);
-      console.log(`  📝 Dias no período: ${daysBetween(last, dt)} dias corridos`);
+      console.log(`  📝 Dias no período: ${daysBetween(periodStart, periodEnd)} dias corridos`);
     }
     
-    // Calculate rate for the actual period using real days
+    // Calculate rate for the monthly period
     const rPeriodGross = rateOfAssetForPeriod(x.rateKind, {
       taxaPreAA: x.taxaPreAA,
       taxaRealAA: x.taxaRealAA,
@@ -517,8 +538,8 @@ function projectWithReinvestCDI(x: CouponEngineInput, isLimitedAnalysis = false,
       spreadPreAA: x.spreadPreAA,
       use252: rules.use252,
       useDailyCapitalization: rules.useDailyCapitalization,
-      fromISO: last,
-      toISO: dt
+      fromISO: periodStart,
+      toISO: periodEnd
     });
     
     const couponGross = Math.max(0, basePrincipal * rPeriodGross);
@@ -528,15 +549,9 @@ function projectWithReinvestCDI(x: CouponEngineInput, isLimitedAnalysis = false,
       console.log(`  💰 Taxa período bruta: ${(rPeriodGross * 100).toFixed(6)}%`);
       console.log(`  💰 Principal base: R$ ${basePrincipal.toLocaleString('pt-BR', {minimumFractionDigits: 2})}`);
       console.log(`  💰 Cupom bruto: R$ ${couponGross.toLocaleString('pt-BR', {minimumFractionDigits: 2})}`);
-      
-      if (i === 0) {
-        console.log(`  🚨 PRIMEIRO CUPOM - Período especial: ${last} até ${dt}`);
-        console.log(`  🚨 PRIMEIRO CUPOM - Dias acumulados: ${daysBetween(last, dt)} dias`);
-        console.log(`  🚨 PRIMEIRO CUPOM - Este período inclui todo outubro + parte de novembro?`);
-      }
     }
 
-    console.log(`📅 Cupom ${dt}: Período ${last} até ${dt}`);
+    console.log(`📅 Cupom ${dt}: Período ${periodStart} até ${periodEnd} (mês fechado)`);
     console.log(`📊 Taxa do período=${(rPeriodGross * 100).toFixed(4)}%, Cupom=R$${couponGross.toLocaleString('pt-BR')}`);
 
     // IR regressivo sobre o cupom pelo tempo desde a aplicação
@@ -554,7 +569,6 @@ function projectWithReinvestCDI(x: CouponEngineInput, isLimitedAnalysis = false,
       reinvestFactor: fReinv,
       reinvested: couponReinv
     });
-    last = dt; // Atualiza para próximo período
   }
 
   // Calculate principal value at end date
