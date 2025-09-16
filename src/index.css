@@ -133,6 +133,47 @@ All colors MUST be HSL.
     print-color-adjust: exact !important;
   }
 
+  /* Compact PDF Mode Styles */
+  .compact-pdf-mode .compact-pdf-hide {
+    display: none !important;
+  }
+
+  .compact-pdf-mode .compact-pdf-only {
+    display: block !important;
+  }
+
+  .compact-pdf-mode {
+    font-size: 11px !important;
+    line-height: 1.2 !important;
+  }
+  
+  .compact-pdf-mode .compact-pdf-section {
+    margin-bottom: 6px !important;
+    padding: 3px !important;
+    page-break-inside: avoid;
+  }
+  
+  .compact-pdf-mode .compact-pdf-table {
+    font-size: 9px !important;
+    border-collapse: collapse;
+    width: 100%;
+  }
+  
+  .compact-pdf-mode .compact-pdf-table th,
+  .compact-pdf-mode .compact-pdf-table td {
+    padding: 2px 3px !important;
+    border: 1px solid #ddd;
+    font-size: 8px !important;
+    line-height: 1.1 !important;
+  }
+  
+  .compact-pdf-mode .compact-pdf-title {
+    font-size: 12px !important;
+    font-weight: bold;
+    margin-bottom: 3px !important;
+    text-transform: uppercase;
+  }
+
   .print-header {
     display: block !important;
     text-align: center;

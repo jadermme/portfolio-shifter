@@ -958,6 +958,7 @@ const InvestmentComparator = () => {
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [lastCalculationHash, setLastCalculationHash] = useState<string>('');
   const [calculationTimestamp, setCalculationTimestamp] = useState<number>(0);
+  const [compactPdfMode, setCompactPdfMode] = useState(false);
 
   // Function to invalidate results when data changes
   const invalidateResults = () => {
@@ -2186,7 +2187,7 @@ const InvestmentComparator = () => {
       </CardContent>
     </Card>;
   const anoAtual = new Date().getFullYear();
-  return <div className="min-h-screen bg-background p-4 print:p-0">
+  return <div className={`min-h-screen bg-background p-4 print:p-0 ${compactPdfMode ? 'compact-pdf-mode' : ''}`}>
       {/* Print Header - Hidden on screen, visible in PDF */}
       <div className="print-header hidden">
         <h1 className="print-title">RELATÓRIO DE ANÁLISE COMPARATIVA DE INVESTIMENTOS</h1>
@@ -2223,8 +2224,8 @@ const InvestmentComparator = () => {
           {renderAssetForm(ativo2, 'ativo2', `📈 ${ativo2.nome || 'Ativo 2'}`, 'financial-secondary')}
         </div>
 
-        {/* Projections */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6 print:gap-3 print:mb-3 print:hidden">
+        {/* CDI Projections */}
+        <div className={`grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6 print:gap-3 print:mb-3 print:hidden ${compactPdfMode ? 'compact-pdf-hide' : ''}`}>
           {/* CDI Projections */}
           <Card className="border-financial-secondary/20 shadow-lg">
             <CardHeader className="bg-gradient-to-r from-financial-secondary to-financial-primary text-white rounded-t-lg">
@@ -2282,7 +2283,22 @@ const InvestmentComparator = () => {
           </Button>
           <Button variant="outline" onClick={() => window.print()} size="lg" className="border-financial-primary text-financial-primary hover:bg-financial-primary hover:text-white">
             <Printer className="h-5 w-5 mr-2" />
-            🖨️ Gerar PDF
+            🖨️ PDF Completo
+          </Button>
+          <Button 
+            variant="outline" 
+            onClick={() => {
+              setCompactPdfMode(true);
+              setTimeout(() => {
+                window.print();
+                setCompactPdfMode(false);
+              }, 100);
+            }} 
+            size="lg" 
+            className="border-blue-500 text-blue-600 hover:bg-blue-500 hover:text-white"
+          >
+            <Printer className="h-5 w-5 mr-2" />
+            📄 PDF Compacto
           </Button>
         </div>
 
@@ -2539,7 +2555,7 @@ const InvestmentComparator = () => {
               </div>
               
               {/* Table 1 - CRA ZAMP with Early Sale Analysis */}
-              <Card className="border-financial-success/30 shadow-xl no-page-break">
+              <Card className={`border-financial-success/30 shadow-xl no-page-break ${compactPdfMode ? 'compact-pdf-only' : ''}`}>
                 <CardHeader className="bg-gradient-to-r from-financial-success to-blue-600 text-white rounded-t-lg print-hide">
                   <CardTitle className="flex items-center gap-2">
                     <TrendingUp className="h-5 w-5" />
@@ -2685,7 +2701,7 @@ const InvestmentComparator = () => {
               </Card>
 
               {/* Table 2 - BTDI11 Characteristics */}
-              <Card key="ativo2-btdi11-card" className="border-financial-info/30 shadow-xl">
+              <Card key="ativo2-btdi11-card" className={`border-financial-info/30 shadow-xl ${compactPdfMode ? 'compact-pdf-only' : ''}`}>
                 <CardHeader className="bg-gradient-to-r from-financial-info to-blue-600 text-white rounded-t-lg">
                   <CardTitle className="flex items-center gap-2 text-lg font-bold">
                     <BarChart3 className="h-6 w-6" />
@@ -2780,7 +2796,7 @@ const InvestmentComparator = () => {
 
             
             {/* Decomposição Detalhada dos Valores Finais */}
-            <Card className="border-financial-primary/30 shadow-xl">
+            <Card className={`border-financial-primary/30 shadow-xl ${compactPdfMode ? 'compact-pdf-only' : ''}`}>
               <CardHeader className="bg-gradient-to-r from-financial-primary to-financial-secondary text-white rounded-t-lg print:hidden">
                 <CardTitle className="flex items-center gap-2">
                   <Calculator className="h-5 w-5" />
@@ -3028,7 +3044,7 @@ const InvestmentComparator = () => {
             
             {/* Reinvestment Details Section - NEW */}
             {results.reinvestimento && (
-              <Card className="border-financial-warning/30 shadow-xl">
+              <Card className={`border-financial-warning/30 shadow-xl ${compactPdfMode ? 'compact-pdf-hide' : ''}`}>
                 <CardHeader className="bg-gradient-to-r from-financial-warning to-orange-500 text-white rounded-t-lg print:hidden">
                   <CardTitle className="flex items-center gap-2">
                     <ArrowRight className="h-5 w-5" />
@@ -3126,7 +3142,7 @@ const InvestmentComparator = () => {
             )}
             
             {/* Final Analysis Summary */}
-            <Card className="border-financial-primary/30 shadow-xl">
+            <Card className={`border-financial-primary/30 shadow-xl ${compactPdfMode ? 'compact-pdf-hide' : ''}`}>
               <CardHeader className="bg-gradient-to-r from-financial-primary to-financial-secondary text-white rounded-t-lg print:hidden">
                 <CardTitle className="flex items-center gap-2">
                   <BarChart3 className="h-5 w-5" />
@@ -3224,7 +3240,7 @@ const InvestmentComparator = () => {
             </Card>
 
             {/* Coupon Details Section - New Cash Flow System */}
-            {(results.couponDetails?.ativo1?.length || results.couponDetails?.ativo2?.length) && <Card className="border-blue-500/30 shadow-xl">
+            {(results.couponDetails?.ativo1?.length || results.couponDetails?.ativo2?.length) && <Card className={`border-blue-500/30 shadow-xl ${compactPdfMode ? 'compact-pdf-hide' : ''}`}>
                 <CardHeader className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-t-lg">
                   <CardTitle className="flex items-center gap-2">
                     <TrendingUp className="h-5 w-5" />
