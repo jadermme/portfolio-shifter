@@ -2144,7 +2144,7 @@ const InvestmentComparator = () => {
             <div className="space-y-6">
               {/* Table 1 - CRA ZAMP with Early Sale Analysis */}
               <Card className="border-financial-success/30 shadow-xl">
-                <CardHeader className="bg-gradient-to-r from-financial-success to-green-600 text-white rounded-t-lg">
+                <CardHeader className="bg-gradient-to-r from-financial-success to-blue-600 text-white rounded-t-lg">
                   <CardTitle className="flex items-center gap-2">
                     <TrendingUp className="h-5 w-5" />
                     {ativo1.nome} - Análise de Venda Antecipada

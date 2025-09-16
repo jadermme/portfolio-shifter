@@ -38,8 +38,8 @@ All colors MUST be HSL.
 
     /* Financial theme colors */
     --financial-primary: 202 84% 24%; /* #184e78 */
-    --financial-secondary: 167 36% 41%; /* #2f6b61 */
-    --financial-success: 120 60% 50%;
+    --financial-secondary: 210 80% 35%; /* Blue tone */
+    --financial-success: 210 100% 50%; /* Blue tone */
     --financial-danger: 0 84% 60%;
     --financial-light: 210 40% 98%;
     --financial-gradient: linear-gradient(135deg, hsl(202 84% 24%), hsl(167 36% 41%));
