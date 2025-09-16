@@ -1699,6 +1699,15 @@ const InvestmentComparator = () => {
           ativo2: resultAtivo2.couponDetails
         }
       });
+      
+      console.log(`🚨 SETTING RESULTS - COUPON DETAILS CHECK:`, {
+        'resultAtivo1.couponDetails length': resultAtivo1.couponDetails?.length,
+        'resultAtivo2.couponDetails length': resultAtivo2.couponDetails?.length,
+        'resultAtivo1.couponDetails[0]': resultAtivo1.couponDetails?.[0],
+        'resultAtivo2.couponDetails[0]': resultAtivo2.couponDetails?.[0],
+        'ativo1.nome': ativo1.nome,
+        'ativo2.nome': ativo2.nome
+      });
       setShowResults(true);
 
       // Update calculation state tracking
@@ -2927,10 +2936,30 @@ const InvestmentComparator = () => {
 
                   // Calculate detailed breakdown for each asset
                   const calculateDetailedBreakdown = (ativo: any, couponDetails: any[], valorInvestido: number) => {
+                    console.log(`📊 CRITICAL DEBUG: Calculating breakdown for ${ativo.nome}:`, { 
+                      couponCount: couponDetails?.length,
+                      firstCoupon: couponDetails?.[0],
+                      couponDetails: couponDetails
+                    });
+                    
                     const principalInvestido = valorInvestido;
                     
                     // Sum all gross coupons
-                    const cupomsBrutos = couponDetails?.reduce((sum, coupon) => sum + (coupon.gross || 0), 0) || 0;
+                    const cupomsBrutos = couponDetails?.reduce((sum, coupon) => {
+                      console.log(`💰 Processing coupon:`, {
+                        gross: coupon.gross,
+                        net: coupon.net,
+                        reinvested: coupon.reinvested,
+                        date: coupon.couponDate
+                      });
+                      return sum + (coupon.gross || 0);
+                    }, 0) || 0;
+                    
+                    console.log(`💰 BREAKDOWN RESULTS for ${ativo.nome}:`, {
+                      cupomsBrutos,
+                      couponCount: couponDetails?.length,
+                      totalGross: couponDetails?.reduce((sum, c) => sum + (c.gross || 0), 0)
+                    });
                     
                     // Sum all IR on coupons (difference between gross and net)
                     const irSobreCupons = couponDetails?.reduce((sum, coupon) => sum + ((coupon.gross || 0) - (coupon.net || 0)), 0) || 0;
@@ -2970,6 +2999,14 @@ const InvestmentComparator = () => {
 
                   const breakdown1 = calculateDetailedBreakdown(results.ativo1, results.couponDetails?.ativo1 || [], ativo1.valorCurva);
                   const breakdown2 = calculateDetailedBreakdown(results.ativo2, results.couponDetails?.ativo2 || [], ativo2.valorCurva);
+                  
+                  console.log(`🚨 RESULTS STRUCTURE DEBUG:`, {
+                    'results.couponDetails': results.couponDetails,
+                    'results.couponDetails?.ativo1': results.couponDetails?.ativo1,
+                    'results.couponDetails?.ativo2': results.couponDetails?.ativo2,
+                    'results.couponDetails?.ativo1?.length': results.couponDetails?.ativo1?.length,
+                    'results.couponDetails?.ativo2?.length': results.couponDetails?.ativo2?.length
+                  });
 
                   return (
                     <>
