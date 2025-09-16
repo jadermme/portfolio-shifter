@@ -2622,61 +2622,61 @@ const InvestmentComparator = () => {
                   const breakdown2 = calculateDetailedBreakdown(results.ativo2, results.couponDetails?.ativo2 || [], ativo2.valorCurva);
 
                   return (
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 print:gap-2 print:grid-cols-2">
                       {/* Ativo 1 Breakdown */}
-                      <div className="space-y-4">
-                        <h3 className="text-xl font-bold text-financial-primary border-b border-financial-primary/30 pb-2">
+                      <div className="space-y-4 print-decomposition print:space-y-1">
+                        <h3 className="text-xl font-bold text-financial-primary border-b border-financial-primary/30 pb-2 print-section-header">
                           {ativo1.nome}
                         </h3>
                         
-                        <div className="space-y-3">
-                          <div className="flex justify-between items-center p-3 bg-muted/50 rounded-lg">
+                        <div className="space-y-3 print:space-y-1">
+                          <div className="flex justify-between items-center p-3 bg-muted/50 rounded-lg print-decomposition-item">
                             <span className="font-semibold">Principal Investido:</span>
-                            <span className="font-mono text-lg">R$ {formatCurrency(breakdown1.principalInvestido)}</span>
+                            <span className="font-mono text-lg print:text-xs">R$ {formatCurrency(breakdown1.principalInvestido)}</span>
                           </div>
                           
-                          <div className="flex justify-between items-center p-3 bg-financial-success/10 rounded-lg border border-financial-success/30">
+                          <div className="flex justify-between items-center p-3 bg-financial-success/10 rounded-lg border border-financial-success/30 print-decomposition-item">
                             <span className="font-semibold text-financial-success">Cupons Brutos Recebidos:</span>
-                            <span className="font-mono text-lg text-financial-success">+ R$ {formatCurrency(breakdown1.cupomsBrutos)}</span>
+                            <span className="font-mono text-lg text-financial-success print:text-xs">+ R$ {formatCurrency(breakdown1.cupomsBrutos)}</span>
                           </div>
                           
-                          <div className="flex justify-between items-center p-3 bg-financial-danger/10 rounded-lg border border-financial-danger/30">
+                          <div className="flex justify-between items-center p-3 bg-financial-danger/10 rounded-lg border border-financial-danger/30 print-decomposition-item">
                             <span className="font-semibold text-financial-danger">IR sobre Cupons:</span>
-                            <span className="font-mono text-lg text-financial-danger">- R$ {formatCurrency(breakdown1.irSobreCupons)}</span>
+                            <span className="font-mono text-lg text-financial-danger print:text-xs">- R$ {formatCurrency(breakdown1.irSobreCupons)}</span>
                           </div>
                           
-                          <div className="flex justify-between items-center p-3 bg-financial-success/10 rounded-lg border border-financial-success/30">
+                          <div className="flex justify-between items-center p-3 bg-financial-success/10 rounded-lg border border-financial-success/30 print-decomposition-item">
                             <span className="font-semibold text-financial-success">Cupons Líquidos:</span>
-                            <span className="font-mono text-lg text-financial-success">= R$ {formatCurrency(breakdown1.cuponsLiquidos)}</span>
+                            <span className="font-mono text-lg text-financial-success print:text-xs">= R$ {formatCurrency(breakdown1.cuponsLiquidos)}</span>
                           </div>
                           
-                          <div className="flex justify-between items-center p-3 bg-financial-info/10 rounded-lg border border-financial-info/30">
+                          <div className="flex justify-between items-center p-3 bg-financial-info/10 rounded-lg border border-financial-info/30 print-decomposition-item">
                             <span className="font-semibold text-financial-info">Rendimento sobre cupons:</span>
-                            <span className="font-mono text-lg text-financial-info">R$ {formatCurrency(breakdown1.rendimentoSobreCupons)}</span>
+                            <span className="font-mono text-lg text-financial-info print:text-xs">R$ {formatCurrency(breakdown1.rendimentoSobreCupons)}</span>
                           </div>
                           
                           {breakdown1.irSobreReinvestimentos > 0 && (
-                            <div className="flex justify-between items-center p-3 bg-financial-danger/10 rounded-lg border border-financial-danger/30">
+                            <div className="flex justify-between items-center p-3 bg-financial-danger/10 rounded-lg border border-financial-danger/30 print-decomposition-item">
                               <span className="font-semibold text-financial-danger">IR sobre Reinvestimentos:</span>
-                              <span className="font-mono text-lg text-financial-danger">- R$ {formatCurrency(breakdown1.irSobreReinvestimentos)}</span>
+                              <span className="font-mono text-lg text-financial-danger print:text-xs">- R$ {formatCurrency(breakdown1.irSobreReinvestimentos)}</span>
                             </div>
                           )}
                           
                           {breakdown1.irSobrePrincipal > 0 && (
-                            <div className="flex justify-between items-center p-3 bg-financial-danger/10 rounded-lg border border-financial-danger/30">
+                            <div className="flex justify-between items-center p-3 bg-financial-danger/10 rounded-lg border border-financial-danger/30 print-decomposition-item">
                               <span className="font-semibold text-financial-danger">IR sobre Principal:</span>
-                              <span className="font-mono text-lg text-financial-danger">- R$ {formatCurrency(breakdown1.irSobrePrincipal)}</span>
+                              <span className="font-mono text-lg text-financial-danger print:text-xs">- R$ {formatCurrency(breakdown1.irSobrePrincipal)}</span>
                             </div>
                           )}
                           
           {/* Reinvestment Explanation - Item 3 - Always show for layout consistency */}
-          <div className="space-y-2">
-            <div className="flex justify-between items-center p-3 bg-financial-warning/10 rounded-lg border border-financial-warning/30">
+          <div className="space-y-2 print:space-y-1">
+            <div className="flex justify-between items-center p-3 bg-financial-warning/10 rounded-lg border border-financial-warning/30 print-decomposition-item">
               <span className="font-semibold text-financial-warning flex items-center gap-2">
-                <TrendingUp className="h-4 w-4" />
+                <TrendingUp className="h-4 w-4 print:hidden" />
                 Valor após vencimento reaplicado no CDI:
               </span>
-              <span className="font-mono text-lg text-financial-warning font-bold">
+              <span className="font-mono text-lg text-financial-warning font-bold print:text-xs">
                 + R$ {results.reinvestimento && results.reinvestimento.ativoReinvestido === 'ativo1' 
                   ? formatCurrency(results.reinvestimento.valorFinalReinvestimento - results.reinvestimento.valorResgatado)
                   : '0,00'
@@ -2720,59 +2720,59 @@ const InvestmentComparator = () => {
                       </div>
 
                       {/* Ativo 2 Breakdown */}
-                      <div className="space-y-4">
-                        <h3 className="text-xl font-bold text-financial-primary border-b border-financial-primary/30 pb-2">
+                      <div className="space-y-4 print-decomposition print:space-y-1">
+                        <h3 className="text-xl font-bold text-financial-primary border-b border-financial-primary/30 pb-2 print-section-header">
                           {ativo2.nome}
                         </h3>
                         
-                        <div className="space-y-3">
-                          <div className="flex justify-between items-center p-3 bg-muted/50 rounded-lg">
+                        <div className="space-y-3 print:space-y-1">
+                          <div className="flex justify-between items-center p-3 bg-muted/50 rounded-lg print-decomposition-item">
                             <span className="font-semibold">Principal Investido:</span>
-                            <span className="font-mono text-lg">R$ {formatCurrency(breakdown2.principalInvestido)}</span>
+                            <span className="font-mono text-lg print:text-xs">R$ {formatCurrency(breakdown2.principalInvestido)}</span>
                           </div>
                           
-                          <div className="flex justify-between items-center p-3 bg-financial-success/10 rounded-lg border border-financial-success/30">
+                          <div className="flex justify-between items-center p-3 bg-financial-success/10 rounded-lg border border-financial-success/30 print-decomposition-item">
                             <span className="font-semibold text-financial-success">Cupons Brutos Recebidos:</span>
-                            <span className="font-mono text-lg text-financial-success">+ R$ {formatCurrency(breakdown2.cupomsBrutos)}</span>
+                            <span className="font-mono text-lg text-financial-success print:text-xs">+ R$ {formatCurrency(breakdown2.cupomsBrutos)}</span>
                           </div>
                           
-                          <div className="flex justify-between items-center p-3 bg-financial-danger/10 rounded-lg border border-financial-danger/30">
+                          <div className="flex justify-between items-center p-3 bg-financial-danger/10 rounded-lg border border-financial-danger/30 print-decomposition-item">
                             <span className="font-semibold text-financial-danger">IR sobre Cupons:</span>
-                            <span className="font-mono text-lg text-financial-danger">- R$ {formatCurrency(breakdown2.irSobreCupons)}</span>
+                            <span className="font-mono text-lg text-financial-danger print:text-xs">- R$ {formatCurrency(breakdown2.irSobreCupons)}</span>
                           </div>
                           
-                          <div className="flex justify-between items-center p-3 bg-financial-success/10 rounded-lg border border-financial-success/30">
+                          <div className="flex justify-between items-center p-3 bg-financial-success/10 rounded-lg border border-financial-success/30 print-decomposition-item">
                             <span className="font-semibold text-financial-success">Cupons Líquidos:</span>
-                            <span className="font-mono text-lg text-financial-success">= R$ {formatCurrency(breakdown2.cuponsLiquidos)}</span>
+                            <span className="font-mono text-lg text-financial-success print:text-xs">= R$ {formatCurrency(breakdown2.cuponsLiquidos)}</span>
                           </div>
                           
-                          <div className="flex justify-between items-center p-3 bg-financial-info/10 rounded-lg border border-financial-info/30">
+                          <div className="flex justify-between items-center p-3 bg-financial-info/10 rounded-lg border border-financial-info/30 print-decomposition-item">
                             <span className="font-semibold text-financial-info">Rendimento sobre cupons:</span>
-                            <span className="font-mono text-lg text-financial-info">R$ {formatCurrency(breakdown2.rendimentoSobreCupons)}</span>
+                            <span className="font-mono text-lg text-financial-info print:text-xs">R$ {formatCurrency(breakdown2.rendimentoSobreCupons)}</span>
                           </div>
                           
                           {breakdown2.irSobreReinvestimentos > 0 && (
-                            <div className="flex justify-between items-center p-3 bg-financial-danger/10 rounded-lg border border-financial-danger/30">
+                            <div className="flex justify-between items-center p-3 bg-financial-danger/10 rounded-lg border border-financial-danger/30 print-decomposition-item">
                               <span className="font-semibold text-financial-danger">IR sobre Reinvestimentos:</span>
-                              <span className="font-mono text-lg text-financial-danger">- R$ {formatCurrency(breakdown2.irSobreReinvestimentos)}</span>
+                              <span className="font-mono text-lg text-financial-danger print:text-xs">- R$ {formatCurrency(breakdown2.irSobreReinvestimentos)}</span>
                             </div>
                           )}
                           
                           {breakdown2.irSobrePrincipal > 0 && (
-                            <div className="flex justify-between items-center p-3 bg-financial-danger/10 rounded-lg border border-financial-danger/30">
+                            <div className="flex justify-between items-center p-3 bg-financial-danger/10 rounded-lg border border-financial-danger/30 print-decomposition-item">
                               <span className="font-semibold text-financial-danger">IR sobre Principal:</span>
-                              <span className="font-mono text-lg text-financial-danger">- R$ {formatCurrency(breakdown2.irSobrePrincipal)}</span>
+                              <span className="font-mono text-lg text-financial-danger print:text-xs">- R$ {formatCurrency(breakdown2.irSobrePrincipal)}</span>
                             </div>
                           )}
                           
                           {/* Reinvestment Explanation - Item 3 - Always show for layout consistency */}
-                          <div className="space-y-2">
-                            <div className="flex justify-between items-center p-3 bg-financial-warning/10 rounded-lg border border-financial-warning/30">
+                          <div className="space-y-2 print:space-y-1">
+                            <div className="flex justify-between items-center p-3 bg-financial-warning/10 rounded-lg border border-financial-warning/30 print-decomposition-item">
                               <span className="font-semibold text-financial-warning flex items-center gap-2">
-                                <TrendingUp className="h-4 w-4" />
+                                <TrendingUp className="h-4 w-4 print:hidden" />
                                 Valor após vencimento reaplicado no CDI:
                               </span>
-                              <span className="font-mono text-lg text-financial-warning font-bold">
+                              <span className="font-mono text-lg text-financial-warning font-bold print:text-xs">
                                 + R$ {results.reinvestimento && results.reinvestimento.ativoReinvestido === 'ativo2' 
                                   ? formatCurrency(results.reinvestimento.valorFinalReinvestimento - results.reinvestimento.valorResgatado)
                                   : '0'
@@ -2869,79 +2869,65 @@ const InvestmentComparator = () => {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="p-6">
-                  <div className="space-y-6">
-                    
+                        <div className="space-y-6 print:space-y-2">
+                     
                      {/* Ativo 1 Coupons */}
-                     {results.couponDetails?.ativo1?.length > 0 && <div>
-                         <h4 className="font-bold text-lg mb-3 text-financial-primary">
+                     {results.couponDetails?.ativo1?.length > 0 && <div className="print-keep-together">
+                         <h4 className="font-bold text-lg mb-3 text-financial-primary print-section-header">
                            {ativo1.nome} - Fluxo de Cupons
                          </h4>
                          
-                         {/* Methodology indicator */}
-                         <div className="hidden mb-3 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-                           <div className="flex items-center gap-2 text-sm">
-                             <span className="text-blue-600 dark:text-blue-400 font-medium">📊 Metodologia de Cálculo:</span>
-                             <span className="font-mono text-blue-800 dark:text-blue-300">
-                               {(() => {
-                                 const rules = getCalculationRules(ativo1.tipoAtivo, ativo1.indexador || ativo1.tipoTaxa || 'pre-fixada');
-                                 return `${rules.dayCountConvention} ${rules.useDailyCapitalization ? '(Capitalização Diária)' : '(Capitalização Mensal)'}`;
-                               })()}
-                             </span>
-                           </div>
-                           <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">
-                             Cupons calculados dinamicamente baseados no tipo de ativo ({ativo1.tipoAtivo}) e indexador ({ativo1.indexador || ativo1.tipoTaxa || 'pre-fixada'})
-                           </p>
-                         </div>
+                         {/* ... keep existing methodology indicator ... */}
                          
                          <div className="overflow-x-auto">
-                          <table className="w-full border-collapse text-sm">
+                          <table className="w-full border-collapse text-sm print-coupon-table">
                             <thead>
                               <tr className="bg-financial-primary/10">
-                                <th className="p-2 text-left border text-xs">Data Pagto</th>
-                                <th className="p-2 text-right border text-xs">Cupom Bruto</th>
-                                <th className="p-2 text-right border text-xs">Cupom Líq.</th>
-                                <th className="p-2 text-right border text-xs">Fator CDI</th>
-                                <th className="p-2 text-right border text-xs">Reinvestido</th>
+                                <th className="p-2 text-left border text-xs print:p-1 print:text-xs">Data Pagto</th>
+                                <th className="p-2 text-right border text-xs print:p-1 print:text-xs">Cupom Bruto</th>
+                                <th className="p-2 text-right border text-xs print:p-1 print:text-xs">Cupom Líq.</th>
+                                <th className="p-2 text-right border text-xs print:p-1 print:text-xs">Fator CDI</th>
+                                <th className="p-2 text-right border text-xs print:p-1 print:text-xs">Reinvestido</th>
                               </tr>
                             </thead>
                             <tbody>
                               {results.couponDetails.ativo1.map((coupon, index) => <tr key={index} className="even:bg-muted/50">
-                                  <td className="p-2 border text-xs">
+                                  <td className="p-2 border text-xs print:p-1 print:text-xs">
                                     {new Date(coupon.couponDate).toLocaleDateString('pt-BR')}
                                   </td>
-                                  <td className="p-2 border text-right font-mono text-xs">
+                                  <td className="p-2 border text-right font-mono text-xs print:p-1 print:text-xs">
                                     R$ {coupon.gross.toLocaleString('pt-BR', {
                             minimumFractionDigits: 2
                           })}
                                   </td>
-                                  <td className="p-2 border text-right font-mono text-xs text-financial-success">
+                                  <td className="p-2 border text-right font-mono text-xs text-financial-success print:p-1 print:text-xs">
                                     R$ {coupon.net.toLocaleString('pt-BR', {
                             minimumFractionDigits: 2
                           })}
                                   </td>
-                                  <td className="p-2 border text-right font-mono text-xs">
+                                  <td className="p-2 border text-right font-mono text-xs print:p-1 print:text-xs">
                                     {coupon.reinvestFactor.toFixed(4)}
                                   </td>
-                                  <td className="p-2 border text-right font-mono text-xs font-bold text-blue-600">
+                                  <td className="p-2 border text-right font-mono text-xs font-bold text-blue-600 print:p-1 print:text-xs">
                                     R$ {coupon.reinvested.toLocaleString('pt-BR', {
                             minimumFractionDigits: 2
                           })}
                                   </td>
                                 </tr>)}
                               <tr className="bg-financial-primary/20 font-bold">
-                                <td className="p-2 border text-xs">TOTAL</td>
-                                <td className="p-2 border text-right font-mono text-xs">
+                                <td className="p-2 border text-xs print:p-1 print:text-xs">TOTAL</td>
+                                <td className="p-2 border text-right font-mono text-xs print:p-1 print:text-xs">
                                   R$ {results.couponDetails.ativo1.reduce((sum, c) => sum + c.gross, 0).toLocaleString('pt-BR', {
                             minimumFractionDigits: 2
                           })}
                                 </td>
-                                <td className="p-2 border text-right font-mono text-xs">
+                                <td className="p-2 border text-right font-mono text-xs print:p-1 print:text-xs">
                                   R$ {results.couponDetails.ativo1.reduce((sum, c) => sum + c.net, 0).toLocaleString('pt-BR', {
                             minimumFractionDigits: 2
                           })}
                                 </td>
-                                <td className="p-2 border text-right font-mono text-xs">-</td>
-                                <td className="p-2 border text-right font-mono text-xs">
+                                <td className="p-2 border text-right font-mono text-xs print:p-1 print:text-xs">-</td>
+                                <td className="p-2 border text-right font-mono text-xs print:p-1 print:text-xs">
                                   R$ {results.couponDetails.ativo1.reduce((sum, c) => sum + c.reinvested, 0).toLocaleString('pt-BR', {
                             minimumFractionDigits: 2
                           })}
@@ -2952,86 +2938,72 @@ const InvestmentComparator = () => {
                         </div>
                       </div>}
                     
-                     {/* Ativo 2 Coupons */}
-                     {results.couponDetails?.ativo2?.length > 0 && <div>
-                         <h4 className="font-bold text-lg mb-3 text-financial-secondary">
-                           {ativo2.nome} - Fluxo de Cupons
-                         </h4>
-                         
-                         {/* Methodology indicator */}
-                         <div className="hidden mb-3 p-3 bg-orange-50 dark:bg-orange-900/20 rounded-lg border border-orange-200 dark:border-orange-800">
-                           <div className="flex items-center gap-2 text-sm">
-                             <span className="text-orange-600 dark:text-orange-400 font-medium">📊 Metodologia de Cálculo:</span>
-                             <span className="font-mono text-orange-800 dark:text-orange-300">
-                               {(() => {
-                                 const rules = getCalculationRules(ativo2.tipoAtivo, ativo2.indexador || ativo2.tipoTaxa || 'pre-fixada');
-                                 return `${rules.dayCountConvention} ${rules.useDailyCapitalization ? '(Capitalização Diária)' : '(Capitalização Mensal)'}`;
-                               })()}
-                             </span>
-                           </div>
-                           <p className="text-xs text-orange-600 dark:text-orange-400 mt-1">
-                             Cupons calculados dinamicamente baseados no tipo de ativo ({ativo2.tipoAtivo}) e indexador ({ativo2.indexador || ativo2.tipoTaxa || 'pre-fixada'})
-                           </p>
+                      {/* Ativo 2 Coupons */}
+                      {results.couponDetails?.ativo2?.length > 0 && <div className="print-keep-together">
+                          <h4 className="font-bold text-lg mb-3 text-financial-secondary print-section-header">
+                            {ativo2.nome} - Fluxo de Cupons
+                          </h4>
+                          
+                          {/* ... keep existing methodology indicator ... */}
+                          
+                          <div className="overflow-x-auto">
+                           <table className="w-full border-collapse text-sm print-coupon-table">
+                             <thead>
+                               <tr className="bg-financial-secondary/10">
+                                 <th className="p-2 text-left border text-xs print:p-1 print:text-xs">Data Pagto</th>
+                                 <th className="p-2 text-right border text-xs print:p-1 print:text-xs">Cupom Bruto</th>
+                                 <th className="p-2 text-right border text-xs print:p-1 print:text-xs">Cupom Líq.</th>
+                                 <th className="p-2 text-right border text-xs print:p-1 print:text-xs">Fator CDI</th>
+                                 <th className="p-2 text-right border text-xs print:p-1 print:text-xs">Reinvestido</th>
+                               </tr>
+                             </thead>
+                             <tbody>
+                               {results.couponDetails.ativo2.map((coupon, index) => <tr key={index} className="even:bg-muted/50">
+                                   <td className="p-2 border text-xs print:p-1 print:text-xs">
+                                     {new Date(coupon.couponDate).toLocaleDateString('pt-BR')}
+                                   </td>
+                                   <td className="p-2 border text-right font-mono text-xs print:p-1 print:text-xs">
+                                     R$ {coupon.gross.toLocaleString('pt-BR', {
+                            minimumFractionDigits: 2
+                          })}
+                                   </td>
+                                   <td className="p-2 border text-right font-mono text-xs text-financial-success print:p-1 print:text-xs">
+                                     R$ {coupon.net.toLocaleString('pt-BR', {
+                            minimumFractionDigits: 2
+                          })}
+                                   </td>
+                                   <td className="p-2 border text-right font-mono text-xs print:p-1 print:text-xs">
+                                     {coupon.reinvestFactor.toFixed(4)}
+                                   </td>
+                                   <td className="p-2 border text-right font-mono text-xs font-bold text-blue-600 print:p-1 print:text-xs">
+                                     R$ {coupon.reinvested.toLocaleString('pt-BR', {
+                            minimumFractionDigits: 2
+                          })}
+                                   </td>
+                                 </tr>)}
+                               <tr className="bg-financial-secondary/20 font-bold">
+                                 <td className="p-2 border text-xs print:p-1 print:text-xs">TOTAL</td>
+                                 <td className="p-2 border text-right font-mono text-xs print:p-1 print:text-xs">
+                                   R$ {results.couponDetails.ativo2.reduce((sum, c) => sum + c.gross, 0).toLocaleString('pt-BR', {
+                            minimumFractionDigits: 2
+                          })}
+                                 </td>
+                                 <td className="p-2 border text-right font-mono text-xs print:p-1 print:text-xs">
+                                   R$ {results.couponDetails.ativo2.reduce((sum, c) => sum + c.net, 0).toLocaleString('pt-BR', {
+                            minimumFractionDigits: 2
+                          })}
+                                 </td>
+                                 <td className="p-2 border text-right font-mono text-xs print:p-1 print:text-xs">-</td>
+                                 <td className="p-2 border text-right font-mono text-xs print:p-1 print:text-xs">
+                                   R$ {results.couponDetails.ativo2.reduce((sum, c) => sum + c.reinvested, 0).toLocaleString('pt-BR', {
+                            minimumFractionDigits: 2
+                          })}
+                                 </td>
+                               </tr>
+                             </tbody>
+                           </table>
                          </div>
-                         
-                         <div className="overflow-x-auto">
-                          <table className="w-full border-collapse text-sm">
-                            <thead>
-                              <tr className="bg-financial-secondary/10">
-                                <th className="p-2 text-left border text-xs">Data Pagto</th>
-                                <th className="p-2 text-right border text-xs">Cupom Bruto</th>
-                                <th className="p-2 text-right border text-xs">Cupom Líq.</th>
-                                <th className="p-2 text-right border text-xs">Fator CDI</th>
-                                <th className="p-2 text-right border text-xs">Reinvestido</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {results.couponDetails.ativo2.map((coupon, index) => <tr key={index} className="even:bg-muted/50">
-                                  <td className="p-2 border text-xs">
-                                    {new Date(coupon.couponDate).toLocaleDateString('pt-BR')}
-                                  </td>
-                                  <td className="p-2 border text-right font-mono text-xs">
-                                    R$ {coupon.gross.toLocaleString('pt-BR', {
-                            minimumFractionDigits: 2
-                          })}
-                                  </td>
-                                  <td className="p-2 border text-right font-mono text-xs text-financial-success">
-                                    R$ {coupon.net.toLocaleString('pt-BR', {
-                            minimumFractionDigits: 2
-                          })}
-                                  </td>
-                                  <td className="p-2 border text-right font-mono text-xs">
-                                    {coupon.reinvestFactor.toFixed(4)}
-                                  </td>
-                                  <td className="p-2 border text-right font-mono text-xs font-bold text-blue-600">
-                                    R$ {coupon.reinvested.toLocaleString('pt-BR', {
-                            minimumFractionDigits: 2
-                          })}
-                                  </td>
-                                </tr>)}
-                              <tr className="bg-financial-secondary/20 font-bold">
-                                <td className="p-2 border text-xs">TOTAL</td>
-                                <td className="p-2 border text-right font-mono text-xs">
-                                  R$ {results.couponDetails.ativo2.reduce((sum, c) => sum + c.gross, 0).toLocaleString('pt-BR', {
-                            minimumFractionDigits: 2
-                          })}
-                                </td>
-                                <td className="p-2 border text-right font-mono text-xs">
-                                  R$ {results.couponDetails.ativo2.reduce((sum, c) => sum + c.net, 0).toLocaleString('pt-BR', {
-                            minimumFractionDigits: 2
-                          })}
-                                </td>
-                                <td className="p-2 border text-right font-mono text-xs">-</td>
-                                <td className="p-2 border text-right font-mono text-xs">
-                                  R$ {results.couponDetails.ativo2.reduce((sum, c) => sum + c.reinvested, 0).toLocaleString('pt-BR', {
-                            minimumFractionDigits: 2
-                          })}
-                                </td>
-                              </tr>
-                            </tbody>
-                          </table>
-                        </div>
-                      </div>}
+                       </div>}
                   </div>
                   
                    <div className="hidden mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200">

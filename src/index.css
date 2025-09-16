@@ -169,23 +169,73 @@ All colors MUST be HSL.
   .print-table {
     width: 100%;
     border-collapse: collapse;
-    margin-bottom: 0.75rem;
-    font-size: 8px !important;
-    line-height: 1.2;
+    margin-bottom: 0.5rem;
+    font-size: 7px !important;
+    line-height: 1.1;
   }
 
   .print-table th {
     background-color: hsl(var(--muted)) !important;
-    padding: 3px 4px !important;
+    padding: 2px 3px !important;
     border: 1px solid hsl(var(--border)) !important;
     font-weight: bold;
     text-align: left;
-    font-size: 8px !important;
+    font-size: 7px !important;
+    height: 12px;
   }
 
   .print-table td {
-    padding: 3px 4px !important;
+    padding: 2px 3px !important;
     border: 1px solid hsl(var(--border)) !important;
+    line-height: 1.1;
+  }
+
+  /* Compact coupon tables */
+  .print-coupon-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 0.3rem;
+    font-size: 6px !important;
+    line-height: 1;
+    page-break-inside: avoid;
+  }
+
+  .print-coupon-table th {
+    background-color: hsl(var(--muted)) !important;
+    padding: 1px 2px !important;
+    border: 1px solid hsl(var(--border)) !important;
+    font-weight: bold;
+    text-align: left;
+    font-size: 6px !important;
+    height: 10px;
+  }
+
+  .print-coupon-table td {
+    padding: 1px 2px !important;
+    border: 1px solid hsl(var(--border)) !important;
+    line-height: 1;
+  }
+
+  /* Decomposition sections */
+  .print-decomposition {
+    page-break-inside: avoid;
+    margin-bottom: 0.5rem;
+  }
+
+  .print-decomposition-item {
+    margin-bottom: 1px;
+    padding: 1px 3px !important;
+    font-size: 7px !important;
+    line-height: 1.1;
+  }
+
+  /* Section headers stay with content */
+  .print-section-header {
+    page-break-after: avoid;
+    font-size: 8px !important;
+    font-weight: bold;
+    margin-bottom: 0.2rem;
+    margin-top: 0.5rem;
   }
 
   .print-table tbody tr:nth-child(even) {
@@ -239,5 +289,38 @@ All colors MUST be HSL.
 
   .no-page-break {
     page-break-inside: avoid;
+  }
+
+  /* Optimization for dense content */
+  .print-compact {
+    margin: 0 !important;
+    padding: 0.1rem !important;
+  }
+
+  .print-space-y-1 > * + * {
+    margin-top: 0.1rem !important;
+  }
+
+  .print-space-y-2 > * + * {
+    margin-top: 0.2rem !important;
+  }
+
+  /* Better orphan and widow control */
+  .print-content {
+    orphans: 3;
+    widows: 3;
+  }
+
+  /* Force specific sections to stay together */
+  .print-keep-together {
+    page-break-inside: avoid;
+    page-break-after: auto;
+  }
+
+  /* Compact cards for print */
+  .print-card {
+    padding: 0.25rem !important;
+    margin-bottom: 0.3rem !important;
+    border: 1px solid hsl(var(--border)) !important;
   }
 }
