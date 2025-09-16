@@ -63,6 +63,7 @@ export default {
           success: "hsl(var(--financial-success))",
           danger: "hsl(var(--financial-danger))",
           light: "hsl(var(--financial-light))",
+          info: "hsl(var(--financial-info))",
         },
       },
       borderRadius: {
