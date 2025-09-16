@@ -2319,7 +2319,7 @@ const InvestmentComparator = () => {
 
         {showResults && results && <div className="space-y-6">
             {/* Executive Summary for PDF */}
-            <div className="print-show hidden print-summary">
+            <div className={`print-show hidden print-summary ${compactPdfMode ? 'compact-pdf-hide' : ''}`}>
               <h2 className="print-section-title">RESUMO EXECUTIVO</h2>
               <div className="grid grid-cols-2 gap-4 text-sm">
                 <div>
@@ -2357,7 +2357,7 @@ const InvestmentComparator = () => {
             })()}
             
             {/* Print-Only Executive Summary and Analysis - NEW */}
-            <div className="print-show hidden">
+            <div className={`print-show hidden ${compactPdfMode ? 'compact-pdf-hide' : ''}`}>
               {/* Print Header */}
               <div className="print-header">
                 <div className="print-title">ANÁLISE COMPARATIVA</div>
