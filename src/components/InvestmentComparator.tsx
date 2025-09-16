@@ -1597,14 +1597,18 @@ const InvestmentComparator = () => {
         console.log(`📅 Data final da comparação: ${dataFinal.toISOString().slice(0, 10)} (${anosFinal.toFixed(2)} anos)`);
         
         if (vencimento1 < vencimento2) {
-          console.log(`💎 CENÁRIO: Ativo 1 vence primeiro, reinveste no CDI até vencimento do Ativo 2`);
-          
-          // Calcular Ativo 1 até seu vencimento natural
-          resultAtivo1 = calcularAtivo(ativo1, anosAtivo1);
-          const valorLiquidoAtivo1 = resultAtivo1.valores[resultAtivo1.valores.length - 1];
-          
-          // Calcular Ativo 2 até seu vencimento natural
-          resultAtivo2 = calcularAtivo(ativo2, anosAtivo2);
+      console.log(`💎 CENÁRIO: Ativo 1 vence primeiro, reinveste no CDI até vencimento do Ativo 2`);
+      console.log(`🔍 DEBUGGING - Calculating Ativo 1 (${ativo1.nome}) first`);
+      
+      // Calcular Ativo 1 até seu vencimento natural
+      resultAtivo1 = calcularAtivo(ativo1, anosAtivo1);
+      console.log(`✅ DEBUGGING - Ativo 1 (${ativo1.nome}) calculated, couponDetails:`, resultAtivo1.couponDetails?.length || 'none');
+      const valorLiquidoAtivo1 = resultAtivo1.valores[resultAtivo1.valores.length - 1];
+      
+      // Calcular Ativo 2 até seu vencimento natural
+      console.log(`🔍 DEBUGGING - Calculating Ativo 2 (${ativo2.nome}) second`);
+      resultAtivo2 = calcularAtivo(ativo2, anosAtivo2);
+      console.log(`✅ DEBUGGING - Ativo 2 (${ativo2.nome}) calculated, couponDetails:`, resultAtivo2.couponDetails?.length || 'none');
           
           // Calcular reinvestimento do Ativo 1 no CDI
           const dataInicioReinvestimento = vencimento1;
@@ -1634,14 +1638,18 @@ const InvestmentComparator = () => {
           };
           
         } else if (vencimento2 < vencimento1) {
-          console.log(`💎 CENÁRIO: Ativo 2 vence primeiro, reinveste no CDI até vencimento do Ativo 1`);
-          
-          // Calcular Ativo 2 até seu vencimento natural
-          resultAtivo2 = calcularAtivo(ativo2, anosAtivo2);
-          const valorLiquidoAtivo2 = resultAtivo2.valores[resultAtivo2.valores.length - 1];
-          
-          // Calcular Ativo 1 até seu vencimento natural
-          resultAtivo1 = calcularAtivo(ativo1, anosAtivo1);
+      console.log(`💎 CENÁRIO: Ativo 2 vence primeiro, reinveste no CDI até vencimento do Ativo 1`);
+      console.log(`🔍 DEBUGGING - Calculating Ativo 2 (${ativo2.nome}) first`);
+      
+      // Calcular Ativo 2 até seu vencimento natural
+      resultAtivo2 = calcularAtivo(ativo2, anosAtivo2);
+      console.log(`✅ DEBUGGING - Ativo 2 (${ativo2.nome}) calculated, couponDetails:`, resultAtivo2.couponDetails?.length || 'none');
+      const valorLiquidoAtivo2 = resultAtivo2.valores[resultAtivo2.valores.length - 1];
+      
+      // Calcular Ativo 1 até seu vencimento natural
+      console.log(`🔍 DEBUGGING - Calculating Ativo 1 (${ativo1.nome}) second`);
+      resultAtivo1 = calcularAtivo(ativo1, anosAtivo1);
+      console.log(`✅ DEBUGGING - Ativo 1 (${ativo1.nome}) calculated, couponDetails:`, resultAtivo1.couponDetails?.length || 'none');
           
           // Calcular reinvestimento do Ativo 2 no CDI
           const dataInicioReinvestimento = vencimento2;
@@ -1680,10 +1688,13 @@ const InvestmentComparator = () => {
       } else {
         // Diferença pequena (≤ 30 dias) - comparação direta sem reinvestimento
         console.log(`✅ CENÁRIO: Diferença pequena (${diferencaDias.toFixed(0)} dias) - comparação direta`);
+        console.log(`🔍 DEBUGGING - Calculating both assets directly`);
         
         anosProjecao = Math.max(anosAtivo1, anosAtivo2);
         resultAtivo1 = calcularAtivo(ativo1, anosAtivo1);
+        console.log(`✅ DEBUGGING - Ativo 1 (${ativo1.nome}) calculated, couponDetails:`, resultAtivo1.couponDetails?.length || 'none');
         resultAtivo2 = calcularAtivo(ativo2, anosAtivo2);
+        console.log(`✅ DEBUGGING - Ativo 2 (${ativo2.nome}) calculated, couponDetails:`, resultAtivo2.couponDetails?.length || 'none');
         reinvestimentoInfo = null;
       }
 
@@ -1706,7 +1717,13 @@ const InvestmentComparator = () => {
         'resultAtivo1.couponDetails[0]': resultAtivo1.couponDetails?.[0],
         'resultAtivo2.couponDetails[0]': resultAtivo2.couponDetails?.[0],
         'ativo1.nome': ativo1.nome,
-        'ativo2.nome': ativo2.nome
+        'ativo2.nome': ativo2.nome,
+        'resultAtivo1 asset name should be': ativo1.nome,
+        'resultAtivo2 asset name should be': ativo2.nome,
+        'ASSIGNMENT CHECK': {
+          'couponDetails.ativo1 will get': resultAtivo1.couponDetails?.length || 0,
+          'couponDetails.ativo2 will get': resultAtivo2.couponDetails?.length || 0,
+        }
       });
       setShowResults(true);
 
