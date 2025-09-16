@@ -407,7 +407,9 @@ function genCouponDates(startISO: string, endISO: string, freq: Freq, earningsSt
       const endDate = new Date(endISO);
 
       while (currentDate <= endDate) {
-        // Adiciona o cupom na data atual (já é dia 10)
+        // FORÇA o dia 10 antes de registrar o cupom
+        currentDate.setDate(10);
+        
         const couponDate = currentDate.toISOString().slice(0, 10);
         console.log(`📅 Data de cupom gerada: ${couponDate}`);
         out.push(couponDate);
