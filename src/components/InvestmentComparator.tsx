@@ -91,7 +91,6 @@ interface AssetData {
     months: number[];
   }[]; // Specific months when asset generates earnings
   // NEW FIELDS FOR FUND DISTRIBUTIONS
-  distribuicaoPorCota?: number; // Monthly distribution per quota (for fundo-cetipado)
   periodicidadeDistribuicao?: 'mensal' | 'trimestral'; // Distribution frequency
 }
 interface Projecoes {
@@ -698,7 +697,6 @@ const getDefaultAtivo1 = (): AssetData => ({
   freq: 'SEMIANNUAL',
   earningsStartDate: '',
   activePeriods: [],
-  distribuicaoPorCota: 0,
   periodicidadeDistribuicao: 'mensal'
 });
 
@@ -772,7 +770,6 @@ const migrateAssetData = (asset: any): AssetData => {
     tipoAtivo,
     indexador,
     tipoTaxa, // Keep for backward compatibility
-    distribuicaoPorCota: asset.distribuicaoPorCota || 0,
     periodicidadeDistribuicao: asset.periodicidadeDistribuicao || 'mensal'
   };
 };
@@ -1637,9 +1634,8 @@ const InvestmentComparator = () => {
     const indexador = asset.indexador || asset.tipoTaxa || 'pre-fixada';
     
     if (asset.tipoAtivo === 'fundo-cetipado') {
-      const distribuicao = asset.distribuicaoPorCota || 0;
       const periodicidade = asset.periodicidadeDistribuicao || 'mensal';
-      return `R$ ${distribuicao.toFixed(2)}/${periodicidade === 'mensal' ? 'mês' : 'trimestre'}`;
+      return `Fundo/${periodicidade === 'mensal' ? 'mês' : 'trimestre'}`;
     }
     
     switch (indexador) {
@@ -1813,17 +1809,6 @@ const InvestmentComparator = () => {
           )}
           {asset.tipoAtivo === 'fundo-cetipado' ? (
             <>
-              <div className="space-y-2">
-                <Label htmlFor={`${assetKey}-distribuicao`}>Distribuição por Cota (R$/mês)</Label>
-                <Input 
-                  id={`${assetKey}-distribuicao`} 
-                  type="number" 
-                  step="0.01" 
-                  value={asset.distribuicaoPorCota || 0} 
-                  onChange={e => handleAssetChange(assetKey, 'distribuicaoPorCota', parseFloat(e.target.value) || 0)} 
-                  placeholder="Ex: 0.85" 
-                />
-              </div>
               <div className="space-y-2">
                 <Label htmlFor={`${assetKey}-periodicidade`}>Periodicidade</Label>
                 <Select value={asset.periodicidadeDistribuicao || 'mensal'} onValueChange={value => handleAssetChange(assetKey, 'periodicidadeDistribuicao', value)}>
