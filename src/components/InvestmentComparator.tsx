@@ -2806,7 +2806,7 @@ const InvestmentComparator = () => {
                       </div>}
                   </div>
                   
-                   <div className="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                   <div className="hidden mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
                      <p className="text-sm text-blue-800">
                        <strong>Sistema de Fluxo de Caixa:</strong> Os cupons são calculados com IR regressivo baseado no tempo de aplicação 
                        e reinvestidos pela curva CDI projetada do momento do pagamento até o vencimento. Otimizado para títulos diretos.
