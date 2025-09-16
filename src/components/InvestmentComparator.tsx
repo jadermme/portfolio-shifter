@@ -2458,7 +2458,7 @@ const InvestmentComparator = () => {
             {results.reinvestimento && results.reinvestimento.ativoReinvestido === 'ativo1' ? (
               <div className="text-xs text-muted-foreground px-3 pb-2">
                 <span className="italic">
-                  Rendimento obtido aplicando R$ {formatCurrency(results.reinvestimento.valorResgatado)} por {results.reinvestimento.periodosReinvestimento} {results.reinvestimento.periodosReinvestimento === 1 ? 'ano' : 'anos'} à taxa CDI de {results.reinvestimento.taxaReinvestimento.toFixed(2)}% ao ano
+                  Rendimento obtido aplicando R$ {formatCurrency(results.reinvestimento.valorResgatado)} de {new Date(results.reinvestimento.dataInicioReinvestimento).toLocaleDateString('pt-BR', { month: '2-digit', year: 'numeric' }).replace('/', '/')} até {new Date(results.reinvestimento.dataFimReinvestimento).toLocaleDateString('pt-BR', { month: '2-digit', year: 'numeric' }).replace('/', '/')} à taxa CDI de {(results.reinvestimento.taxaReinvestimento * 100).toFixed(2)}% ao ano
                 </span>
               </div>
             ) : (
@@ -2551,12 +2551,12 @@ const InvestmentComparator = () => {
                                 }
                               </span>
                             </div>
-                            {results.reinvestimento && results.reinvestimento.ativoReinvestido === 'ativo2' ? (
-                              <div className="text-xs text-muted-foreground px-3 pb-2">
-                                <span className="italic">
-                                  Rendimento obtido aplicando R$ {formatCurrency(results.reinvestimento.valorResgatado)} por {results.reinvestimento.periodosReinvestimento} {results.reinvestimento.periodosReinvestimento === 1 ? 'ano' : 'anos'} à taxa CDI de {results.reinvestimento.taxaReinvestimento.toFixed(2)}% ao ano
-                                </span>
-                              </div>
+            {results.reinvestimento && results.reinvestimento.ativoReinvestido === 'ativo2' ? (
+              <div className="text-xs text-muted-foreground px-3 pb-2">
+                <span className="italic">
+                  Rendimento obtido aplicando R$ {formatCurrency(results.reinvestimento.valorResgatado)} de {new Date(results.reinvestimento.dataInicioReinvestimento).toLocaleDateString('pt-BR', { month: '2-digit', year: 'numeric' }).replace('/', '/')} até {new Date(results.reinvestimento.dataFimReinvestimento).toLocaleDateString('pt-BR', { month: '2-digit', year: 'numeric' }).replace('/', '/')} à taxa CDI de {(results.reinvestimento.taxaReinvestimento * 100).toFixed(2)}% ao ano
+                </span>
+              </div>
                             ) : (
                               <div className="text-xs text-muted-foreground px-3 pb-2">
                                 <span className="italic">
