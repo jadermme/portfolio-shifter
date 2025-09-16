@@ -1480,22 +1480,21 @@ const InvestmentComparator = () => {
       // Para CRA ZAMP (Eneva), limitar a comparação até 30/04/2029
       let dataFinal = vencimento2; // Default: usa o vencimento do ativo 2
       
-      // Para CRI/CRA e Debêntures, implementar lógica de comparação baseada nos vencimentos
-      if (ativo1.tipoAtivo === 'cri-cra' || ativo1.tipoAtivo === 'debenture-incentivada') {
-        console.log(`📅 ${ativo1.tipoAtivo.toUpperCase()} detectado - aplicando lógica de comparação por vencimentos`);
-        
-        if (vencimento1 < vencimento2) {
-          // Cenário A: Ativo 1 vence antes - reinvestir em CDI até vencimento do Ativo 2
-          console.log(`💰 Ativo 1 vence antes (${vencimento1.toLocaleDateString()}) - reinvestindo em CDI até vencimento do Ativo 2 (${vencimento2.toLocaleDateString()})`);
-          dataFinal = vencimento2; // Comparar até vencimento do Ativo 2
-        } else {
-          // Cenário B: Ativo 1 vence depois - comparar apenas até vencimento do Ativo 2
-          console.log(`📊 Ativo 1 vence depois (${vencimento1.toLocaleDateString()}) - limitando comparação até vencimento do Ativo 2 (${vencimento2.toLocaleDateString()})`);
-          dataFinal = vencimento2; // Limitar comparação até vencimento do Ativo 2
-        }
-        
-        console.log(`📅 Data final da comparação: ${dataFinal.toLocaleDateString()}`);
+      // Implementar lógica de comparação baseada nos vencimentos para todos os tipos de ativos
+      console.log(`📅 Aplicando lógica de comparação por vencimentos para todos os ativos`);
+      
+      if (vencimento1 < vencimento2) {
+        // Cenário A: Ativo 1 vence antes - reinvestir em CDI até vencimento do Ativo 2
+        console.log(`💰 Ativo 1 vence antes (${vencimento1.toLocaleDateString()}) - reinvestindo em CDI até vencimento do Ativo 2 (${vencimento2.toLocaleDateString()})`);
+        dataFinal = vencimento2; // Comparar até vencimento do Ativo 2
+      } else {
+        // Cenário B: Ativo 1 vence depois - comparar apenas até vencimento do Ativo 2
+        console.log(`📊 Ativo 1 vence depois (${vencimento1.toLocaleDateString()}) - limitando comparação até vencimento do Ativo 2 (${vencimento2.toLocaleDateString()})`);
+        dataFinal = vencimento2; // Limitar comparação até vencimento do Ativo 2
       }
+      
+      console.log(`📅 Data final da comparação: ${dataFinal.toLocaleDateString()}`);
+      
       
       const anosAteDataFinal = Math.ceil((dataFinal.getTime() - hoje.getTime()) / (1000 * 60 * 60 * 24 * 365.25));
       anosProjecao = anosAteDataFinal;
@@ -1503,7 +1502,7 @@ const InvestmentComparator = () => {
       console.log(`📅 Data final da comparação: ${dataFinal.toISOString().slice(0, 10)} (${anosAteDataFinal.toFixed(2)} anos)`);
       
       // Calcular ambos os ativos baseado nos cenários de vencimento
-      if ((ativo1.tipoAtivo === 'cri-cra' || ativo1.tipoAtivo === 'debenture-incentivada') && vencimento1 < vencimento2) {
+      if (vencimento1 < vencimento2) {
         console.log(`💰 CENÁRIO A: Ativo 1 vence antes - calculando até vencimento natural e reinvestindo em CDI`);
         
         // Calcular Ativo 1 até seu vencimento natural
