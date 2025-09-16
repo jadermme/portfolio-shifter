@@ -2753,30 +2753,36 @@ const InvestmentComparator = () => {
                         <span className="text-muted-foreground">Valor de Compra:</span>
                         <div className="font-mono font-semibold">R$ {formatCurrency(ativo2?.valorInvestido || 0)}</div>
                       </div>
-                       <div>
-                         <span className="text-muted-foreground">Taxa:</span>
-                         <div className="font-mono font-semibold">
-                           {(() => {
-                             if (!ativo2) return "N/A";
-                             
-                             const rateKind = ativo2.rateKind || ativo2.indexador;
-                             const taxa = ativo2.taxa || 0;
-                             
-                             switch (rateKind) {
-                               case '%CDI':
-                                 return `${taxa.toFixed(1)}% do CDI`;
-                               case 'CDI+PRE':
-                                 return `CDI + ${taxa.toFixed(1)}%`;
-                               case 'PRE':
-                                 return `${taxa.toFixed(2)}% a.a. (Pré)`;
-                               case 'IPCA+PRE':
-                                 return `IPCA + ${taxa.toFixed(1)}%`;
-                               default:
-                                 return `CDI + ${taxa.toFixed(1)}%`;
-                             }
-                           })()}
-                         </div>
-                       </div>
+                        <div>
+                          <span className="text-muted-foreground">Taxa:</span>
+                          <div className="font-mono font-semibold">
+                            {(() => {
+                              if (!ativo2) return "N/A";
+                              
+                              const taxa = ativo2.taxa || 0;
+                              
+                              // Para BTDI11, sempre mostra como CDI + X%
+                              if (ativo2.nome && ativo2.nome.includes('BTDI11')) {
+                                return `CDI + ${taxa.toFixed(1)}%`;
+                              }
+                              
+                              const rateKind = ativo2.rateKind || ativo2.indexador;
+                              
+                              switch (rateKind) {
+                                case '%CDI':
+                                  return `${taxa.toFixed(1)}% do CDI`;
+                                case 'CDI+PRE':
+                                  return `CDI + ${taxa.toFixed(1)}%`;
+                                case 'PRE':
+                                  return `CDI + ${taxa.toFixed(1)}%`;
+                                case 'IPCA+PRE':
+                                  return `IPCA + ${taxa.toFixed(1)}%`;
+                                default:
+                                  return `CDI + ${taxa.toFixed(1)}%`;
+                              }
+                            })()}
+                          </div>
+                        </div>
                     </div>
                     
                     {/* Coluna 4 - Cupons */}
