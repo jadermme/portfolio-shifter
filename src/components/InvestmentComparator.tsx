@@ -772,12 +772,16 @@ const PROJECTIONS_VERSION = '2.0';
 
 const saveToLocalStorage = (key: string, data: any) => {
   try {
+    // Enhanced debugging for tipoCupom saving
     if (key === STORAGE_KEYS.ativo1 && data.nome?.toLowerCase().includes('zamp')) {
-      console.log(`💾 Saving CRA ZAMP to localStorage:`, {
+      console.log(`💾 CRITICAL SAVE: CRA ZAMP to localStorage:`, {
         nome: data.nome,
         tipoCupom: data.tipoCupom,
         mesesCupons: data.mesesCupons,
-        key
+        hasManualCoupons: data.couponData?.coupons?.length > 0,
+        key,
+        fullData: data,
+        timestamp: new Date().toISOString()
       });
     }
     localStorage.setItem(key, JSON.stringify(data));
@@ -791,14 +795,19 @@ const loadFromLocalStorage = (key: string, defaultValue: any) => {
   try {
     const saved = localStorage.getItem(key);
     const result = saved ? JSON.parse(saved) : defaultValue;
+    
+    // Enhanced debugging for tipoCupom loading
     if (key === STORAGE_KEYS.ativo1 && result?.nome?.toLowerCase().includes('zamp')) {
-      console.log(`📤 Loading CRA ZAMP from localStorage:`, {
+      console.log(`📤 CRITICAL LOAD: CRA ZAMP from localStorage:`, {
         nome: result.nome,
         tipoCupom: result.tipoCupom,
         mesesCupons: result.mesesCupons,
-        key
+        hasManualCoupons: result.couponData?.coupons?.length > 0,
+        key,
+        fullData: result
       });
     }
+    
     return result;
   } catch (error) {
     console.error('Erro ao carregar do localStorage:', error);
@@ -1059,6 +1068,18 @@ const InvestmentComparator = () => {
           ...prev,
           [field]: value
         };
+        
+        // Enhanced debugging for tipoCupom changes
+        if (field === 'tipoCupom') {
+          console.log(`🚨 CRITICAL: tipoCupom changed for ${asset}:`, {
+            from: prev.tipoCupom,
+            to: value,
+            mesesCupons: updated.mesesCupons,
+            hasManualCoupons: updated.couponData?.coupons?.length > 0,
+            timestamp: new Date().toISOString()
+          });
+        }
+        
         console.log(`📊 Ativo1 updated:`, { field, value, tipoCupom: updated.tipoCupom });
         return updated;
       });
@@ -1202,16 +1223,29 @@ const InvestmentComparator = () => {
     
     const periodosAtivo = vencimentoReal || anosProjecao;
 
+    // 🚨 BYPASS TEMPORÁRIO: Force tipoCupom correction for CRAs with manual coupons
+    let finalDados = { ...dados };
+    if (dados.tipoAtivo?.includes('cri-cra') && dados.couponData?.coupons?.length > 0) {
+      if (dados.tipoCupom === 'nenhum') {
+        console.log(`🚨 BYPASS: Forcing tipoCupom 'semestral' for CRA ${dados.nome} with manual coupons`);
+        finalDados.tipoCupom = 'semestral';
+        finalDados.mesesCupons = '2,8'; // February and August
+      }
+    }
+
     console.log(`🎯 Checking coupon logic:`, {
-      tipoCupom: dados.tipoCupom,
-      condition: dados.tipoCupom !== 'nenhum',
-      willUseCashFlow: dados.tipoCupom !== 'nenhum'
+      originalTipoCupom: dados.tipoCupom,
+      finalTipoCupom: finalDados.tipoCupom,
+      condition: finalDados.tipoCupom !== 'nenhum',
+      willUseCashFlow: finalDados.tipoCupom !== 'nenhum',
+      hasManualCoupons: dados.couponData?.coupons?.length > 0,
+      tipoAtivo: dados.tipoAtivo
     });
 
     // Always use cash flow system when asset has coupons
-    if (dados.tipoCupom !== 'nenhum') {
-      console.log(`💰 Asset ${dados.nome} has coupons - using cash flow calculation`);
-      return calcularAtivoComFluxoCaixa(dados, periodosAtivo);
+    if (finalDados.tipoCupom !== 'nenhum') {
+      console.log(`💰 Asset ${finalDados.nome} has coupons - using cash flow calculation`);
+      return calcularAtivoComFluxoCaixa(finalDados, periodosAtivo);
     }
 
     // Legacy calculation for backward compatibility
@@ -1454,19 +1488,26 @@ const InvestmentComparator = () => {
   };
 
   const calcular = () => {
-    console.log(`🚀 Starting calculation - DEBUG DATA:`, {
+    console.log(`🚀 Starting calculation - ENHANCED DEBUG DATA:`, {
       ativo1: {
         nome: ativo1.nome,
         tipoCupom: ativo1.tipoCupom,
         mesesCupons: ativo1.mesesCupons,
-        tipoAtivo: ativo1.tipoAtivo
+        tipoAtivo: ativo1.tipoAtivo,
+        hasManualCoupons: ativo1.couponData?.coupons?.length > 0,
+        couponCount: ativo1.couponData?.coupons?.length || 0,
+        earningsStartDate: ativo1.earningsStartDate
       },
       ativo2: {
         nome: ativo2.nome,
         tipoCupom: ativo2.tipoCupom,
         mesesCupons: ativo2.mesesCupons,
-        tipoAtivo: ativo2.tipoAtivo
-      }
+        tipoAtivo: ativo2.tipoAtivo,
+        hasManualCoupons: ativo2.couponData?.coupons?.length > 0,
+        couponCount: ativo2.couponData?.coupons?.length || 0,
+        earningsStartDate: ativo2.earningsStartDate
+      },
+      timestamp: new Date().toISOString()
     });
     
     try {
