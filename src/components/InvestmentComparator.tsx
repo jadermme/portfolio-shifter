@@ -2753,10 +2753,10 @@ const InvestmentComparator = () => {
                         <span className="text-muted-foreground">Valor de Compra:</span>
                         <div className="font-mono font-semibold">R$ {formatCurrency(ativo2?.valorInvestido || 0)}</div>
                       </div>
-                      <div>
-                        <span className="text-muted-foreground">Valor de Curva:</span>
-                        <div className="font-mono font-semibold">R$ {formatCurrency(ativo2?.valorCurva || 0)}</div>
-                      </div>
+                       <div>
+                         <span className="text-muted-foreground">Taxa:</span>
+                         <div className="font-mono font-semibold">{(ativo2?.taxa || 0).toFixed(2)}% a.a.</div>
+                       </div>
                     </div>
                     
                     {/* Coluna 4 - Cupons */}
