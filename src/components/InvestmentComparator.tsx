@@ -1461,107 +1461,36 @@ const InvestmentComparator = () => {
       console.log(`📅 Ativo 2 (${ativo2.nome}): ${vencimento2.toLocaleDateString()} (${anosAtivo2} anos)`);
       console.log(`⏰ Diferença: ${diferencaDias.toFixed(0)} dias`);
 
-      // 🎯 NOVA LÓGICA: Comparar ambos os ativos até o vencimento mais longo com reinvestimento inteligente
-      if (diferencaDias > 30) {
-        console.log(`🚀 DIFERENÇA SIGNIFICATIVA (${diferencaDias.toFixed(0)} dias) - APLICANDO REINVESTIMENTO INTELIGENTE`);
+      // 🎯 NOVA LÓGICA: Comparar ambos os ativos até o vencimento do Ativo 2 (prazo mais curto)
+      console.log(`🚀 COMPARAÇÃO ATÉ VENCIMENTO DO ATIVO 2 - PRAZO LIMITADO`);
+      
+      // SEMPRE comparar até o vencimento do Ativo 2 (prazo mais curto)
+      const dataFinal = vencimento2; // Sempre usa o vencimento do ativo 2
+      const anosAteAtivo2 = anosAtivo2; // Prazo até o vencimento do ativo 2
+      anosProjecao = anosAteAtivo2;
+      
+      console.log(`📅 Data final da comparação: ${dataFinal.toISOString().slice(0, 10)} (${anosAteAtivo2.toFixed(2)} anos)`);
+      
+      // Calcular ambos os ativos até o prazo do Ativo 2
+      if (vencimento1 > vencimento2) {
+        console.log(`💎 CENÁRIO: Ativo 1 tem vencimento mais longo - calculando até vencimento do Ativo 2`);
         
-        // Comparar até o vencimento mais longo
-        const dataFinal = vencimento1 > vencimento2 ? vencimento1 : vencimento2;
-        const anosFinal = vencimento1 > vencimento2 ? anosAtivo1 : anosAtivo2;
-        anosProjecao = anosFinal;
+        // Calcular Ativo 1 apenas até o vencimento do Ativo 2
+        resultAtivo1 = calcularAtivo(ativo1, anosAteAtivo2);
         
-        console.log(`📅 Data final da comparação: ${dataFinal.toISOString().slice(0, 10)} (${anosFinal.toFixed(2)} anos)`);
-        
-        if (vencimento1 < vencimento2) {
-          console.log(`💎 CENÁRIO: Ativo 1 vence primeiro, reinveste no CDI até vencimento do Ativo 2`);
-          
-          // Calcular Ativo 1 até seu vencimento natural
-          resultAtivo1 = calcularAtivo(ativo1, anosAtivo1);
-          const valorLiquidoAtivo1 = resultAtivo1.valores[resultAtivo1.valores.length - 1];
-          
-          // Calcular Ativo 2 até seu vencimento natural
-          resultAtivo2 = calcularAtivo(ativo2, anosAtivo2);
-          
-          // Calcular reinvestimento do Ativo 1 no CDI
-          const dataInicioReinvestimento = vencimento1;
-          const dataFimReinvestimento = vencimento2;
-          const reinvestimentoCDI = calcularReinvestimentoCDI(
-            valorLiquidoAtivo1,
-            dataInicioReinvestimento,
-            dataFimReinvestimento,
-            projecoes
-          );
-          
-          // Atualizar valor final do Ativo 1 com reinvestimento
-          resultAtivo1.valores[resultAtivo1.valores.length - 1] = reinvestimentoCDI.valorLiquido;
-          
-          reinvestimentoInfo = {
-            ativoReinvestido: 'ativo1' as const,
-            valorResgatado: valorLiquidoAtivo1,
-            periodosReinvestimento: Math.ceil(diferencaDias / 30),
-            taxaReinvestimento: projecoes.cdi[2025] || 13.25,
-            valorFinalReinvestimento: reinvestimentoCDI.valorLiquido,
-            dataInicioReinvestimento: dataInicioReinvestimento.toISOString().slice(0, 10),
-            dataFimReinvestimento: dataFimReinvestimento.toISOString().slice(0, 10),
-            diasReinvestidos: reinvestimentoCDI.diasReinvestidos,
-            rendimentoReinvestimento: reinvestimentoCDI.rendimento,
-            irReinvestimento: reinvestimentoCDI.ir,
-            valorTotalComReinvestimento: reinvestimentoCDI.valorLiquido
-          };
-          
-        } else if (vencimento2 < vencimento1) {
-          console.log(`💎 CENÁRIO: Ativo 2 vence primeiro, reinveste no CDI até vencimento do Ativo 1`);
-          
-          // Calcular Ativo 2 até seu vencimento natural
-          resultAtivo2 = calcularAtivo(ativo2, anosAtivo2);
-          const valorLiquidoAtivo2 = resultAtivo2.valores[resultAtivo2.valores.length - 1];
-          
-          // Calcular Ativo 1 até seu vencimento natural
-          resultAtivo1 = calcularAtivo(ativo1, anosAtivo1);
-          
-          // Calcular reinvestimento do Ativo 2 no CDI
-          const dataInicioReinvestimento = vencimento2;
-          const dataFimReinvestimento = vencimento1;
-          const reinvestimentoCDI = calcularReinvestimentoCDI(
-            valorLiquidoAtivo2,
-            dataInicioReinvestimento,
-            dataFimReinvestimento,
-            projecoes
-          );
-          
-          // Atualizar valor final do Ativo 2 com reinvestimento
-          resultAtivo2.valores[resultAtivo2.valores.length - 1] = reinvestimentoCDI.valorLiquido;
-          
-          reinvestimentoInfo = {
-            ativoReinvestido: 'ativo2' as const,
-            valorResgatado: valorLiquidoAtivo2,
-            periodosReinvestimento: Math.ceil(diferencaDias / 30),
-            taxaReinvestimento: projecoes.cdi[2025] || 13.25,
-            valorFinalReinvestimento: reinvestimentoCDI.valorLiquido,
-            dataInicioReinvestimento: dataInicioReinvestimento.toISOString().slice(0, 10),
-            dataFimReinvestimento: dataFimReinvestimento.toISOString().slice(0, 10),
-            diasReinvestidos: reinvestimentoCDI.diasReinvestidos,
-            rendimentoReinvestimento: reinvestimentoCDI.rendimento,
-            irReinvestimento: reinvestimentoCDI.ir,
-            valorTotalComReinvestimento: reinvestimentoCDI.valorLiquido
-          };
-          
-        } else {
-          // Nunca deveria chegar aqui com diferencaDias > 30, mas como fallback
-          anosProjecao = Math.max(anosAtivo1, anosAtivo2);
-          resultAtivo1 = calcularAtivo(ativo1, anosAtivo1);
-          resultAtivo2 = calcularAtivo(ativo2, anosAtivo2);
-          reinvestimentoInfo = null;
-        }
-      } else {
-        // Diferença pequena (≤ 30 dias) - comparação direta sem reinvestimento
-        console.log(`✅ CENÁRIO: Diferença pequena (${diferencaDias.toFixed(0)} dias) - comparação direta`);
-        
-        anosProjecao = Math.max(anosAtivo1, anosAtivo2);
-        resultAtivo1 = calcularAtivo(ativo1, anosAtivo1);
+        // Calcular Ativo 2 até seu vencimento natural
         resultAtivo2 = calcularAtivo(ativo2, anosAtivo2);
-        reinvestimentoInfo = null;
+        
+      } else {
+        console.log(`💎 CENÁRIO: Ambos os ativos têm prazo similar ou Ativo 2 tem vencimento mais longo`);
+        
+        // Calcular ambos normalmente até o prazo do Ativo 2
+        resultAtivo1 = calcularAtivo(ativo1, anosAteAtivo2);
+        resultAtivo2 = calcularAtivo(ativo2, anosAtivo2);
       }
+      
+      // Não há reinvestimento - comparação encerrada no vencimento do Ativo 2
+      reinvestimentoInfo = null;
 
       setResults({
         ativo1: resultAtivo1.valores,
