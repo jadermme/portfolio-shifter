@@ -118,3 +118,122 @@ All colors MUST be HSL.
     @apply bg-background text-foreground;
   }
 }
+
+/* Print styles for professional PDF generation */
+@media print {
+  @page {
+    margin: 2cm;
+    size: A4;
+  }
+
+  * {
+    -webkit-print-color-adjust: exact !important;
+    color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  .print-header {
+    display: block !important;
+    text-align: center;
+    border-bottom: 2px solid hsl(var(--primary));
+    padding-bottom: 1rem;
+    margin-bottom: 2rem;
+  }
+
+  .print-title {
+    font-size: 24px !important;
+    font-weight: bold;
+    color: hsl(var(--primary)) !important;
+    margin-bottom: 0.5rem;
+  }
+
+  .print-subtitle {
+    font-size: 14px !important;
+    color: hsl(var(--muted-foreground)) !important;
+  }
+
+  .print-section {
+    margin-bottom: 2rem;
+    page-break-inside: avoid;
+  }
+
+  .print-section-title {
+    font-size: 18px !important;
+    font-weight: bold;
+    color: hsl(var(--primary)) !important;
+    margin-bottom: 1rem;
+    border-bottom: 1px solid hsl(var(--border));
+    padding-bottom: 0.5rem;
+  }
+
+  .print-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 1.5rem;
+    font-size: 12px !important;
+  }
+
+  .print-table th {
+    background-color: hsl(var(--muted)) !important;
+    padding: 8px !important;
+    border: 1px solid hsl(var(--border)) !important;
+    font-weight: bold;
+    text-align: left;
+  }
+
+  .print-table td {
+    padding: 6px 8px !important;
+    border: 1px solid hsl(var(--border)) !important;
+  }
+
+  .print-table tbody tr:nth-child(even) {
+    background-color: hsl(var(--muted) / 0.3) !important;
+  }
+
+  .print-highlight {
+    background-color: hsl(var(--accent) / 0.2) !important;
+    font-weight: bold;
+  }
+
+  .print-footer {
+    display: block !important;
+    border-top: 1px solid hsl(var(--border));
+    padding-top: 1rem;
+    margin-top: 2rem;
+    font-size: 10px !important;
+    color: hsl(var(--muted-foreground)) !important;
+    page-break-inside: avoid;
+  }
+
+  .print-disclaimer {
+    background-color: hsl(var(--muted) / 0.3) !important;
+    padding: 1rem;
+    border-left: 4px solid hsl(var(--primary));
+    margin: 1rem 0;
+    font-size: 11px !important;
+  }
+
+  .print-summary {
+    background-color: hsl(var(--primary) / 0.1) !important;
+    padding: 1rem;
+    border: 1px solid hsl(var(--primary));
+    border-radius: 0.5rem;
+    margin-bottom: 2rem;
+  }
+
+  .print-hide {
+    display: none !important;
+  }
+
+  .print-show {
+    display: block !important;
+  }
+
+  .page-break {
+    page-break-before: always;
+  }
+
+  .no-page-break {
+    page-break-inside: avoid;
+  }
+}

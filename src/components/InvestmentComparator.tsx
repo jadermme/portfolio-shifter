@@ -1979,10 +1979,18 @@ const InvestmentComparator = () => {
       </CardContent>
     </Card>;
   const anoAtual = new Date().getFullYear();
-  return <div className="min-h-screen bg-background p-4">
-      <div className="container mx-auto max-w-7xl">
+  return <div className="min-h-screen bg-background p-4 print:p-0">
+      {/* Print Header - Hidden on screen, visible in PDF */}
+      <div className="print-header hidden">
+        <h1 className="print-title">RELATÓRIO DE ANÁLISE COMPARATIVA DE INVESTIMENTOS</h1>
+        <p className="print-subtitle">
+          Análise detalhada de ativos de renda fixa • Gerado em {new Date().toLocaleDateString('pt-BR')}
+        </p>
+      </div>
+
+      <div className="container mx-auto max-w-7xl print:max-w-none">
         {/* Header */}
-        <div className="text-center mb-8">
+        <div className="text-center mb-8 print-hide">
           <div className="inline-flex items-center gap-3 mb-4">
             <div className="p-3 bg-gradient-to-br from-financial-primary to-financial-secondary rounded-xl">
               <TrendingUp className="h-8 w-8 text-white" />
@@ -2084,6 +2092,25 @@ const InvestmentComparator = () => {
           </div>}
 
         {showResults && results && <div className="space-y-6">
+            {/* Executive Summary for PDF */}
+            <div className="print-show hidden print-summary">
+              <h2 className="print-section-title">RESUMO EXECUTIVO</h2>
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                  <strong>Período de Análise:</strong> {Math.round((new Date(ativo2.vencimento).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))} dias
+                </div>
+                <div>
+                  <strong>Data de Comparação:</strong> {new Date(ativo2.vencimento).toLocaleDateString('pt-BR')}
+                </div>
+                <div>
+                  <strong>Melhor Investimento:</strong> {results.ativo1[results.ativo1.length - 1] > results.ativo2[results.ativo2.length - 1] ? 'Ativo 1' : 'Ativo 2'}
+                </div>
+                <div>
+                  <strong>Diferença:</strong> R$ {Math.abs(results.ativo1[results.ativo1.length - 1] - results.ativo2[results.ativo2.length - 1]).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                </div>
+              </div>
+            </div>
+
             {/* Data freshness check */}
             {(() => {
               const currentHash = generateDataHash();
@@ -2104,18 +2131,29 @@ const InvestmentComparator = () => {
             })()}
             
             {/* Executive Summary - Restructured into Two Separate Tables */}
-            <div className="space-y-6">
+            <div className="space-y-6 print-section">
+              <div className="print-show hidden">
+                <h2 className="print-section-title">ANÁLISE DETALHADA DOS INVESTIMENTOS</h2>
+              </div>
+              
               {/* Table 1 - CRA ZAMP with Early Sale Analysis */}
-              <Card className="border-financial-success/30 shadow-xl">
-                <CardHeader className="bg-gradient-to-r from-financial-success to-blue-600 text-white rounded-t-lg">
+              <Card className="border-financial-success/30 shadow-xl no-page-break">
+                <CardHeader className="bg-gradient-to-r from-financial-success to-blue-600 text-white rounded-t-lg print-hide">
                   <CardTitle className="flex items-center gap-2">
                     <TrendingUp className="h-5 w-5" />
                     {ativo1.nome} - Análise de Venda Antecipada
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="p-6">
-                  <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 text-sm">
-                    {/* Coluna 1 - Características Básicas */}
+                
+                {/* Print-optimized header */}
+                <div className="print-show hidden">
+                  <h3 className="print-section-title">{ativo1.nome} - ANÁLISE DE VENDA ANTECIPADA</h3>
+                </div>
+
+                <CardContent className="p-6 print:p-4">
+                  {/* Screen view - existing grid layout */}
+                  <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 text-sm print-hide">
+                    {/* ... keep existing grid content */}
                     <div className="space-y-3">
                       <div>
                         <span className="text-muted-foreground">Tipo de Ativo:</span>
@@ -2205,6 +2243,41 @@ const InvestmentComparator = () => {
                         </div>
                       </div>
                     )}
+                  </div>
+                  
+                  {/* Print-optimized table */}
+                  <div className="print-show hidden">
+                    <table className="print-table">
+                      <thead>
+                        <tr>
+                          <th>Tipo de Ativo</th>
+                          <th>Indexador</th>
+                          <th>Taxa</th>
+                          <th>Valor de Compra</th>
+                          <th>Valor de Curva</th>
+                          <th>Cupons Recebidos</th>
+                          <th>Valor de Venda</th>
+                          <th>Resultado</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr>
+                          <td>{getTipoAtivoDisplay(ativo1.tipoAtivo)}</td>
+                          <td>{ativo1.tipoAtivo !== 'fundo-cetipado' ? getIndexadorDisplay(ativo1.indexador) : '-'}</td>
+                          <td>{getTaxaDisplay(ativo1)}</td>
+                          <td>R$ {formatCurrency(ativo1.valorInvestido)}</td>
+                          <td>R$ {formatCurrency(ativo1.valorCurva)}</td>
+                          <td>R$ {formatCurrency(ativo1.couponData.total)}</td>
+                          <td>{ativo1.valorVenda ? `R$ ${formatCurrency(ativo1.valorVenda)}` : '-'}</td>
+                          <td className={ativo1.valorVenda ? 'print-highlight' : ''}>
+                            {ativo1.valorVenda ? 
+                              `R$ ${formatCurrency(ativo1.valorVenda + ativo1.couponData.total - ativo1.valorInvestido)}` 
+                              : 'Aguardando valor de venda'
+                            }
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
                   </div>
                 </CardContent>
               </Card>
@@ -2775,9 +2848,32 @@ const InvestmentComparator = () => {
                        e reinvestidos pela curva CDI projetada do momento do pagamento até o vencimento. Otimizado para títulos diretos.
                      </p>
                    </div>
-                </CardContent>
-              </Card>}
-          </div>}
+                 </CardContent>
+               </Card>}
+
+            {/* Print Footer */}
+            <div className="print-footer hidden">
+              <div className="print-disclaimer">
+                <h4 style={{ marginBottom: '0.5rem', fontWeight: 'bold' }}>DISCLAIMER</h4>
+                <p style={{ marginBottom: '0.5rem' }}>
+                  Esta análise é meramente informativa e não constitui recomendação de investimento. 
+                  Os cálculos são baseados nas informações fornecidas e nas regras tributárias vigentes.
+                </p>
+                <p style={{ marginBottom: '0.5rem' }}>
+                  <strong>Metodologia:</strong> Comparação realizada até a data de vencimento do ativo com menor prazo. 
+                  Cálculos incluem impostos (IR regressivo) e consideram fluxo de caixa quando aplicável.
+                </p>
+                <p>
+                  <strong>Importante:</strong> Rentabilidades passadas não garantem resultados futuros. 
+                  Consulte sempre um assessor de investimentos qualificado.
+                </p>
+              </div>
+              <div style={{ textAlign: 'center', marginTop: '1rem', fontSize: '10px' }}>
+                Relatório gerado em {new Date().toLocaleDateString('pt-BR')} às {new Date().toLocaleTimeString('pt-BR')} | 
+                Comparador de Investimentos - Ferramenta de Análise Financeira
+              </div>
+            </div>
+           </div>}
       </div>
     </div>;
 };
