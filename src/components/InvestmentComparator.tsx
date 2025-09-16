@@ -400,18 +400,21 @@ function genCouponDates(startISO: string, endISO: string, freq: Freq, earningsSt
         
         currentYear++;
       }
-    } else if (earningsStartDate === '2025-10-01') {
-      console.log(`📅 BTDI11: Gerando cupons mensais, primeiro cupom em novembro (referente a outubro)`);
+    } else if (earningsStartDate && earningsStartDate.endsWith('-10')) {
+      console.log(`📅 Fundo: Gerando cupons mensais no dia 10, primeiro cupom em ${earningsStartDate}`);
       
-      // Start from November 2025 (first coupon for October earnings)
-      let currentDate = new Date('2025-11-01');
+      // Use the earningsStartDate as the first payment date (day 10 of the month)
+      let currentDate = new Date(earningsStartDate);
       const endDate = new Date(endISO);
       
       while (currentDate <= endDate) {
         const couponDate = currentDate.toISOString().slice(0, 10);
         console.log(`📅 Data de cupom gerada: ${couponDate}`);
         out.push(couponDate);
+        
+        // Increment month and ensure we stay on day 10
         currentDate.setMonth(currentDate.getMonth() + 1);
+        currentDate.setDate(10);
       }
     } else {
       // Standard logic for other assets
