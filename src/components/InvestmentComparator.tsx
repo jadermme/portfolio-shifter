@@ -2212,7 +2212,7 @@ const InvestmentComparator = () => {
             Análise - Troca de Ativos
           </h1>
           </div>
-          <p className="text-lg text-muted-foreground">Compare qualquer ativo com outro ativo</p>
+          
           <Separator className="mt-6" />
         </div>
 
