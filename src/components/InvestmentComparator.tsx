@@ -21,7 +21,7 @@ const formatCurrency = (value: number): string => {
 
 // ===================== NEW CASH FLOW SYSTEM TYPES =====================
 type RateKind = "PRE" | "IPCA+PRE" | "%CDI" | "CDI+PRE";
-type Freq = "MONTHLY" | "SEMIANNUAL";
+type Freq = "MONTHLY" | "SEMIANNUAL" | "ANNUAL";
 interface CDIPoint {
   date: string;
   cdiAA: number; // a.a. em %
@@ -371,7 +371,7 @@ function calculatePeriodRate(annualRate: number, fromISO: string, toISO: string,
   return Math.pow(1 + dailyRate, days) - 1;
 }
 function genCouponDates(startISO: string, endISO: string, freq: Freq, earningsStartDate?: string, mesesCupons?: string, tipoAtivo?: string): string[] {
-  const step = freq === "MONTHLY" ? 1 : 6;
+  const step = freq === "MONTHLY" ? 1 : freq === "ANNUAL" ? 12 : 6;
   const out: string[] = [];
 
   // Use earnings start date if provided, otherwise use start date
@@ -553,6 +553,43 @@ function projectWithReinvestCDI(x: CouponEngineInput, isLimitedAnalysis = false,
     }
   };
 
+  // Função para calcular o período de um cupom anual (12 meses de acumulação)
+  const getAnnualCouponPeriod = (couponDate: string, couponIndex: number, earningsStartDate: string) => {
+    const [year, month, day] = couponDate.split('-').map(Number);
+    const couponDateObj = new Date(year, month - 1, day);
+    
+    if (couponIndex === 0) {
+      // Primeiro cupom: acumula desde o earnings start date até o mês anterior ao cupom
+      const startDate = new Date(earningsStartDate + 'T00:00:00');
+      
+      // Fim do mês anterior ao cupom
+      const endMonth = new Date(couponDateObj);
+      endMonth.setMonth(endMonth.getMonth() - 1);
+      endMonth.setMonth(endMonth.getMonth() + 1); // próximo mês
+      endMonth.setDate(0); // último dia do mês anterior
+      
+      const periodStart = startDate.toISOString().split('T')[0];
+      const periodEnd = endMonth.toISOString().split('T')[0];
+      
+      return { periodStart, periodEnd };
+    } else {
+      // Cupons subsequentes: acumula 12 meses completos anteriores ao cupom
+      const endMonth = new Date(couponDateObj);
+      endMonth.setMonth(endMonth.getMonth() - 1);
+      endMonth.setMonth(endMonth.getMonth() + 1); // próximo mês
+      endMonth.setDate(0); // último dia do mês anterior
+      
+      const startMonth = new Date(couponDateObj);
+      startMonth.setMonth(startMonth.getMonth() - 12); // 12 meses antes
+      startMonth.setDate(1); // primeiro dia do mês
+      
+      const periodStart = startMonth.toISOString().split('T')[0];
+      const periodEnd = endMonth.toISOString().split('T')[0];
+      
+      return { periodStart, periodEnd };
+    }
+  };
+
   // percorre cada período usando lógica específica por frequência
   for (let i = 0; i < couponDates.length; i++) {
     const dt = couponDates[i];
@@ -560,6 +597,8 @@ function projectWithReinvestCDI(x: CouponEngineInput, isLimitedAnalysis = false,
     // Escolhe a função de período baseada na frequência do cupom
     const { periodStart, periodEnd } = x.freq === 'MONTHLY' 
       ? getCouponPeriod(dt)
+      : x.freq === 'ANNUAL'
+      ? getAnnualCouponPeriod(dt, i, x.earningsStartDate || x.startISO)
       : getSemestralCouponPeriod(dt, i, x.earningsStartDate || x.startISO);
     
     // Get CDI rate specific for this coupon period
@@ -578,6 +617,12 @@ function projectWithReinvestCDI(x: CouponEngineInput, isLimitedAnalysis = false,
       console.log(`  📊 CDI no período: ${cdiAA}% a.a.`);
       console.log(`  📝 Dias no período: ${daysBetween(periodStart, periodEnd)} dias corridos`);
       console.log(`  💡 Método: ${i === 0 ? 'Desde início dos rendimentos' : 'Acumulação de 6 meses'}`);
+    } else if (x.freq === 'ANNUAL') {
+      console.log(`\n🔍 Cupom ${i + 1} (${dt}) - ANUAL:`);
+      console.log(`  📅 Período de acumulação: ${periodStart} até ${periodEnd} (${i === 0 ? 'primeiro cupom' : '12 meses completos'})`);
+      console.log(`  📊 CDI no período: ${cdiAA}% a.a.`);
+      console.log(`  📝 Dias no período: ${daysBetween(periodStart, periodEnd)} dias corridos`);
+      console.log(`  💡 Método: ${i === 0 ? 'Desde início dos rendimentos' : 'Acumulação de 12 meses'}`);
     }
     
     // Calculate rate for the period (monthly or semiannual)
@@ -712,6 +757,7 @@ function mapLegacyToNewFormat(asset: AssetData): RateKind {
 }
 function mapCoupomFreq(tipoCupom: string): Freq {
   if (tipoCupom?.toLowerCase().includes('mensal')) return 'MONTHLY';
+  if (tipoCupom?.toLowerCase().includes('anual')) return 'ANNUAL';
   return 'SEMIANNUAL'; // Default to semiannual
 }
 
