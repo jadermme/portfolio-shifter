@@ -2201,6 +2201,126 @@ const InvestmentComparator = () => {
         </p>
       </div>
 
+      {/* Compact PDF Summary Content - Only visible in compact PDF mode */}
+      {compactPdfMode && results && (
+        <div className="compact-pdf-only space-y-2">
+          {/* Executive Summary */}
+          <div className="compact-pdf-section">
+            <h2 className="compact-pdf-title">RESUMO EXECUTIVO</h2>
+            <table className="compact-pdf-table">
+              <thead>
+                <tr>
+                  <th>Ativo</th>
+                  <th>Tipo</th>
+                  <th>Taxa</th>
+                  <th>Valor Final</th>
+                  <th>Rendimento</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>{ativo1.nome}</td>
+                  <td>{getTipoAtivoDisplay(ativo1.tipoAtivo)}</td>
+                  <td>{getTaxaDisplay(ativo1)}</td>
+                  <td>R$ {formatCurrency(results.ativo1[results.ativo1.length - 1])}</td>
+                  <td>R$ {formatCurrency(results.ativo1[results.ativo1.length - 1] - ativo1.valorInvestido)}</td>
+                </tr>
+                <tr>
+                  <td>{ativo2.nome}</td>
+                  <td>{getTipoAtivoDisplay(ativo2.tipoAtivo)}</td>
+                  <td>{getTaxaDisplay(ativo2)}</td>
+                  <td>R$ {formatCurrency(results.ativo2[results.ativo2.length - 1])}</td>
+                  <td>R$ {formatCurrency(results.ativo2[results.ativo2.length - 1] - ativo2.valorInvestido)}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          {/* Key Metrics */}
+          <div className="compact-pdf-section">
+            <h3 className="compact-pdf-title">PRINCIPAIS INDICADORES</h3>
+            <div className="grid grid-cols-2 gap-1 text-xs">
+              <div className="space-y-1">
+                <div><strong>Diferença de Rendimento:</strong></div>
+                <div>R$ {formatCurrency(Math.abs((results.ativo1[results.ativo1.length - 1] - ativo1.valorInvestido) - (results.ativo2[results.ativo2.length - 1] - ativo2.valorInvestido)))}</div>
+                <div><strong>Melhor Opção:</strong></div>
+                <div>{results.ativo1[results.ativo1.length - 1] > results.ativo2[results.ativo2.length - 1] ? ativo1.nome : ativo2.nome}</div>
+              </div>
+              <div className="space-y-1">
+                <div><strong>Período de Análise:</strong></div>
+                <div>{results.anosProjecao} ano{results.anosProjecao > 1 ? 's' : ''}</div>
+                <div><strong>IR Total:</strong></div>
+                <div>R$ {formatCurrency(results.impostoAtivo1 + results.impostoAtivo2)}</div>
+              </div>
+            </div>
+          </div>
+
+          {/* Asset Details */}
+          <div className="compact-pdf-section">
+            <h3 className="compact-pdf-title">DETALHAMENTO DOS ATIVOS</h3>
+            <table className="compact-pdf-table">
+              <thead>
+                <tr>
+                  <th>Característica</th>
+                  <th>{ativo1.nome}</th>
+                  <th>{ativo2.nome}</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><strong>Vencimento</strong></td>
+                  <td>{new Date(ativo1.vencimento).toLocaleDateString('pt-BR')}</td>
+                  <td>{new Date(ativo2.vencimento).toLocaleDateString('pt-BR')}</td>
+                </tr>
+                <tr>
+                  <td><strong>Valor Investido</strong></td>
+                  <td>R$ {formatCurrency(ativo1.valorInvestido)}</td>
+                  <td>R$ {formatCurrency(ativo2.valorInvestido)}</td>
+                </tr>
+                <tr>
+                  <td><strong>Cupons Esperados</strong></td>
+                  <td>R$ {formatCurrency(ativo1.couponData.total)}</td>
+                  <td>R$ {formatCurrency(ativo2.couponData.total)}</td>
+                </tr>
+                <tr>
+                  <td><strong>IR Estimado</strong></td>
+                  <td>R$ {formatCurrency(results.impostoAtivo1)}</td>
+                  <td>R$ {formatCurrency(results.impostoAtivo2)}</td>
+                </tr>
+                <tr>
+                  <td><strong>Valor Final Líquido</strong></td>
+                  <td>R$ {formatCurrency(results.ativo1[results.ativo1.length - 1] - results.impostoAtivo1)}</td>
+                  <td>R$ {formatCurrency(results.ativo2[results.ativo2.length - 1] - results.impostoAtivo2)}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          {/* Economic Projections Used */}
+          <div className="compact-pdf-section">
+            <h3 className="compact-pdf-title">PROJEÇÕES ECONÔMICAS UTILIZADAS</h3>
+            <table className="compact-pdf-table">
+              <thead>
+                <tr>
+                  <th>Ano</th>
+                  <th>CDI (%)</th>
+                  <th>IPCA (%)</th>
+                </tr>
+              </thead>
+              <tbody>
+                {Object.entries(projecoes.cdi).slice(0, 5).map(([ano, cdi]) => (
+                  <tr key={ano}>
+                    <td>{ano}</td>
+                    <td>{cdi.toFixed(2)}%</td>
+                    <td>{(projecoes.ipca[parseInt(ano)] || 0).toFixed(2)}%</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
       <div className="container mx-auto max-w-7xl print:max-w-none">
         {/* Header */}
         <div className="text-center mb-8 print-hide">
