@@ -2296,8 +2296,11 @@ const InvestmentComparator = () => {
               setCompactPdfMode(true);
               setTimeout(() => {
                 window.print();
-                setCompactPdfMode(false);
-              }, 100);
+                // Wait longer for print dialog to fully process the compact styles
+                setTimeout(() => {
+                  setCompactPdfMode(false);
+                }, 2000);
+              }, 300);
             }} 
             size="lg" 
             className="border-blue-500 text-blue-600 hover:bg-blue-500 hover:text-white"
