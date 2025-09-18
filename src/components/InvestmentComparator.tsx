@@ -2208,9 +2208,9 @@ const InvestmentComparator = () => {
             <div className="p-3 bg-gradient-to-br from-financial-primary to-financial-secondary rounded-xl">
               <TrendingUp className="h-8 w-8 text-white" />
             </div>
-            <h1 className="text-4xl font-bold bg-gradient-to-r from-financial-primary to-financial-secondary bg-clip-text text-transparent">
-              COMPARADOR UNIVERSAL DE INVESTIMENTOS
-            </h1>
+          <h1 className="text-4xl font-bold bg-gradient-to-r from-financial-primary to-financial-secondary bg-clip-text text-transparent">
+            Análise - Troca de Ativos
+          </h1>
           </div>
           <p className="text-lg text-muted-foreground">Compare qualquer ativo com outro ativo</p>
           <Separator className="mt-6" />
