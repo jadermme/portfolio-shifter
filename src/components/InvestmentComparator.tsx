@@ -2440,19 +2440,16 @@ const InvestmentComparator = () => {
          {/* Action Buttons */}
         <div className="flex flex-wrap justify-center gap-4 mb-8 print:hidden">
           <Button onClick={calcular} size="lg" className="bg-gradient-to-r from-financial-primary to-financial-secondary hover:from-financial-secondary hover:to-financial-primary text-white font-bold shadow-lg transform transition-all duration-300 hover:scale-105">
-            <Calculator className="h-5 w-5 mr-2" />
             🔄 Calcular Comparação
             {hasUnsavedChanges && <span className="ml-2 text-yellow-300 animate-pulse">●</span>}
           </Button>
           <Button variant="outline" onClick={limparDados} size="lg" className="border-financial-danger text-financial-danger hover:bg-financial-danger hover:text-white">
-            <Trash2 className="h-5 w-5 mr-2" />
             🗑️ Limpar Dados
           </Button>
           <Button variant="outline" onClick={resetBTDI11Cache} size="lg" className="border-yellow-500 text-yellow-600 hover:bg-yellow-500 hover:text-white">
             🧼 Reset BTDI11 Cache
           </Button>
           <Button variant="outline" onClick={() => window.print()} size="lg" className="border-financial-primary text-financial-primary hover:bg-financial-primary hover:text-white">
-            <Printer className="h-5 w-5 mr-2" />
             🖨️ PDF Completo
           </Button>
           <Button 
@@ -2470,7 +2467,6 @@ const InvestmentComparator = () => {
             size="lg" 
             className="border-blue-500 text-blue-600 hover:bg-blue-500 hover:text-white"
           >
-            <Printer className="h-5 w-5 mr-2" />
             📄 PDF Compacto
           </Button>
         </div>
