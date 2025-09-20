@@ -1954,7 +1954,6 @@ const InvestmentComparator = () => {
       <CardHeader className={`bg-gradient-to-r from-${color} to-financial-secondary text-white rounded-t-lg`}>
         <CardTitle className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2">
-            <BarChart3 className="h-5 w-5" />
             {title}
           </div>
           <AlertDialog>
