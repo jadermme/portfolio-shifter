@@ -2491,221 +2491,20 @@ const InvestmentComparator = () => {
               return null;
             })()}
             
-            {/* Print-Only Executive Summary and Analysis - NEW */}
-            <div className={`print-show hidden ${compactPdfMode ? 'compact-pdf-hide' : ''}`}>
-              {/* Print Header */}
-              <div className="print-header">
-                <div className="print-title">ANÁLISE COMPARATIVA</div>
-                <div className="print-subtitle">
-                  {ativo1.nome || 'Ativo 1'} vs {ativo2.nome || 'Ativo 2'} • {new Date().toLocaleDateString('pt-BR')}
-                </div>
-              </div>
-
-              {/* Executive Summary Section */}
-              <div className="print-section">
-                <h3 className="print-section-title">RESUMO EXECUTIVO - SITUAÇÃO ATUAL</h3>
-                <table className="print-table">
-                  <thead>
-                    <tr>
-                      <th>Papel</th>
-                      <th>Valor Investido</th>
-                      <th>Valor Venda/Curva</th>
-                      <th>Cupons Recebidos</th>
-                      <th>Total Disponível</th>
-                      <th>Resultado</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr>
-                      <td>{ativo1.nome || 'Ativo 1'}</td>
-                      <td>{formatCurrency(ativo1.valorInvestido)}</td>
-                      <td>{formatCurrency(results.ativo1[results.ativo1.length - 1])}</td>
-                      <td>{formatCurrency(ativo1.couponData?.total || 0)}</td>
-                      <td>{formatCurrency((results.ativo1[results.ativo1.length - 1]) + (ativo1.couponData?.total || 0))}</td>
-                      <td style={{color: ((results.ativo1[results.ativo1.length - 1]) + (ativo1.couponData?.total || 0) - ativo1.valorInvestido) >= 0 ? '#22c55e' : '#ef4444'}}>
-                        {formatCurrency((results.ativo1[results.ativo1.length - 1]) + (ativo1.couponData?.total || 0) - ativo1.valorInvestido)}
-                      </td>
-                    </tr>
-                    <tr>
-                      <td>{ativo2.nome || 'Ativo 2'}</td>
-                      <td>{formatCurrency(ativo2.valorInvestido)}</td>
-                      <td>{formatCurrency(results.ativo2[results.ativo2.length - 1])}</td>
-                      <td>{formatCurrency(ativo2.couponData?.total || 0)}</td>
-                      <td>{formatCurrency((results.ativo2[results.ativo2.length - 1]) + (ativo2.couponData?.total || 0))}</td>
-                      <td style={{color: ((results.ativo2[results.ativo2.length - 1]) + (ativo2.couponData?.total || 0) - ativo2.valorInvestido) >= 0 ? '#22c55e' : '#ef4444'}}>
-                        {formatCurrency((results.ativo2[results.ativo2.length - 1]) + (ativo2.couponData?.total || 0) - ativo2.valorInvestido)}
-                      </td>
-                    </tr>
-                    <tr style={{fontWeight: 'bold', backgroundColor: '#f8f9fa'}}>
-                      <td>TOTAL</td>
-                      <td>{formatCurrency(ativo1.valorInvestido + ativo2.valorInvestido)}</td>
-                      <td>{formatCurrency(results.ativo1[results.ativo1.length - 1] + results.ativo2[results.ativo2.length - 1])}</td>
-                      <td>{formatCurrency((ativo1.couponData?.total || 0) + (ativo2.couponData?.total || 0))}</td>
-                      <td>{formatCurrency((results.ativo1[results.ativo1.length - 1]) + (ativo1.couponData?.total || 0) + (results.ativo2[results.ativo2.length - 1]) + (ativo2.couponData?.total || 0))}</td>
-                      <td style={{color: ((results.ativo1[results.ativo1.length - 1]) + (ativo1.couponData?.total || 0) + (results.ativo2[results.ativo2.length - 1]) + (ativo2.couponData?.total || 0) - ativo1.valorInvestido - ativo2.valorInvestido) >= 0 ? '#22c55e' : '#ef4444'}}>
-                        {formatCurrency((results.ativo1[results.ativo1.length - 1]) + (ativo1.couponData?.total || 0) + (results.ativo2[results.ativo2.length - 1]) + (ativo2.couponData?.total || 0) - ativo1.valorInvestido - ativo2.valorInvestido)}
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-
-              {/* Economic Projections Section */}
-              <div className="print-section">
-                <h3 className="print-section-title">PROJEÇÕES ECONÔMICAS UTILIZADAS</h3>
-                <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem'}}>
-                  <div>
-                    <table className="print-table">
-                      <thead>
-                        <tr><th colSpan={2}>CDI (%)</th></tr>
-                        <tr><th>Ano</th><th>Taxa</th></tr>
-                      </thead>
-                      <tbody>
-                        {Object.entries(projecoes.cdi).map(([ano, taxa]) => (
-                          <tr key={ano}>
-                            <td>{ano}</td>
-                            <td>{taxa}%</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                  <div>
-                    <table className="print-table">
-                      <thead>
-                        <tr><th colSpan={2}>IPCA (%)</th></tr>
-                        <tr><th>Ano</th><th>Taxa</th></tr>
-                      </thead>
-                      <tbody>
-                        {Object.entries(projecoes.ipca).map(([ano, taxa]) => (
-                          <tr key={ano}>
-                            <td>{ano}</td>
-                            <td>{taxa}%</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              </div>
-
-              {/* Scenario Analysis */}
-              <div className="print-section">
-                <h3 className="print-section-title">ANÁLISE DE CENÁRIOS</h3>
-                <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem'}}>
-                  <div>
-                    <h4 style={{fontSize: '12px', fontWeight: 'bold', marginBottom: '0.5rem'}}>Cenário 1 - Manter Carteira Atual</h4>
-                    <table className="print-table">
-                      <thead>
-                        <tr>
-                          <th>Papel</th>
-                          <th>Rentabilidade</th>
-                          <th>Valor Final Est.</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        <tr>
-                          <td>{ativo1.nome || 'Ativo 1'}</td>
-                          <td>{getTaxaLabel(ativo1.indexador || ativo1.tipoTaxa || 'pre-fixada')}</td>
-                          <td>{formatCurrency((results.ativo1[results.ativo1.length - 1]) + (ativo1.couponData?.total || 0))}</td>
-                        </tr>
-                        <tr>
-                          <td>{ativo2.nome || 'Ativo 2'}</td>
-                          <td>{getTaxaLabel(ativo2.indexador || ativo2.tipoTaxa || 'pre-fixada')}</td>
-                          <td>{formatCurrency((results.ativo2[results.ativo2.length - 1]) + (ativo2.couponData?.total || 0))}</td>
-                        </tr>
-                        <tr style={{fontWeight: 'bold'}}>
-                          <td>TOTAL</td>
-                          <td>-</td>
-                          <td>{formatCurrency((results.ativo1[results.ativo1.length - 1]) + (ativo1.couponData?.total || 0) + (results.ativo2[results.ativo2.length - 1]) + (ativo2.couponData?.total || 0))}</td>
-                        </tr>
-                      </tbody>
-                    </table>
-                  </div>
-                  
-                  <div>
-                    <h4 style={{fontSize: '12px', fontWeight: 'bold', marginBottom: '0.5rem'}}>Cenário 2 - Migração Total para {ativo2.nome || 'Ativo 2'}</h4>
-                    <table className="print-table">
-                      <thead>
-                        <tr>
-                          <th>Descrição</th>
-                          <th>Valor</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        <tr>
-                          <td>Valor Total Migrado</td>
-                          <td>{formatCurrency(ativo1.valorInvestido + ativo2.valorInvestido)}</td>
-                        </tr>
-                        <tr>
-                          <td>Rentabilidade</td>
-                          <td>{getTaxaLabel(ativo2.indexador || ativo2.tipoTaxa || 'pre-fixada')}</td>
-                        </tr>
-                        <tr>
-                          <td>Valor Final Estimado</td>
-                          <td>{formatCurrency(((results.ativo2[results.ativo2.length - 1]) + (ativo2.couponData?.total || 0)) * (ativo1.valorInvestido + ativo2.valorInvestido) / ativo2.valorInvestido)}</td>
-                        </tr>
-                        <tr style={{fontWeight: 'bold', color: (((results.ativo2[results.ativo2.length - 1]) + (ativo2.couponData?.total || 0)) * (ativo1.valorInvestido + ativo2.valorInvestido) / ativo2.valorInvestido) > ((results.ativo1[results.ativo1.length - 1]) + (ativo1.couponData?.total || 0) + (results.ativo2[results.ativo2.length - 1]) + (ativo2.couponData?.total || 0)) ? '#22c55e' : '#ef4444'}}>
-                          <td>Vantagem vs Cenário 1</td>
-                          <td>{formatCurrency((((results.ativo2[results.ativo2.length - 1]) + (ativo2.couponData?.total || 0)) * (ativo1.valorInvestido + ativo2.valorInvestido) / ativo2.valorInvestido) - ((results.ativo1[results.ativo1.length - 1]) + (ativo1.couponData?.total || 0) + (results.ativo2[results.ativo2.length - 1]) + (ativo2.couponData?.total || 0)))}</td>
-                        </tr>
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              </div>
-
-              {/* Asset Characteristics */}
-              <div className="print-section">
-                <h3 className="print-section-title">{ativo2.nome || 'ATIVO 2'} - CARACTERÍSTICAS PRINCIPAIS</h3>
-                <table className="print-table">
-                  <thead>
-                    <tr>
-                      <th>Tipo</th>
-                      <th>Rentabilidade</th>
-                      <th>Tributação</th>
-                      <th>Distribuição</th>
-                      <th>Prazo</th>
-                      <th>Gestão</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr>
-                      <td>{getTipoAtivoDisplay(ativo2.tipoAtivo)}</td>
-                      <td>{getTaxaLabel(ativo2.indexador || ativo2.tipoTaxa || 'pre-fixada')}</td>
-                      <td>{getIRDisplay(ativo2, results?.anosProjecao || 0)}</td>
-                      <td>{ativo2.periodicidadeDistribuicao || 'N/A'}</td>
-                      <td>{ativo2.vencimento ? new Date(ativo2.vencimento).toLocaleDateString('pt-BR') : 'Indefinido'}</td>
-                      <td>N/A</td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-            </div>
-            
-            {/* Executive Summary - Restructured into Two Separate Tables (Screen View) */}
-            <div className="space-y-6 print-section print:hidden">
-              <div className="print-show hidden">
-                <h2 className="print-section-title">ANÁLISE DETALHADA DOS INVESTIMENTOS</h2>
-              </div>
+            {/* Executive Summary - Restructured into Two Separate Tables */}
+            <div className={`space-y-6 ${compactPdfMode ? 'compact-pdf-mode' : ''}`}>
               
               {/* Table 1 - CRA ZAMP with Early Sale Analysis */}
-              <Card className={`border-financial-success/30 shadow-xl no-page-break ${compactPdfMode ? 'compact-pdf-only' : ''}`}>
-                <CardHeader className="bg-gradient-to-r from-financial-success to-blue-600 text-white rounded-t-lg print-hide">
+              <Card className="border-financial-success/30 shadow-xl no-page-break">
+                <CardHeader className="bg-gradient-to-r from-financial-success to-blue-600 text-white rounded-t-lg">
                   <CardTitle className="flex items-center gap-2">
                     <TrendingUp className="h-5 w-5" />
                     {ativo1.nome} - Análise de Venda Antecipada
                   </CardTitle>
                 </CardHeader>
-                
-                {/* Print-optimized header */}
-                <div className="print-show hidden">
-                  <h3 className="print-section-title">{ativo1.nome} - ANÁLISE DE VENDA ANTECIPADA</h3>
-                </div>
 
-                <CardContent className="p-6 print:p-2">
-                  {/* Screen view - existing grid layout */}
-                  <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 text-sm print-hide print:gap-2">
+                <CardContent className="p-6">
+                  <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 text-sm">
                     {/* ... keep existing grid content */}
                     <div className="space-y-3">
                       <div>
@@ -2797,46 +2596,11 @@ const InvestmentComparator = () => {
                       </div>
                     )}
                   </div>
-                  
-                  {/* Print-optimized table */}
-                  <div className="print-show hidden">
-                    <table className="print-table">
-                      <thead>
-                        <tr>
-                          <th>Tipo de Ativo</th>
-                          <th>Indexador</th>
-                          <th>Taxa</th>
-                          <th>Valor de Compra</th>
-                          <th>Valor de Curva</th>
-                          <th>Cupons Recebidos</th>
-                          <th>Valor de Venda</th>
-                          <th>Resultado</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        <tr>
-                          <td>{getTipoAtivoDisplay(ativo1.tipoAtivo)}</td>
-                          <td>{ativo1.tipoAtivo !== 'fundo-cetipado' ? getIndexadorDisplay(ativo1.indexador) : '-'}</td>
-                          <td>{getTaxaDisplay(ativo1)}</td>
-                          <td>R$ {formatCurrency(ativo1.valorInvestido)}</td>
-                          <td>R$ {formatCurrency(ativo1.valorCurva)}</td>
-                          <td>R$ {formatCurrency(ativo1.couponData.total)}</td>
-                          <td>{ativo1.valorVenda ? `R$ ${formatCurrency(ativo1.valorVenda)}` : '-'}</td>
-                          <td className={ativo1.valorVenda ? 'print-highlight' : ''}>
-                            {ativo1.valorVenda ? 
-                              `R$ ${formatCurrency(ativo1.valorVenda + ativo1.couponData.total - ativo1.valorInvestido)}` 
-                              : 'Aguardando valor de venda'
-                            }
-                          </td>
-                        </tr>
-                      </tbody>
-                    </table>
-                  </div>
                 </CardContent>
               </Card>
 
               {/* Table 2 - BTDI11 Characteristics */}
-              <Card key="ativo2-btdi11-card" className={`border-financial-info/30 shadow-xl ${compactPdfMode ? 'compact-pdf-only' : ''}`}>
+              <Card key="ativo2-btdi11-card" className="border-financial-info/30 shadow-xl">
                 <CardHeader className="bg-gradient-to-r from-financial-info to-blue-600 text-white rounded-t-lg">
                   <CardTitle className="flex items-center gap-2 text-lg font-bold">
                     <BarChart3 className="h-6 w-6" />
@@ -2931,20 +2695,15 @@ const InvestmentComparator = () => {
 
             
             {/* Decomposição Detalhada dos Valores Finais */}
-            <Card className={`border-financial-primary/30 shadow-xl ${compactPdfMode ? 'compact-pdf-only' : ''}`}>
-              <CardHeader className="bg-gradient-to-r from-financial-primary to-financial-secondary text-white rounded-t-lg print:hidden">
+            <Card className="border-financial-primary/30 shadow-xl">
+              <CardHeader className="bg-gradient-to-r from-financial-primary to-financial-secondary text-white rounded-t-lg">
                 <CardTitle className="flex items-center gap-2">
                   <Calculator className="h-5 w-5" />
                   Decomposição Detalhada dos Valores Finais
                 </CardTitle>
               </CardHeader>
               
-              {/* Print-only compact header */}
-              <div className="hidden print:block print-decomposition-section">
-                <h3 className="print-section-header">DECOMPOSIÇÃO DETALHADA DOS VALORES FINAIS</h3>
-              </div>
-              
-              <CardContent className="p-6 print:p-0">
+              <CardContent className="p-6">
                 {(() => {
                   const currentHash = generateDataHash();
                   const isDataFresh = currentHash === lastCalculationHash;
@@ -3006,8 +2765,7 @@ const InvestmentComparator = () => {
 
                   return (
                     <>
-                      {/* Screen view - existing grid layout */}
-                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 print:hidden">
+                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                         {/* ... keep existing screen content ... */}
                         <div className="space-y-4">
                           <h3 className="text-xl font-bold text-financial-primary border-b border-financial-primary/30 pb-2">

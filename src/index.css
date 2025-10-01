@@ -133,180 +133,106 @@ All colors MUST be HSL.
     print-color-adjust: exact !important;
   }
 
-  /* Compact PDF Mode Styles - Ultra Optimized for Single Page */
-  .compact-pdf-mode .compact-pdf-hide {
-    display: none !important;
-  }
-
-  .compact-pdf-mode .compact-pdf-only {
-    display: block !important;
-  }
-
+  /* Compact PDF Mode Styles - Preserving Visual Design */
   .compact-pdf-mode {
-    font-size: 8px !important;
-    line-height: 1.1 !important;
-    margin: 0 !important;
-    padding: 0 !important;
-    max-height: 280mm !important;
-    overflow: hidden !important;
+    font-size: 9px !important;
+    line-height: 1.2 !important;
+    max-width: 210mm !important;
+    background: white !important;
   }
 
-  /* Ultra compact spacing for all elements */
-  .compact-pdf-mode * {
-    margin: 0 !important;
-    padding: 1px !important;
-  }
-
-  /* Font size overrides for better space utilization */
-  .compact-pdf-mode .text-sm { font-size: 7px !important; }
-  .compact-pdf-mode .text-base { font-size: 8px !important; }
-  .compact-pdf-mode .text-lg { font-size: 9px !important; }
-  .compact-pdf-mode .text-xl { font-size: 10px !important; }
-  .compact-pdf-mode .text-2xl { font-size: 11px !important; }
-  .compact-pdf-mode .text-3xl { font-size: 12px !important; }
-
-  /* Headers with minimal spacing */
-  .compact-pdf-mode h1 {
-    font-size: 12px !important;
-    margin-bottom: 2px !important;
-    font-weight: bold !important;
-  }
-
-  .compact-pdf-mode h2 {
-    font-size: 11px !important;
-    margin-bottom: 2px !important;
-    font-weight: bold !important;
-  }
-
-  .compact-pdf-mode h3 {
-    font-size: 10px !important;
-    margin-bottom: 1px !important;
-    font-weight: bold !important;
-  }
-
-  /* Card spacing optimization */
+  /* Preserve card styling in PDF */
   .compact-pdf-mode .card,
-  .compact-pdf-mode [class*="card"] {
-    padding: 2px !important;
-    margin-bottom: 3px !important;
-  }
-
-  /* Padding overrides for minimal spacing */
-  .compact-pdf-mode .p-1 { padding: 1px !important; }
-  .compact-pdf-mode .p-2 { padding: 1px !important; }
-  .compact-pdf-mode .p-3 { padding: 1px !important; }
-  .compact-pdf-mode .p-4 { padding: 2px !important; }
-  .compact-pdf-mode .p-5 { padding: 2px !important; }
-  .compact-pdf-mode .p-6 { padding: 2px !important; }
-
-  .compact-pdf-mode .py-1 { padding-top: 1px !important; padding-bottom: 1px !important; }
-  .compact-pdf-mode .py-2 { padding-top: 1px !important; padding-bottom: 1px !important; }
-  .compact-pdf-mode .py-3 { padding-top: 1px !important; padding-bottom: 1px !important; }
-  .compact-pdf-mode .py-4 { padding-top: 1px !important; padding-bottom: 1px !important; }
-  .compact-pdf-mode .py-6 { padding-top: 2px !important; padding-bottom: 2px !important; }
-
-  .compact-pdf-mode .px-1 { padding-left: 1px !important; padding-right: 1px !important; }
-  .compact-pdf-mode .px-2 { padding-left: 1px !important; padding-right: 1px !important; }
-  .compact-pdf-mode .px-3 { padding-left: 1px !important; padding-right: 1px !important; }
-  .compact-pdf-mode .px-4 { padding-left: 2px !important; padding-right: 2px !important; }
-  .compact-pdf-mode .px-6 { padding-left: 2px !important; padding-right: 2px !important; }
-
-  /* Margin overrides for minimal spacing */
-  .compact-pdf-mode .m-1 { margin: 1px !important; }
-  .compact-pdf-mode .m-2 { margin: 1px !important; }
-  .compact-pdf-mode .m-3 { margin: 1px !important; }
-  .compact-pdf-mode .m-4 { margin: 1px !important; }
-  .compact-pdf-mode .m-6 { margin: 2px !important; }
-
-  .compact-pdf-mode .mb-1 { margin-bottom: 1px !important; }
-  .compact-pdf-mode .mb-2 { margin-bottom: 1px !important; }
-  .compact-pdf-mode .mb-3 { margin-bottom: 1px !important; }
-  .compact-pdf-mode .mb-4 { margin-bottom: 2px !important; }
-  .compact-pdf-mode .mb-6 { margin-bottom: 2px !important; }
-  .compact-pdf-mode .mb-8 { margin-bottom: 3px !important; }
-
-  .compact-pdf-mode .mt-1 { margin-top: 1px !important; }
-  .compact-pdf-mode .mt-2 { margin-top: 1px !important; }
-  .compact-pdf-mode .mt-3 { margin-top: 1px !important; }
-  .compact-pdf-mode .mt-4 { margin-top: 1px !important; }
-  .compact-pdf-mode .mt-6 { margin-top: 2px !important; }
-  .compact-pdf-mode .mt-8 { margin-top: 2px !important; }
-
-  /* Gap overrides */
-  .compact-pdf-mode .gap-1 { gap: 1px !important; }
-  .compact-pdf-mode .gap-2 { gap: 1px !important; }
-  .compact-pdf-mode .gap-3 { gap: 1px !important; }
-  .compact-pdf-mode .gap-4 { gap: 2px !important; }
-  .compact-pdf-mode .gap-6 { gap: 2px !important; }
-
-  /* Space-y overrides */
-  .compact-pdf-mode .space-y-1 > * + * { margin-top: 1px !important; }
-  .compact-pdf-mode .space-y-2 > * + * { margin-top: 1px !important; }
-  .compact-pdf-mode .space-y-3 > * + * { margin-top: 1px !important; }
-  .compact-pdf-mode .space-y-4 > * + * { margin-top: 1px !important; }
-  .compact-pdf-mode .space-y-6 > * + * { margin-top: 2px !important; }
-
-  /* Table optimization */
-  .compact-pdf-mode table {
-    border-collapse: collapse !important;
-    width: 100% !important;
-    font-size: 7px !important;
-    margin: 1px 0 !important;
-  }
-
-  .compact-pdf-mode th,
-  .compact-pdf-mode td {
-    padding: 1px 2px !important;
-    border: 0.5px solid #ccc !important;
-    font-size: 7px !important;
-    line-height: 1.0 !important;
-  }
-
-  .compact-pdf-mode th {
-    font-weight: bold !important;
-    background-color: #f5f5f5 !important;
-  }
-  
-  .compact-pdf-mode .compact-pdf-section {
-    margin-bottom: 3px !important;
-    padding: 1px !important;
-    page-break-inside: avoid;
-  }
-  
-  .compact-pdf-mode .compact-pdf-table {
-    font-size: 7px !important;
-    border-collapse: collapse;
-    width: 100%;
-    margin: 1px 0 !important;
-  }
-  
-  .compact-pdf-mode .compact-pdf-table th,
-  .compact-pdf-mode .compact-pdf-table td {
-    padding: 1px 2px !important;
-    border: 0.5px solid #ddd;
-    font-size: 7px !important;
-    line-height: 1.0 !important;
-  }
-  
-  .compact-pdf-mode .compact-pdf-title {
-    font-size: 11px !important;
-    font-weight: bold;
-    margin-bottom: 2px !important;
-    text-transform: uppercase;
-  }
-
-  /* Ensure the 3 main sections are properly spaced */
-  .compact-pdf-mode .compact-pdf-only {
+  .compact-pdf-mode [class*="Card"] {
+    border: 1px solid #e5e7eb !important;
+    border-radius: 8px !important;
+    overflow: hidden !important;
+    margin-bottom: 12px !important;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1) !important;
     page-break-inside: avoid !important;
-    margin-bottom: 4px !important;
   }
 
-  .compact-pdf-mode .compact-pdf-only:first-child {
-    margin-top: 0 !important;
+  /* Preserve gradient headers */
+  .compact-pdf-mode .bg-gradient-to-r {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    color-adjust: exact !important;
   }
-  
-  .compact-pdf-mode .compact-pdf-only:last-child {
-    margin-bottom: 0 !important;
+
+  /* Compact spacing while preserving structure */
+  .compact-pdf-mode * {
+    margin: 2px !important;
+    padding: 4px !important;
+  }
+
+  /* Font sizes for readability */
+  .compact-pdf-mode .text-sm { font-size: 8px !important; }
+  .compact-pdf-mode .text-base { font-size: 9px !important; }
+  .compact-pdf-mode .text-lg { font-size: 10px !important; }
+  .compact-pdf-mode .text-xl { font-size: 11px !important; }
+  .compact-pdf-mode .text-2xl { font-size: 12px !important; }
+
+  /* Card headers with gradients preserved */
+  .compact-pdf-mode [class*="CardHeader"],
+  .compact-pdf-mode .bg-gradient-to-r {
+    padding: 8px 12px !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  .compact-pdf-mode [class*="CardTitle"] {
+    font-size: 11px !important;
+    font-weight: bold !important;
+    color: white !important;
+  }
+
+  .compact-pdf-mode [class*="CardContent"] {
+    padding: 12px !important;
+  }
+
+  /* Grid layouts */
+  .compact-pdf-mode .grid {
+    gap: 8px !important;
+  }
+
+  /* Preserve color-coded sections */
+  .compact-pdf-mode .bg-financial-success\/10,
+  .compact-pdf-mode .bg-financial-danger\/10,
+  .compact-pdf-mode .bg-financial-info\/10,
+  .compact-pdf-mode .bg-financial-warning\/10,
+  .compact-pdf-mode .bg-muted\/50 {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Spacing for content sections */
+  .compact-pdf-mode .space-y-3 > * + * { margin-top: 6px !important; }
+  .compact-pdf-mode .space-y-4 > * + * { margin-top: 8px !important; }
+  .compact-pdf-mode .space-y-6 > * + * { margin-top: 10px !important; }
+
+  /* Rounded corners preserved */
+  .compact-pdf-mode .rounded-lg { border-radius: 6px !important; }
+  .compact-pdf-mode .rounded-t-lg { border-top-left-radius: 6px !important; border-top-right-radius: 6px !important; }
+
+  /* Icons sizing */
+  .compact-pdf-mode .h-5,
+  .compact-pdf-mode .w-5,
+  .compact-pdf-mode .h-6,
+  .compact-pdf-mode .w-6 {
+    width: 12px !important;
+    height: 12px !important;
+  }
+
+  /* Value displays */
+  .compact-pdf-mode .font-mono {
+    font-family: monospace !important;
+    font-size: 9px !important;
+  }
+
+  /* Borders preserved */
+  .compact-pdf-mode [class*="border-"] {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
   }
 
   .print-header {
