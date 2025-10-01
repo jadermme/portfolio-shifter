@@ -2495,7 +2495,7 @@ const InvestmentComparator = () => {
             <div className={`space-y-6 ${compactPdfMode ? 'compact-pdf-mode' : ''}`}>
               
               {/* Table 1 - CRA ZAMP with Early Sale Analysis */}
-              <Card className="border-financial-success/30 shadow-xl no-page-break">
+              <Card className={`border-financial-success/30 shadow-xl no-page-break ${compactPdfMode ? '' : ''}`}>
                 <CardHeader className="bg-gradient-to-r from-financial-success to-blue-600 text-white rounded-t-lg">
                   <CardTitle className="flex items-center gap-2">
                     <TrendingUp className="h-5 w-5" />
@@ -2600,7 +2600,7 @@ const InvestmentComparator = () => {
               </Card>
 
               {/* Table 2 - BTDI11 Characteristics */}
-              <Card key="ativo2-btdi11-card" className="border-financial-info/30 shadow-xl">
+              <Card key="ativo2-btdi11-card" className={`border-financial-info/30 shadow-xl ${compactPdfMode ? '' : ''}`}>
                 <CardHeader className="bg-gradient-to-r from-financial-info to-blue-600 text-white rounded-t-lg">
                   <CardTitle className="flex items-center gap-2 text-lg font-bold">
                     <BarChart3 className="h-6 w-6" />
@@ -2695,7 +2695,7 @@ const InvestmentComparator = () => {
 
             
             {/* Decomposição Detalhada dos Valores Finais */}
-            <Card className="border-financial-primary/30 shadow-xl">
+            <Card className={`border-financial-primary/30 shadow-xl ${compactPdfMode ? '' : ''}`}>
               <CardHeader className="bg-gradient-to-r from-financial-primary to-financial-secondary text-white rounded-t-lg">
                 <CardTitle className="flex items-center gap-2">
                   <Calculator className="h-5 w-5" />
@@ -2936,8 +2936,8 @@ const InvestmentComparator = () => {
             </Card>
             
             {/* Reinvestment Details Section - NEW */}
-            {results.reinvestimento && (
-              <Card className={`border-financial-warning/30 shadow-xl ${compactPdfMode ? 'compact-pdf-hide' : ''}`}>
+            {!compactPdfMode && results.reinvestimento && (
+              <Card className="border-financial-warning/30 shadow-xl">
                 <CardHeader className="bg-gradient-to-r from-financial-warning to-orange-500 text-white rounded-t-lg print:hidden">
                   <CardTitle className="flex items-center gap-2">
                     <ArrowRight className="h-5 w-5" />
@@ -3035,7 +3035,7 @@ const InvestmentComparator = () => {
             )}
             
             {/* Final Analysis Summary */}
-            <Card className={`border-financial-primary/30 shadow-xl ${compactPdfMode ? 'compact-pdf-hide' : ''}`}>
+            <Card className={`border-financial-primary/30 shadow-xl ${compactPdfMode ? '' : ''}`}>
               <CardHeader className="bg-gradient-to-r from-financial-primary to-financial-secondary text-white rounded-t-lg print:hidden">
                 <CardTitle className="flex items-center gap-2">
                   <BarChart3 className="h-5 w-5" />
@@ -3133,7 +3133,7 @@ const InvestmentComparator = () => {
             </Card>
 
             {/* Coupon Details Section - New Cash Flow System */}
-            {(results.couponDetails?.ativo1?.length || results.couponDetails?.ativo2?.length) && <Card className={`border-blue-500/30 shadow-xl ${compactPdfMode ? 'compact-pdf-hide' : ''}`}>
+            {!compactPdfMode && (results.couponDetails?.ativo1?.length || results.couponDetails?.ativo2?.length) && <Card className="border-blue-500/30 shadow-xl">
                 <CardHeader className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-t-lg">
                   <CardTitle className="flex items-center gap-2">
                     <TrendingUp className="h-5 w-5" />

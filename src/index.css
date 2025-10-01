@@ -133,106 +133,261 @@ All colors MUST be HSL.
     print-color-adjust: exact !important;
   }
 
-  /* Compact PDF Mode Styles - Preserving Visual Design */
+  /* ========================================
+     COMPACT PDF MODE - SINGLE PAGE OPTIMIZED
+     Designed to fit all 4 sections on ONE A4 page
+     ======================================== */
   .compact-pdf-mode {
-    font-size: 9px !important;
-    line-height: 1.2 !important;
-    max-width: 210mm !important;
-    background: white !important;
-  }
-
-  /* Preserve card styling in PDF */
-  .compact-pdf-mode .card,
-  .compact-pdf-mode [class*="Card"] {
-    border: 1px solid #e5e7eb !important;
-    border-radius: 8px !important;
-    overflow: hidden !important;
-    margin-bottom: 12px !important;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1) !important;
-    page-break-inside: avoid !important;
-  }
-
-  /* Preserve gradient headers */
-  .compact-pdf-mode .bg-gradient-to-r {
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
     color-adjust: exact !important;
+    font-size: 7px !important;
+    line-height: 1.1 !important;
   }
 
-  /* Compact spacing while preserving structure */
-  .compact-pdf-mode * {
-    margin: 2px !important;
-    padding: 4px !important;
+  /* Hide all non-essential elements */
+  .compact-pdf-mode [class*="print:hidden"] {
+    display: none !important;
   }
 
-  /* Font sizes for readability */
-  .compact-pdf-mode .text-sm { font-size: 8px !important; }
-  .compact-pdf-mode .text-base { font-size: 9px !important; }
-  .compact-pdf-mode .text-lg { font-size: 10px !important; }
-  .compact-pdf-mode .text-xl { font-size: 11px !important; }
-  .compact-pdf-mode .text-2xl { font-size: 12px !important; }
-
-  /* Card headers with gradients preserved */
-  .compact-pdf-mode [class*="CardHeader"],
-  .compact-pdf-mode .bg-gradient-to-r {
-    padding: 8px 12px !important;
-    -webkit-print-color-adjust: exact !important;
-    print-color-adjust: exact !important;
+  .compact-pdf-mode > .space-y-6 {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 4px !important;
   }
 
-  .compact-pdf-mode [class*="CardTitle"] {
-    font-size: 11px !important;
-    font-weight: bold !important;
+  .compact-pdf-mode .card {
+    border: 0.5px solid rgba(59, 130, 246, 0.3) !important;
+    border-radius: 3px !important;
+    box-shadow: none !important;
+    margin-bottom: 4px !important;
+    page-break-inside: avoid !important;
+  }
+
+  .compact-pdf-mode .card-header {
+    background: linear-gradient(to right, #3b82f6, #2563eb) !important;
     color: white !important;
+    padding: 2px 4px !important;
+    border-radius: 3px 3px 0 0 !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
   }
 
-  .compact-pdf-mode [class*="CardContent"] {
-    padding: 12px !important;
+  .compact-pdf-mode .card-title {
+    font-size: 8px !important;
+    font-weight: 600 !important;
+    color: white !important;
+    -webkit-print-color-adjust: exact !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 2px !important;
   }
 
-  /* Grid layouts */
+  .compact-pdf-mode .card-title svg {
+    width: 8px !important;
+    height: 8px !important;
+  }
+
+  .compact-pdf-mode .card-content {
+    padding: 3px !important;
+  }
+
+  /* Grid layouts - ultra compact */
   .compact-pdf-mode .grid {
-    gap: 8px !important;
+    display: grid !important;
+    gap: 2px !important;
   }
 
-  /* Preserve color-coded sections */
-  .compact-pdf-mode .bg-financial-success\/10,
-  .compact-pdf-mode .bg-financial-danger\/10,
-  .compact-pdf-mode .bg-financial-info\/10,
-  .compact-pdf-mode .bg-financial-warning\/10,
-  .compact-pdf-mode .bg-muted\/50 {
+  .compact-pdf-mode .grid-cols-2 {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+
+  .compact-pdf-mode [class*="lg:grid-cols-3"] {
+    grid-template-columns: repeat(3, 1fr) !important;
+  }
+
+  .compact-pdf-mode [class*="lg:grid-cols-4"] {
+    grid-template-columns: repeat(4, 1fr) !important;
+  }
+
+  .compact-pdf-mode .space-y-3 > * + * {
+    margin-top: 1.5px !important;
+  }
+
+  .compact-pdf-mode .space-y-4 > * + * {
+    margin-top: 2px !important;
+  }
+
+  /* Typography */
+  .compact-pdf-mode .text-muted-foreground {
+    color: #6b7280 !important;
+    font-size: 6px !important;
     -webkit-print-color-adjust: exact !important;
-    print-color-adjust: exact !important;
   }
 
-  /* Spacing for content sections */
-  .compact-pdf-mode .space-y-3 > * + * { margin-top: 6px !important; }
-  .compact-pdf-mode .space-y-4 > * + * { margin-top: 8px !important; }
-  .compact-pdf-mode .space-y-6 > * + * { margin-top: 10px !important; }
-
-  /* Rounded corners preserved */
-  .compact-pdf-mode .rounded-lg { border-radius: 6px !important; }
-  .compact-pdf-mode .rounded-t-lg { border-top-left-radius: 6px !important; border-top-right-radius: 6px !important; }
-
-  /* Icons sizing */
-  .compact-pdf-mode .h-5,
-  .compact-pdf-mode .w-5,
-  .compact-pdf-mode .h-6,
-  .compact-pdf-mode .w-6 {
-    width: 12px !important;
-    height: 12px !important;
-  }
-
-  /* Value displays */
   .compact-pdf-mode .font-mono {
-    font-family: monospace !important;
-    font-size: 9px !important;
+    font-family: ui-monospace, monospace !important;
+    font-size: 6.5px !important;
   }
 
-  /* Borders preserved */
-  .compact-pdf-mode [class*="border-"] {
+  .compact-pdf-mode .font-semibold {
+    font-weight: 600 !important;
+    font-size: 6.5px !important;
+  }
+
+  /* Colors preserved */
+  .compact-pdf-mode .text-financial-success {
+    color: #10b981 !important;
+    -webkit-print-color-adjust: exact !important;
+  }
+
+  .compact-pdf-mode .text-financial-primary {
+    color: #3b82f6 !important;
+    -webkit-print-color-adjust: exact !important;
+  }
+
+  .compact-pdf-mode .text-blue-600 {
+    color: #2563eb !important;
+    -webkit-print-color-adjust: exact !important;
+  }
+
+  .compact-pdf-mode .text-financial-danger {
+    color: #ef4444 !important;
+    -webkit-print-color-adjust: exact !important;
+  }
+
+  /* Special box - Resultado da Venda Antecipada */
+  .compact-pdf-mode .bg-gradient-to-r {
+    background: linear-gradient(to right, rgba(59, 130, 246, 0.15), rgba(147, 197, 253, 0.15)) !important;
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
+    border-radius: 2px !important;
+    padding: 2px !important;
+  }
+
+  .compact-pdf-mode .border {
+    border-width: 0.3px !important;
+  }
+
+  .compact-pdf-mode .rounded-lg {
+    border-radius: 2px !important;
+  }
+
+  .compact-pdf-mode .p-2,
+  .compact-pdf-mode .p-3,
+  .compact-pdf-mode .p-4,
+  .compact-pdf-mode .p-6 {
+    padding: 2px !important;
+  }
+
+  /* Decomposição section - side by side compact */
+  .compact-pdf-mode .grid[class*="lg:grid-cols-2"] {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 3px !important;
+  }
+
+  .compact-pdf-mode h3 {
+    font-size: 7.5px !important;
+    font-weight: 700 !important;
+    margin-bottom: 1.5px !important;
+    padding-bottom: 0.5px !important;
+    border-bottom: 0.3px solid rgba(59, 130, 246, 0.3) !important;
+  }
+
+  /* Compact item display */
+  .compact-pdf-mode .flex.justify-between {
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    padding: 1.5px !important;
+    font-size: 6.5px !important;
+  }
+
+  .compact-pdf-mode [class*="bg-muted"] {
+    background-color: rgba(243, 244, 246, 0.5) !important;
+    -webkit-print-color-adjust: exact !important;
+  }
+
+  .compact-pdf-mode [class*="bg-financial-success"] {
+    background-color: rgba(16, 185, 129, 0.1) !important;
+    -webkit-print-color-adjust: exact !important;
+  }
+
+  .compact-pdf-mode [class*="bg-financial-danger"] {
+    background-color: rgba(239, 68, 68, 0.1) !important;
+    -webkit-print-color-adjust: exact !important;
+  }
+
+  .compact-pdf-mode [class*="bg-financial-info"] {
+    background-color: rgba(59, 130, 246, 0.1) !important;
+    -webkit-print-color-adjust: exact !important;
+  }
+
+  .compact-pdf-mode [class*="bg-financial-warning"] {
+    background-color: rgba(245, 158, 11, 0.1) !important;
+    -webkit-print-color-adjust: exact !important;
+  }
+
+  /* Final value highlight */
+  .compact-pdf-mode [class*="from-financial-primary"] {
+    background: linear-gradient(to right, rgba(59, 130, 246, 0.2), rgba(37, 99, 235, 0.2)) !important;
+    border: 0.5px solid rgba(59, 130, 246, 0.5) !important;
+    padding: 2px !important;
+    -webkit-print-color-adjust: exact !important;
+  }
+
+  /* Analysis section text sizes */
+  .compact-pdf-mode .text-lg {
+    font-size: 7px !important;
+  }
+
+  .compact-pdf-mode .text-xl {
+    font-size: 7.5px !important;
+  }
+
+  .compact-pdf-mode .text-sm {
+    font-size: 6px !important;
+  }
+
+  .compact-pdf-mode .text-xs {
+    font-size: 5.5px !important;
+  }
+
+  /* Compact specific elements */
+  .compact-pdf-mode .col-span-2 {
+    grid-column: span 2 !important;
+  }
+
+  .compact-pdf-mode [class*="lg:col-span-1"] {
+    grid-column: span 1 !important;
+  }
+
+  /* Page settings for single A4 page */
+  @media print {
+    .compact-pdf-mode {
+      width: 100% !important;
+      max-width: 210mm !important;
+    }
+    
+    @page {
+      size: A4 portrait;
+      margin: 6mm !important;
+    }
+  }
+
+  /* Ensure no page breaks within cards */
+  .compact-pdf-mode .no-page-break,
+  .compact-pdf-mode .card {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+
+  /* All colors preserved */
+  .compact-pdf-mode * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    color-adjust: exact !important;
   }
 
   .print-header {
