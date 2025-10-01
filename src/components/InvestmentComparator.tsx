@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
-import { Calculator, Trash2, Printer, TrendingUp, BarChart3, ArrowRight, AlertTriangle, FileText } from 'lucide-react';
+import { Calculator, TrendingUp, BarChart3, ArrowRight, AlertTriangle, FileText } from 'lucide-react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
 import { CouponManager } from './CouponManager';
@@ -1091,19 +1091,6 @@ const InvestmentComparator = () => {
     });
   };
 
-  // ===================== BTDI11 SPECIFIC RESET FUNCTION =====================
-  const resetBTDI11Cache = () => {
-    clearBTDI11Data();
-    // Force reload of both assets to clear any cached data
-    setAtivo1(loadAssetWithMigration(STORAGE_KEYS.ativo1, getDefaultAtivo1()));
-    setAtivo2(loadAssetWithMigration(STORAGE_KEYS.ativo2, getDefaultAtivo2()));
-    invalidateResults();
-    toast({
-      title: "🧼 Cache BTDI11 Limpo",
-      description: "Todos os dados antigos do BTDI11 foram removidos. Os cupons agora serão gerados corretamente no dia 10.",
-      variant: "default",
-    });
-  };
   const handleAssetChange = (asset: 'ativo1' | 'ativo2', field: keyof AssetData, value: string | number | boolean | CouponSummary) => {
     if (asset === 'ativo1') {
       setAtivo1(prev => ({
@@ -1632,17 +1619,6 @@ const InvestmentComparator = () => {
       });
     }
   };
-  const limparDados = () => {
-    setAtivo1(getDefaultAtivo1());
-    setAtivo2(getDefaultAtivo2());
-    setShowResults(false);
-    setResults(null);
-
-    // Reset calculation state tracking
-    setHasUnsavedChanges(false);
-    setLastCalculationHash('');
-    setCalculationTimestamp(0);
-  };
 
 
   // Enhanced function to calculate annual yields considering specific periods and accrual (LEGACY - kept for compatibility)
@@ -1963,8 +1939,7 @@ const InvestmentComparator = () => {
                 size="sm" 
                 className="bg-red-600/20 hover:bg-red-600/40 text-white border-red-400/50"
               >
-                <Trash2 className="h-4 w-4 mr-1" />
-                Limpar {assetKey === 'ativo1' ? 'Ativo 1' : 'Ativo 2'}
+                🗑️ Limpar {assetKey === 'ativo1' ? 'Ativo 1' : 'Ativo 2'}
               </Button>
             </AlertDialogTrigger>
             <AlertDialogContent>
@@ -2443,15 +2418,6 @@ const InvestmentComparator = () => {
             🔄 Calcular Comparação
             {hasUnsavedChanges && <span className="ml-2 text-yellow-300 animate-pulse">●</span>}
           </Button>
-          <Button variant="outline" onClick={limparDados} size="lg" className="border-financial-danger text-financial-danger hover:bg-financial-danger hover:text-white">
-            🗑️ Limpar Dados
-          </Button>
-          <Button variant="outline" onClick={resetBTDI11Cache} size="lg" className="border-yellow-500 text-yellow-600 hover:bg-yellow-500 hover:text-white">
-            🧼 Reset BTDI11 Cache
-          </Button>
-          <Button variant="outline" onClick={() => window.print()} size="lg" className="border-financial-primary text-financial-primary hover:bg-financial-primary hover:text-white">
-            🖨️ PDF Completo
-          </Button>
           <Button 
             variant="outline" 
             onClick={() => {
@@ -2467,7 +2433,7 @@ const InvestmentComparator = () => {
             size="lg" 
             className="border-blue-500 text-blue-600 hover:bg-blue-500 hover:text-white"
           >
-            📄 PDF Compacto
+            📄 PDF
           </Button>
         </div>
 
