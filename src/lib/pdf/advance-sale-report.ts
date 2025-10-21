@@ -49,6 +49,9 @@ export type ReportData = {
 
 // ———————————————————————————————— helpers
 
+// Guard to prevent duplicate header rendering
+let __HEADER_DRAW_COUNT = 0;
+
 const mm = (n: number) => (n * 72) / 25.4; // mm -> points (jsPDF usa pt)
 const BLUE = [13, 82, 179];                // #0D52B3 aprox (barras)
 const BLUE_LIGHT = [26, 115, 217];         // subheader
@@ -132,6 +135,12 @@ function drawHeaderBar(doc: jsPDF, yTop: number, titulo: string): number {
 }
 
 function drawInfoPair(doc: jsPDF, yStart: number, h: AssetInfo): number {
+  if (__HEADER_DRAW_COUNT > 0) {
+    console.warn('⚠️ drawInfoPair called multiple times on same page');
+    return yStart;
+  }
+  __HEADER_DRAW_COUNT++;
+
   // ——— layout base
   const gutter = mm(12);
   const cardW  = mm(70), cardH = mm(32);
@@ -154,7 +163,8 @@ function drawInfoPair(doc: jsPDF, yStart: number, h: AssetInfo): number {
 
   // reset seguro de state gráfico (evita "modo stroke" herdado)
   doc.setTextColor(20,20,20);
-  doc.setDrawColor(0); doc.setLineWidth(0.2);
+  doc.setDrawColor(0); 
+  doc.setLineWidth(0); // CRITICAL: 0 = no stroke on text
   doc.setFont("helvetica", "normal"); doc.setFontSize(9);
 
   const leftRows:  [string,string][] = [
@@ -399,7 +409,10 @@ function drawPage(doc: jsPDF, p: PageData) {
 export async function buildPdf(data: ReportData): Promise<Blob> {
   const doc = new jsPDF({ unit: "pt", format: "a4" }); // portrait A4
   data.pages.forEach((pg, i) => {
-    if (i > 0) doc.addPage();
+    if (i > 0) {
+      doc.addPage();
+      __HEADER_DRAW_COUNT = 0; // Reset counter for new page
+    }
     drawPage(doc, pg);
   });
   const blob = doc.output("blob");
