@@ -2512,7 +2512,7 @@ const InvestmentComparator = () => {
             </div>
           </div>}
 
-        {showResults && results && <div className="space-y-6">
+        {showResults && results && results.ativo1 && results.ativo2 && <div className="space-y-6">
             {/* Executive Summary for PDF */}
             <div className="print-show hidden print-summary">
               <h2 className="print-section-title">RESUMO EXECUTIVO</h2>
