@@ -63,8 +63,8 @@ const TEXT = [20, 20, 20];
 const USE_CLIP = false;
 
 // Constantes de layout e ritmo vertical
-const PAGE = { MT: mm(20), MB: mm(20), ML: mm(18), MR: mm(18) };
-const VR = { after: mm(8), line: mm(5.2), cardGap: mm(3) };
+const PAGE = { MT: mm(20), MB: mm(22), ML: mm(18), MR: mm(18) };
+const VR = { after: mm(10), line: mm(6.0), cardGap: mm(3.6) };
 
 function topX(doc: jsPDF) { return PAGE.ML; }
 function fullW(doc: jsPDF) { return doc.internal.pageSize.getWidth() - PAGE.ML - PAGE.MR; }
@@ -74,6 +74,12 @@ const fmtBRL = (v: Money) =>
 
 function setFill(doc: jsPDF, rgb: number[]) { doc.setFillColor(rgb[0], rgb[1], rgb[2]); }
 function setText(doc: jsPDF, rgb: number[]) { doc.setTextColor(rgb[0], rgb[1], rgb[2]); }
+
+const resetFont = (doc: jsPDF) => { 
+  doc.setFont("helvetica","normal"); 
+  doc.setFontSize(9); 
+  setText(doc, TEXT); 
+};
 
 function roundRect(doc: jsPDF, x: number, y: number, w: number, h: number, r = 4, draw = true, fill = true) {
   (doc as any).roundedRect(x, y, w, h, r, r, draw && fill ? "DF" : fill ? "F" : "S");
@@ -156,9 +162,9 @@ function drawInfoPair(doc: jsPDF, yStart: number, h: AssetInfo): number {
   const xColR  = xColL + colW + colGap;
 
   // células
-  const labelW = mm(36);
-  const valueW = colW - labelW - mm(8);
-  const rowH   = mm(7);
+  const labelW = mm(46);                // +10mm para labels longos
+  const valueW = colW - labelW - mm(8); // recalculado automaticamente
+  const rowH   = mm(8.8);               // +1.8mm (25% mais alto)
   const yTop   = yStart + mm(2);
 
   // reset seguro de state gráfico (evita "modo stroke" herdado)
@@ -192,7 +198,9 @@ function drawInfoPair(doc: jsPDF, yStart: number, h: AssetInfo): number {
     let fs = 9, w = doc.getTextWidth(value);
     while (w > valueW && fs > 7.2) { fs -= 0.2; doc.setFontSize(fs); w = doc.getTextWidth(value); }
     doc.text(value, xValEnd, y, { align: "right", baseline: "alphabetic" });
-    doc.setFontSize(9); // reset
+    
+    // 🔒 CRÍTICO: Reset completo previne vazamento
+    resetFont(doc);
   };
 
   // coluna esquerda: 5 linhas
@@ -323,21 +331,22 @@ function drawDecompColumns(doc: jsPDF, yStart: number, left: DecompColuna, right
       else if (tone === "red") { fill = [255, 240, 240]; stroke = [255, 204, 204]; }
       else { fill = [245, 245, 245]; stroke = [230, 230, 230]; }
 
-      const labelMaxW = w * 0.60;  // Redistribui espaço
-      const valueMaxW = w * 0.34;
+      const labelMaxW = w * 0.62;  // +2% mais espaço para label
+      const valueMaxW = w * 0.33;  // -1% no valor (ainda confortável)
 
       const ll = doc.splitTextToSize(label, labelMaxW);
       
       // Shrink inline para valor
-      let fs=9, tw=doc.getTextWidth(value);
-      while (tw>valueMaxW && fs>7.2){ 
-        fs-=0.2; 
+      let fs = 9; 
+      let tw = doc.getTextWidth(value);
+      while (tw > valueMaxW && fs > 7.2) {
+        fs -= 0.2; 
         doc.setFontSize(fs); 
-        tw=doc.getTextWidth(value); 
+        tw = doc.getTextWidth(value);
       }
 
-      // Altura calculada pela quantidade de linhas do label (valor sempre 1 linha)
-      const rowH = Math.max(mm(9), mm(6) + (ll.length-1)*(VR.line*0.95));
+      // Altura com mais folga para múltiplas linhas
+      const rowH = Math.max(mm(11), mm(7) + (ll.length - 1) * VR.line);
 
       // Borda e preenchimento
       doc.setDrawColor(stroke[0],stroke[1],stroke[2]);
@@ -354,8 +363,10 @@ function drawDecompColumns(doc: jsPDF, yStart: number, left: DecompColuna, right
       // VALUE (sempre 1 linha, alinhado à direita, fonte já ajustada)
       doc.setFont("helvetica","bold"); 
       doc.setFontSize(fs);  // Usa a fonte já calculada pelo shrink
-      doc.text(value, x + w - mm(5), y + mm(6), { align:"right" });
-      doc.setFontSize(9);  // Reset
+      doc.text(value, x + w - mm(5), y + mm(6.5), { align:"right" });
+      
+      // 🔒 CRÍTICO: Reset para próxima linha
+      resetFont(doc);
 
       y += rowH + VR.cardGap;
     };
