@@ -408,6 +408,7 @@ function drawPage(doc: jsPDF, p: PageData) {
 
 export async function buildPdf(data: ReportData): Promise<Blob> {
   const doc = new jsPDF({ unit: "pt", format: "a4" }); // portrait A4
+  __HEADER_DRAW_COUNT = 0; // Reset no início de cada PDF
   data.pages.forEach((pg, i) => {
     if (i > 0) {
       doc.addPage();
