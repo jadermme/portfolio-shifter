@@ -58,7 +58,7 @@ const TEXT = [20, 20, 20];
 
 // Constantes de layout e ritmo vertical
 const PAGE = { MT: mm(20), MB: mm(20), ML: mm(18), MR: mm(18) };
-const VR = { section: mm(8), line: mm(5.4), cardGap: mm(3) };
+const VR = { after: mm(8), line: mm(5.2), cardGap: mm(3) };
 
 function topX(doc: jsPDF) { return PAGE.ML; }
 function fullW(doc: jsPDF) { return doc.internal.pageSize.getWidth() - PAGE.ML - PAGE.MR; }
@@ -73,6 +73,18 @@ function roundRect(doc: jsPDF, x: number, y: number, w: number, h: number, r = 4
   (doc as any).roundedRect(x, y, w, h, r, r, draw && fill ? "DF" : fill ? "F" : "S");
 }
 
+/** Reduz a fonte até caber no box (sem quebrar), mantém no mínimo 7.2pt */
+function textShrinkToFit(doc: jsPDF, text: string, maxW: number, base = 9, min = 7.2): number {
+  let fs = base; 
+  let w = doc.getTextWidth(text);
+  while (w > maxW && fs > min) { 
+    fs -= 0.2; 
+    doc.setFontSize(fs); 
+    w = doc.getTextWidth(text); 
+  }
+  return fs;
+}
+
 // ———————————————————————————————— desenho de blocos
 
 function drawHeaderBar(doc: jsPDF, yTop: number, titulo: string): number {
@@ -85,7 +97,7 @@ function drawHeaderBar(doc: jsPDF, yTop: number, titulo: string): number {
   // Baseline corrigida: yTop + altura - padding
   doc.text(titulo, x + mm(6), yTop + h - mm(4));
   setText(doc, TEXT);
-  return y + VR.section; // Retorna próximo Y
+  return y + VR.after; // Retorna próximo Y
 }
 
 function drawInfoPair(doc: jsPDF, yStart: number, header: AssetInfo): number {
@@ -99,13 +111,14 @@ function drawInfoPair(doc: jsPDF, yStart: number, header: AssetInfo): number {
   const yCard  = yStart;
 
   // sub-colunas dentro do bloco esquerdo
-  const colGap = mm(8);
-  const colW   = (leftBlockW - colGap - mm(6) /* padding interno */) / 2;
-  const xColL  = xLeft + mm(6);
+  const padX = mm(6);
+  const colGap = mm(10);
+  const colW   = (leftBlockW - padX*2 - colGap) / 2;
+  const xColL  = xLeft + padX;
   const xColR  = xColL + colW + colGap;
 
   // cada coluna terá labelWidth fixo; o valor ocupa o resto
-  const labelW = mm(32); // ~32 mm é suficiente para "Tributação IR:"
+  const labelW = mm(34);
   const valueW = colW - labelW - mm(4); // pequeno gap
 
   const L: [string,string][] = [
@@ -138,18 +151,10 @@ function drawInfoPair(doc: jsPDF, yStart: number, header: AssetInfo): number {
       const labelLinesH = (labelLines.length - 1) * (VR.line * 0.95);
 
       // VALUE (NÃO quebrar números): alinhado à direita do box do value
-      const xValBoxStart = x + labelW + mm(4);
-      const xValBoxEnd   = xValBoxStart + valueW;
+      const xValEnd = x + labelW + mm(4) + valueW;
       doc.setFont("helvetica","normal"); setText(doc, BLUE);
-
-      // se o valor for longo, reduzimos levemente a fonte ao invés de quebrar
-      const val = value;
-      let fs = 9;
-      let w = doc.getTextWidth(val);
-      while (w > valueW && fs > 7.4) {
-        fs -= 0.2; doc.setFontSize(fs); w = doc.getTextWidth(val);
-      }
-      doc.text(val, xValBoxEnd, y, { align: "right" });
+      textShrinkToFit(doc, value, valueW);
+      doc.text(value, xValEnd, y, { align: "right" });
       doc.setFontSize(9);
 
       // avança y pelo maior bloco
@@ -174,7 +179,7 @@ function drawInfoPair(doc: jsPDF, yStart: number, header: AssetInfo): number {
   doc.text(header.resultadoSubBox,   xCard + cardW/2, yCard + cardH - mm(6), { align: "center" });
 
   setText(doc, TEXT);
-  return Math.max(yTextBottom, yCard + cardH) + VR.section;
+  return Math.max(yTextBottom, yCard + cardH) + VR.after;
 }
 
 function drawSubheader(doc: jsPDF, yStart: number, titulo: string): number {
@@ -187,16 +192,16 @@ function drawSubheader(doc: jsPDF, yStart: number, titulo: string): number {
   // Baseline corrigida
   doc.text(titulo, x + mm(6), yStart + h - mm(3.5));
   setText(doc, TEXT);
-  return yStart + h + VR.section; // Retorna próximo Y
+  return yStart + h + VR.after; // Retorna próximo Y
 }
 
 function drawAtivo2Resumo(doc: jsPDF, yStart: number, ativo2: Ativo2Resumo): number {
   doc.setFontSize(9);
 
   const xL = PAGE.ML + mm(6);
-  const xR = xL + mm(92); // um pouco mais largo que antes para caber textos
-  const labelW = mm(34);
-  const valueW = mm(62);
+  const xR = xL + mm(96);
+  const labelW = mm(36);
+  const valueW = mm(64);
 
   const L: [string,string][] = [
     ["Tipo de Ativo:", ativo2.tipoAtivo],
@@ -221,11 +226,9 @@ function drawAtivo2Resumo(doc: jsPDF, yStart: number, ativo2: Ativo2Resumo): num
       const lblH = (lbl.length - 1) * (VR.line * 0.95);
 
       // value
+      const xValEnd = x + labelW + mm(4) + valueW;
       doc.setFont("helvetica","normal"); setText(doc, BLUE);
-      const xValStart = x + labelW + mm(4), xValEnd = xValStart + valueW;
-      // Não quebrar números/valores
-      let fs = 9; let w = doc.getTextWidth(value);
-      while (w > valueW && fs > 7.4) { fs -= 0.2; doc.setFontSize(fs); w = doc.getTextWidth(value); }
+      textShrinkToFit(doc, value, valueW);
       doc.text(value, xValEnd, y, { align: "right" });
       doc.setFontSize(9);
 
@@ -237,7 +240,7 @@ function drawAtivo2Resumo(doc: jsPDF, yStart: number, ativo2: Ativo2Resumo): num
 
   const yL = drawPairCol(xL, yStart + mm(2), L);
   const yR = drawPairCol(xR, yStart + mm(2), R);
-  return Math.max(yL, yR) + VR.section;
+  return Math.max(yL, yR) + VR.after;
 }
 
 function drawDecompColumns(doc: jsPDF, yStart: number, left: DecompColuna, right: DecompColuna): number {
@@ -257,7 +260,6 @@ function drawDecompColumns(doc: jsPDF, yStart: number, left: DecompColuna, right
   // Função interna para desenhar stack de cards
   const drawStack = (x: number, y0: number, w: number, col: DecompColuna): number => {
     let y = y0 + VR.cardGap; // Começa após título
-    const rowH = mm(9);
     
     const box = (label: string, value: string, tone: "blue" | "red" | "plain" = "plain") => {
       let fill: number[], stroke: number[];
@@ -266,25 +268,27 @@ function drawDecompColumns(doc: jsPDF, yStart: number, left: DecompColuna, right
       else { fill = [245, 245, 245]; stroke = [230, 230, 230]; }
 
       // Medir e permitir wrap apenas no LABEL; o VALUE é alinhado à direita sem quebrar
-      const labelMaxW = w * 0.62; // dá espaço para o valor
+      const labelMaxW = w * 0.62;
       const valueMaxW = w * 0.32;
 
       const lblLines = doc.splitTextToSize(label, labelMaxW);
-      let fs = 9; let vw = doc.getTextWidth(value);
-      while (vw > valueMaxW && fs > 7.4) { fs -= 0.2; doc.setFontSize(fs); vw = doc.getTextWidth(value); }
+      textShrinkToFit(doc, value, valueMaxW);
 
       // Altura dinâmica: linhas do label vs uma linha do valor
       const rowH = Math.max(mm(9), mm(6) + (lblLines.length - 1) * (VR.line * 0.95));
 
-      setFill(doc, fill); doc.setDrawColor(stroke[0], stroke[1], stroke[2]);
-      roundRect(doc, x, y, w, rowH, 3, true, true);
+      // Borda e preenchimento separados
+      doc.setDrawColor(stroke[0], stroke[1], stroke[2]);
+      (doc as any).roundedRect(x, y, w, rowH, 3, 3, "S");
+      setFill(doc, fill);
+      doc.rect(x, y, w, rowH, "F");
 
       // label (esq)
       doc.setFont("helvetica","normal"); doc.setFontSize(9); setText(doc, TEXT);
       doc.text(lblLines, x + mm(5), y + mm(6));
 
       // value (dir, sem quebra)
-      doc.setFont("helvetica","bold"); doc.setFontSize(fs);
+      doc.setFont("helvetica","bold");
       const xVal = x + w - mm(5);
       doc.text(value, xVal, y + mm(6), { align: "right" });
 
@@ -315,7 +319,7 @@ function drawDecompColumns(doc: jsPDF, yStart: number, left: DecompColuna, right
   const yLeftEnd = drawStack(x1, titleY, colW, left);
   const yRightEnd = drawStack(x2, titleY, colW, right);
   
-  return Math.max(yLeftEnd, yRightEnd) + VR.section; // Retorna próximo Y
+  return Math.max(yLeftEnd, yRightEnd) + VR.after; // Retorna próximo Y
 }
 
 // ———————————————————————————————— página inteira
