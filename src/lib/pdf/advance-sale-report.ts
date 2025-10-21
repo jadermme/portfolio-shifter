@@ -56,6 +56,9 @@ const CARD_BG = [237, 245, 255];           // azul clarinho
 const GREEN = [46, 139, 87];
 const TEXT = [20, 20, 20];
 
+// ===== Clip desativado (rollback seguro)
+const USE_CLIP = false;
+
 // Constantes de layout e ritmo vertical
 const PAGE = { MT: mm(20), MB: mm(20), ML: mm(18), MR: mm(18) };
 const VR = { after: mm(8), line: mm(5.2), cardGap: mm(3) };
@@ -87,6 +90,12 @@ function textShrinkToFit(doc: jsPDF, text: string, maxW: number, base = 9, min =
 
 /** Garante que qualquer texto desenhado fique 100% dentro do retângulo */
 function withClipRect(doc: jsPDF, x: number, y: number, w: number, h: number, draw: () => void) {
+  // Rollback seguro: desativa clipping temporariamente
+  if (!USE_CLIP) { 
+    draw(); 
+    return; 
+  }
+  
   // Validar que valores não são negativos ou NaN
   if (x < 0 || y < 0 || w <= 0 || h <= 0 || isNaN(x) || isNaN(y) || isNaN(w) || isNaN(h)) {
     console.warn('withClipRect: valores inválidos detectados, pulando clipping', {x, y, w, h});
@@ -94,14 +103,17 @@ function withClipRect(doc: jsPDF, x: number, y: number, w: number, h: number, dr
     return;
   }
   
+  // Implementação correta: save → path → clip → beginPath → draw → restore
   (doc as any).saveGraphicsState?.();
+  doc.rect(x, y, w, h);               // define o path
+  (doc as any).clip?.();              // aplica o clip
+  (doc as any).beginPath?.();         // limpa o path atual (CRÍTICO)
   
-  // API correta: rect() sem parâmetro de estilo, depois clip()
-  doc.rect(x, y, w, h);
-  (doc as any).clip?.();
-  
-  draw();
-  (doc as any).restoreGraphicsState?.();
+  try {
+    draw();
+  } finally {
+    (doc as any).restoreGraphicsState?.(); // SEMPRE restaurar, mesmo se draw() falhar
+  }
 }
 
 // ———————————————————————————————— desenho de blocos
