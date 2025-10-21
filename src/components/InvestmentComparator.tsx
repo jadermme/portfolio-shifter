@@ -10,6 +10,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { useToast } from '@/hooks/use-toast';
 import { CouponManager } from './CouponManager';
 import { CouponSummary } from '@/types/coupon';
+import { buildPdf, ReportData, AssetInfo, Ativo2Resumo, DecompColuna } from '@/lib/pdf/advance-sale-report';
 
 // ===================== UTILITY FUNCTIONS =====================
 const formatCurrency = (value: number): string => {
@@ -1004,7 +1005,6 @@ const InvestmentComparator = () => {
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [lastCalculationHash, setLastCalculationHash] = useState<string>('');
   const [calculationTimestamp, setCalculationTimestamp] = useState<number>(0);
-  const [compactPdfMode, setCompactPdfMode] = useState(false);
 
   // Function to invalidate results when data changes
   const invalidateResults = () => {
@@ -2211,8 +2211,195 @@ const InvestmentComparator = () => {
         </div>
       </CardContent>
     </Card>;
+  // PDF Generation Handler
+  const handleGeneratePDF = async () => {
+    try {
+      // Validations
+      if (!results.ativo1 || !results.ativo2 || hasUnsavedChanges) {
+        toast({
+          title: "Atenção",
+          description: "Execute o cálculo antes de gerar o PDF",
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      if (!ativo1.valorVenda) {
+        toast({
+          title: "Atenção",
+          description: "Informe o valor de venda do Ativo 1 antes de gerar o PDF",
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      toast({
+        title: "Gerando PDF...",
+        description: "Aguarde enquanto preparamos seu relatório"
+      });
+      
+      // Map data
+      const header = mapAtivo1ToHeader();
+      const ativo2Resumo = mapAtivo2ToResumo();
+      const { esquerda, direita } = mapToDecompColunas();
+      
+      const reportData: ReportData = {
+        pages: [{
+          header,
+          ativo2: ativo2Resumo,
+          colunaEsq: esquerda,
+          colunaDir: direita
+        }],
+        filename: `Analise_Venda_Antecipada_${ativo1.codigo}_${new Date().toISOString().split('T')[0]}.pdf`
+      };
+      
+      const blob = await buildPdf(reportData);
+      
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = reportData.filename || 'Analise_Venda_Antecipada.pdf';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      
+      toast({
+        title: "PDF Gerado com Sucesso!",
+        description: "O download do relatório foi iniciado"
+      });
+      
+    } catch (error) {
+      console.error('Erro ao gerar PDF:', error);
+      toast({
+        title: "Erro ao Gerar PDF",
+        description: "Ocorreu um erro ao processar o relatório. Tente novamente.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  // PDF Mapping Functions
+  const mapAtivo1ToHeader = (): AssetInfo => {
+    const titulo = `${ativo1.nome} - Análise de Venda Antecipada`;
+    const tipoAtivo = getTipoAtivoDisplay(ativo1.tipoAtivo);
+    const indexador = getIndexadorDisplay(ativo1.indexador);
+    const taxa = getTaxaDisplay(ativo1);
+    const vencimento = new Date(ativo1.vencimento).toLocaleDateString('pt-BR');
+    const tributacaoIR = getIRDisplay(ativo1, results.anosProjecao);
+    const valorCompra = ativo1.valorInvestido;
+    const valorCurva = ativo1.valorCurva;
+    const cuponsRecebidos = ativo1.couponData.total;
+    const valorVenda = ativo1.valorVenda || 0;
+    
+    const resultadoVenda = valorVenda + cuponsRecebidos - ativo1.valorInvestido;
+    const percentualVenda = (resultadoVenda / ativo1.valorInvestido) * 100;
+    const isPositivo = resultadoVenda >= 0;
+    
+    return {
+      titulo,
+      tipoAtivo,
+      indexador,
+      taxa,
+      vencimento,
+      tributacaoIR,
+      valorCompra,
+      valorCurva,
+      cuponsRecebidos,
+      valorVenda,
+      resultadoTituloBox: "Resultado da Venda Antecipada",
+      resultadoValorBox: `R$ ${formatCurrency(Math.abs(resultadoVenda))}`,
+      resultadoSubBox: `${isPositivo ? '+' : ''}${percentualVenda.toFixed(2)}% sobre o valor investido`
+    };
+  };
+
+  const mapAtivo2ToResumo = (): Ativo2Resumo => {
+    const tipoAtivo = getTipoAtivoDisplay(ativo2.tipoAtivo);
+    
+    let distribuicao = "N/A";
+    if (ativo2.tipoAtivo === 'fundo-cetipado') {
+      distribuicao = ativo2.periodicidadeDistribuicao === 'mensal' 
+        ? 'Fundo/mês' 
+        : 'Fundo/trimestre';
+    }
+    
+    const vencimento = new Date(ativo2.vencimento).toLocaleDateString('pt-BR');
+    const valorCompra = ativo2.valorInvestido;
+    const tributacaoIR = getIRDisplay(ativo2, results.anosProjecao);
+    const taxa = getTaxaDisplay(ativo2);
+    
+    return {
+      tipoAtivo,
+      distribuicao,
+      vencimento,
+      valorCompra,
+      tributacaoIR,
+      taxa
+    };
+  };
+
+  const mapToDecompColunas = (): { esquerda: DecompColuna; direita: DecompColuna } => {
+    const calculateDetailedBreakdown = (ativo: any, couponDetails: any[], valorInvestido: number) => {
+      const principalInvestido = valorInvestido;
+      const cupomsBrutos = couponDetails?.reduce((sum, coupon) => sum + (coupon.gross || 0), 0) || 0;
+      const irSobreCupons = couponDetails?.reduce((sum, coupon) => sum + ((coupon.gross || 0) - (coupon.net || 0)), 0) || 0;
+      const cuponsLiquidos = cupomsBrutos - irSobreCupons;
+      const valorFinalBruto = ativo.length > 0 ? ativo[ativo.length - 1] : 0;
+      const totalReinvestido = couponDetails?.reduce((sum, coupon) => sum + (coupon.reinvested || 0), 0) || 0;
+      const rendimentoSobreCupons = totalReinvestido - cuponsLiquidos;
+      
+      return {
+        principalInvestido,
+        cupomsBrutos,
+        irSobreCupons,
+        cuponsLiquidos,
+        rendimentoSobreCupons,
+        valorFinal: valorFinalBruto
+      };
+    };
+    
+    const breakdown1 = calculateDetailedBreakdown(results.ativo1, results.couponDetails?.ativo1 || [], ativo1.valorCurva);
+    const breakdown2 = calculateDetailedBreakdown(results.ativo2, results.couponDetails?.ativo2 || [], ativo2.valorCurva);
+    
+    const reinvestAtivo1 = results.reinvestimento?.ativoReinvestido === 'ativo1'
+      ? results.reinvestimento.valorFinalReinvestimento - results.reinvestimento.valorResgatado
+      : 0;
+      
+    const reinvestAtivo2 = results.reinvestimento?.ativoReinvestido === 'ativo2'
+      ? results.reinvestimento.valorFinalReinvestimento - results.reinvestimento.valorResgatado
+      : 0;
+    
+    const colunaEsq: DecompColuna = {
+      titulo: ativo1.nome,
+      linhas: [
+        { label: "Principal Investido:", valor: `R$ ${formatCurrency(breakdown1.principalInvestido)}` },
+        { label: "Cupons Brutos Recebidos:", valor: `+ R$ ${formatCurrency(breakdown1.cupomsBrutos)}`, tom: "blue" },
+        { label: "IR sobre Cupons:", valor: `- R$ ${formatCurrency(breakdown1.irSobreCupons)}`, tom: "red" },
+        { label: "Cupons Líquidos:", valor: `= R$ ${formatCurrency(breakdown1.cuponsLiquidos)}` },
+        { label: "Rendimento sobre cupons:", valor: `R$ ${formatCurrency(breakdown1.rendimentoSobreCupons)}` },
+        { label: "Valor após vencimento reaplicado no CDI:", valor: `+ R$ ${formatCurrency(reinvestAtivo1)}` }
+      ],
+      valorFinal: `R$ ${formatCurrency(breakdown1.valorFinal)}`
+    };
+    
+    const colunaDir: DecompColuna = {
+      titulo: ativo2.nome,
+      linhas: [
+        { label: "Principal Investido:", valor: `R$ ${formatCurrency(breakdown2.principalInvestido)}` },
+        { label: "Cupons Brutos Recebidos:", valor: `+ R$ ${formatCurrency(breakdown2.cupomsBrutos)}`, tom: "blue" },
+        { label: "IR sobre Cupons:", valor: `- R$ ${formatCurrency(breakdown2.irSobreCupons)}`, tom: "red" },
+        { label: "Cupons Líquidos:", valor: `= R$ ${formatCurrency(breakdown2.cuponsLiquidos)}` },
+        { label: "Rendimento sobre cupons:", valor: `R$ ${formatCurrency(breakdown2.rendimentoSobreCupons)}` },
+        { label: "Valor após vencimento reaplicado no CDI:", valor: `+ R$ ${formatCurrency(reinvestAtivo2)}` }
+      ],
+      valorFinal: `R$ ${formatCurrency(breakdown2.valorFinal)}`
+    };
+    
+    return { esquerda: colunaEsq, direita: colunaDir };
+  };
+
   const anoAtual = new Date().getFullYear();
-  return <div className={`min-h-screen bg-background p-4 print:p-0 ${compactPdfMode ? 'compact-pdf-mode' : ''}`}>
+  return <div className="min-h-screen bg-background p-4 print:p-0">
       {/* Print Header - Hidden on screen, visible in PDF */}
       <div className="print-header hidden">
         <h1 className="print-title">RELATÓRIO DE ANÁLISE COMPARATIVA DE INVESTIMENTOS</h1>
@@ -2251,7 +2438,7 @@ const InvestmentComparator = () => {
         </div>
 
         {/* CDI Projections */}
-        <div className={`grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6 print:gap-3 print:mb-3 print:hidden ${compactPdfMode ? 'compact-pdf-hide' : ''}`}>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6 print:gap-3 print:mb-3 print:hidden">
           {/* CDI Projections */}
           <Card className="border-financial-secondary/20 shadow-lg">
             <CardHeader className="bg-gradient-to-r from-financial-secondary to-financial-primary text-white rounded-t-lg">
@@ -2300,21 +2487,13 @@ const InvestmentComparator = () => {
             {hasUnsavedChanges && <span className="ml-2 text-yellow-300 animate-pulse">●</span>}
           </Button>
           <Button 
-            variant="outline" 
-            onClick={() => {
-              setCompactPdfMode(true);
-              setTimeout(() => {
-                window.print();
-                // Wait longer for print dialog to fully process the compact styles
-                setTimeout(() => {
-                  setCompactPdfMode(false);
-                }, 2000);
-              }, 300);
-            }} 
+            onClick={handleGeneratePDF}
             size="lg" 
-            className="border-blue-500 text-blue-600 hover:bg-blue-500 hover:text-white"
+            className="bg-gradient-to-r from-financial-primary to-financial-secondary hover:opacity-90 text-white"
+            disabled={!results.ativo1 || !results.ativo2 || hasUnsavedChanges || !ativo1.valorVenda}
           >
-            📄 PDF
+            <FileText className="h-4 w-4 mr-2" />
+            Gerar PDF Profissional
           </Button>
         </div>
 
@@ -2335,7 +2514,7 @@ const InvestmentComparator = () => {
 
         {showResults && results && <div className="space-y-6">
             {/* Executive Summary for PDF */}
-            <div className={`print-show hidden print-summary ${compactPdfMode ? 'compact-pdf-hide' : ''}`}>
+            <div className="print-show hidden print-summary">
               <h2 className="print-section-title">RESUMO EXECUTIVO</h2>
               <div className="grid grid-cols-2 gap-4 text-sm">
                 <div>
@@ -2373,10 +2552,10 @@ const InvestmentComparator = () => {
             })()}
             
             {/* Executive Summary - Restructured into Two Separate Tables */}
-            <div className={`space-y-6 ${compactPdfMode ? 'compact-pdf-mode' : ''}`}>
+            <div className="space-y-6">
               
               {/* Table 1 - CRA ZAMP with Early Sale Analysis */}
-              <Card className={`border-financial-success/30 shadow-xl no-page-break ${compactPdfMode ? '' : ''}`}>
+              <Card className="border-financial-success/30 shadow-xl no-page-break">
                 <CardHeader className="bg-gradient-to-r from-financial-success to-blue-600 text-white rounded-t-lg">
                   <CardTitle className="flex items-center gap-2">
                     <TrendingUp className="h-5 w-5" />
@@ -2481,7 +2660,7 @@ const InvestmentComparator = () => {
               </Card>
 
               {/* Table 2 - BTDI11 Characteristics */}
-              <Card key="ativo2-btdi11-card" className={`border-financial-info/30 shadow-xl ${compactPdfMode ? '' : ''}`}>
+              <Card key="ativo2-btdi11-card" className="border-financial-info/30 shadow-xl">
                 <CardHeader className="bg-gradient-to-r from-financial-info to-blue-600 text-white rounded-t-lg">
                   <CardTitle className="flex items-center gap-2 text-lg font-bold">
                     <BarChart3 className="h-6 w-6" />
@@ -2576,7 +2755,7 @@ const InvestmentComparator = () => {
 
             
             {/* Decomposição Detalhada dos Valores Finais */}
-            <Card className={`border-financial-primary/30 shadow-xl ${compactPdfMode ? '' : ''}`}>
+            <Card className="border-financial-primary/30 shadow-xl">
               <CardHeader className="bg-gradient-to-r from-financial-primary to-financial-secondary text-white rounded-t-lg">
                 <CardTitle className="flex items-center gap-2">
                   <Calculator className="h-5 w-5" />
@@ -2818,7 +2997,7 @@ const InvestmentComparator = () => {
             
             {/* Reinvestment Details Section - NEW */}
             {results.reinvestimento && (
-              <Card className={`border-financial-warning/30 shadow-xl ${compactPdfMode ? 'compact-pdf-hide' : ''}`}>
+              <Card className="border-financial-warning/30 shadow-xl print:hidden">
                 <CardHeader className="bg-gradient-to-r from-financial-warning to-orange-500 text-white rounded-t-lg print:hidden">
                   <CardTitle className="flex items-center gap-2">
                     <ArrowRight className="h-5 w-5" />
@@ -2916,7 +3095,7 @@ const InvestmentComparator = () => {
             )}
             
             {/* Final Analysis Summary */}
-            <Card className={`border-financial-primary/30 shadow-xl ${compactPdfMode ? '' : ''}`}>
+            <Card className="border-financial-primary/30 shadow-xl">
               <CardHeader className="bg-gradient-to-r from-financial-primary to-financial-secondary text-white rounded-t-lg print:hidden">
                 <CardTitle className="flex items-center gap-2">
                   <BarChart3 className="h-5 w-5" />
@@ -3014,7 +3193,7 @@ const InvestmentComparator = () => {
             </Card>
 
             {/* Coupon Details Section - New Cash Flow System */}
-            {!compactPdfMode && (results.couponDetails?.ativo1?.length || results.couponDetails?.ativo2?.length) && <Card className="border-blue-500/30 shadow-xl">
+            {(results.couponDetails?.ativo1?.length || results.couponDetails?.ativo2?.length) && <Card className="border-blue-500/30 shadow-xl print:hidden">
                 <CardHeader className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-t-lg">
                   <CardTitle className="flex items-center gap-2">
                     <TrendingUp className="h-5 w-5" />
