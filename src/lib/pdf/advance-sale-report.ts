@@ -132,24 +132,30 @@ function drawHeaderBar(doc: jsPDF, yTop: number, titulo: string): number {
 }
 
 function drawInfoPair(doc: jsPDF, yStart: number, h: AssetInfo): number {
-  doc.setFontSize(9);
-
-  // pista do cartão
+  // ——— layout base
   const gutter = mm(12);
   const cardW  = mm(70), cardH = mm(32);
   const leftW  = fullW(doc) - cardW - gutter;
   const xLeft  = PAGE.ML;
   const xCard  = PAGE.ML + leftW + gutter;
 
-  // grid de duas colunas no bloco esquerdo
+  // grid interno (duas colunas)
   const padX   = mm(6);
   const colGap = mm(12);
   const colW   = (leftW - padX*2 - colGap) / 2;
   const xColL  = xLeft + padX;
   const xColR  = xColL + colW + colGap;
 
+  // células
   const labelW = mm(36);
   const valueW = colW - labelW - mm(8);
+  const rowH   = mm(7);
+  const yTop   = yStart + mm(2);
+
+  // reset seguro de state gráfico (evita "modo stroke" herdado)
+  doc.setTextColor(20,20,20);
+  doc.setDrawColor(0); doc.setLineWidth(0.2);
+  doc.setFont("helvetica", "normal"); doc.setFontSize(9);
 
   const leftRows:  [string,string][] = [
     ["Tipo de Ativo:", h.tipoAtivo],
@@ -165,48 +171,45 @@ function drawInfoPair(doc: jsPDF, yStart: number, h: AssetInfo): number {
     ["Valor de Venda:",    fmtBRL(h.valorVenda)],
   ];
 
-  const rowH = mm(7);              // altura fixa por linha (robusto)
-  const yTop = yStart + mm(2);
+  const drawRow = (x: number, y: number, label: string, value: string) => {
+    // label (1 chamada, 1 linha)
+    doc.setFont("helvetica","bold"); doc.setTextColor(20,20,20);
+    doc.text(label, x, y, { baseline: "alphabetic" });
 
-  const drawCellRow = (x: number, y: number, label: string, value: string) => {
-    // label (uma linha; aqui não precisa wrap — labels são curtos)
-    doc.setFont("helvetica","bold"); setText(doc, TEXT);
-    doc.text(label, x, y);
-
-    // valor: 1 linha + shrink + direita
+    // valor (1 chamada, 1 linha, shrink até caber)
     const xValEnd = x + labelW + mm(4) + valueW;
-    doc.setFont("helvetica","normal"); setText(doc, BLUE);
+    doc.setFont("helvetica","normal"); doc.setTextColor(13,82,179);
     let fs = 9, w = doc.getTextWidth(value);
     while (w > valueW && fs > 7.2) { fs -= 0.2; doc.setFontSize(fs); w = doc.getTextWidth(value); }
-    doc.text(value, xValEnd, y, { align: "right" });
-    doc.setFontSize(9);
+    doc.text(value, xValEnd, y, { align: "right", baseline: "alphabetic" });
+    doc.setFontSize(9); // reset
   };
 
-  // coluna esquerda (5 linhas)
-  leftRows.forEach(([lab,val], idx) => {
-    const y = yTop + idx * rowH;
-    drawCellRow(xColL, y, lab, val);
-  });
+  // coluna esquerda: 5 linhas
+  for (let i = 0; i < leftRows.length; i++) {
+    const y = yTop + i * rowH;
+    const [lab, val] = leftRows[i];
+    drawRow(xColL, y, lab, val);
+  }
 
-  // coluna direita (4 linhas) – sem if/else, sempre yTop + idx*rowH
-  rightRows.forEach(([lab,val], idx) => {
-    const y = yTop + idx * rowH;
-    drawCellRow(xColR, y, lab, val);
-  });
+  // coluna direita: 4 linhas (sem reaproveitar lógica antiga!)
+  for (let i = 0; i < rightRows.length; i++) {
+    const y = yTop + i * rowH;
+    const [lab, val] = rightRows[i];
+    drawRow(xColR, y, lab, val);
+  }
 
-  // cartão – área reservada (não encosta no texto)
+  // cartão
   setFill(doc, CARD_BG);
   (doc as any).roundedRect(xCard, yStart, cardW, cardH, 3, 3, "F");
-  doc.setFont("helvetica","normal"); setText(doc, TEXT); doc.setFontSize(9);
+  doc.setFont("helvetica","normal"); doc.setTextColor(20,20,20); doc.setFontSize(9);
   doc.text(h.resultadoTituloBox, xCard + cardW/2, yStart + mm(9), { align:"center" });
-  doc.setFont("helvetica","bold"); setText(doc, BLUE); doc.setFontSize(14);
+  doc.setFont("helvetica","bold"); doc.setTextColor(13,82,179); doc.setFontSize(14);
   doc.text(h.resultadoValorBox,  xCard + cardW/2, yStart + cardH/2 + mm(2), { align:"center" });
-  doc.setFont("helvetica","normal"); setText(doc, GREEN); doc.setFontSize(8);
+  doc.setFont("helvetica","normal"); doc.setTextColor(46,139,87); doc.setFontSize(8);
   doc.text(h.resultadoSubBox,    xCard + cardW/2, yStart + cardH - mm(6), { align:"center" });
 
-  setText(doc, TEXT);
-
-  // y final: maior entre final do grid e base do cartão
+  // y final da seção
   const yGridBottom = yTop + (leftRows.length - 1) * rowH;
   return Math.max(yGridBottom, yStart + cardH) + VR.after;
 }
