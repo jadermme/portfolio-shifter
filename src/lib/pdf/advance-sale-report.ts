@@ -97,6 +97,18 @@ function textShrinkToFit(doc: jsPDF, text: string, maxW: number, base = 9, min =
   return fs;
 }
 
+/** Calcula a largura necessária para os labels de um array de pares */
+function measureMaxLabelWidth(doc: jsPDF, pairs: [string, string][], fontSize = 9, padRight = mm(2)): number {
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(fontSize);
+  let maxW = 0;
+  for (const [label] of pairs) {
+    const w = doc.getTextWidth(label);
+    if (w > maxW) maxW = w;
+  }
+  return maxW + padRight;
+}
+
 /** Garante que qualquer texto desenhado fique 100% dentro do retângulo */
 function withClipRect(doc: jsPDF, x: number, y: number, w: number, h: number, draw: () => void) {
   // Rollback seguro: desativa clipping temporariamente
@@ -162,10 +174,9 @@ function drawInfoPair(doc: jsPDF, yStart: number, h: AssetInfo): number {
   const xColR  = xColL + colW + colGap;
 
   // células
-  const labelW = mm(46);                // +10mm para labels longos
-  const valueW = colW - labelW - mm(8); // recalculado automaticamente
-  const rowH   = mm(8.8);               // +1.8mm (25% mais alto)
+  const rowH   = mm(8.8);
   const yTop   = yStart + mm(2);
+  const gap    = mm(6); // espaço entre label e valor
 
   // reset seguro de state gráfico (evita "modo stroke" herdado)
   doc.setTextColor(20,20,20);
@@ -187,13 +198,22 @@ function drawInfoPair(doc: jsPDF, yStart: number, h: AssetInfo): number {
     ["Valor de Venda:",    fmtBRL(h.valorVenda)],
   ];
 
-  const drawRow = (x: number, y: number, label: string, value: string) => {
+  // Mede a largura necessária para cada coluna (DEPOIS de definir os arrays)
+  const labelWLeft  = measureMaxLabelWidth(doc, leftRows, 9, mm(2));
+  const labelWRight = measureMaxLabelWidth(doc, rightRows, 9, mm(2));
+
+  // Calcula o espaço disponível para valores
+  const valueWLeft  = colW - labelWLeft - gap;
+  const valueWRight = colW - labelWRight - gap;
+
+  const drawRow = (x: number, y: number, label: string, value: string, labelW: number, valueW: number) => {
     // label (1 chamada, 1 linha)
     doc.setFont("helvetica","bold"); doc.setTextColor(20,20,20);
     doc.text(label, x, y, { baseline: "alphabetic" });
 
     // valor (1 chamada, 1 linha, shrink até caber)
-    const xValEnd = x + labelW + mm(4) + valueW;
+    const xValStart = x + labelW + gap;
+    const xValEnd = xValStart + valueW;
     doc.setFont("helvetica","normal"); doc.setTextColor(13,82,179);
     let fs = 9, w = doc.getTextWidth(value);
     while (w > valueW && fs > 7.2) { fs -= 0.2; doc.setFontSize(fs); w = doc.getTextWidth(value); }
@@ -207,14 +227,14 @@ function drawInfoPair(doc: jsPDF, yStart: number, h: AssetInfo): number {
   for (let i = 0; i < leftRows.length; i++) {
     const y = yTop + i * rowH;
     const [lab, val] = leftRows[i];
-    drawRow(xColL, y, lab, val);
+    drawRow(xColL, y, lab, val, labelWLeft, valueWLeft);
   }
 
-  // coluna direita: 4 linhas (sem reaproveitar lógica antiga!)
+  // coluna direita: 4 linhas
   for (let i = 0; i < rightRows.length; i++) {
     const y = yTop + i * rowH;
     const [lab, val] = rightRows[i];
-    drawRow(xColR, y, lab, val);
+    drawRow(xColR, y, lab, val, labelWRight, valueWRight);
   }
 
   // cartão
