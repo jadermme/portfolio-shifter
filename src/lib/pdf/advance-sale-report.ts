@@ -87,9 +87,19 @@ function textShrinkToFit(doc: jsPDF, text: string, maxW: number, base = 9, min =
 
 /** Garante que qualquer texto desenhado fique 100% dentro do retângulo */
 function withClipRect(doc: jsPDF, x: number, y: number, w: number, h: number, draw: () => void) {
+  // Validar que valores não são negativos ou NaN
+  if (x < 0 || y < 0 || w <= 0 || h <= 0 || isNaN(x) || isNaN(y) || isNaN(w) || isNaN(h)) {
+    console.warn('withClipRect: valores inválidos detectados, pulando clipping', {x, y, w, h});
+    draw(); // Executa sem clipping
+    return;
+  }
+  
   (doc as any).saveGraphicsState?.();
-  doc.rect(x, y - mm(4.2), w, h + mm(6), "W"); // W = clipping path, folga vertical p/ asc/desc
+  
+  // API correta: rect() sem parâmetro de estilo, depois clip()
+  doc.rect(x, y, w, h);
   (doc as any).clip?.();
+  
   draw();
   (doc as any).restoreGraphicsState?.();
 }
