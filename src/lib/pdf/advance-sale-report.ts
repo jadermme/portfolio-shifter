@@ -134,7 +134,7 @@ function drawHeaderBar(doc: jsPDF, yTop: number, titulo: string): number {
 function drawInfoPair(doc: jsPDF, yStart: number, header: AssetInfo): number {
   doc.setFontSize(9);
 
-  const gutter = mm(10);
+  const gutter = mm(12);            // +2mm espaço entre texto e cartão
   const cardW  = mm(70), cardH = mm(32);
   const xLeft  = PAGE.ML;
   const leftBlockW = fullW(doc) - cardW - gutter;
@@ -143,14 +143,14 @@ function drawInfoPair(doc: jsPDF, yStart: number, header: AssetInfo): number {
 
   // sub-colunas dentro do bloco esquerdo
   const padX = mm(6);
-  const colGap = mm(10);
+  const colGap = mm(12);            // +2mm entre colunas
   const colW   = (leftBlockW - padX*2 - colGap) / 2;
   const xColL  = xLeft + padX;
   const xColR  = xColL + colW + colGap;
 
   // cada coluna terá labelWidth fixo; o valor ocupa o resto
-  const labelW = mm(36);               // +2mm para mais espaço
-  const valueW = colW - labelW - mm(6); // gap mais confortável
+  const labelW = mm(36);
+  const valueW = colW - labelW - mm(8);   // +2mm folga para valores
 
   const L: [string,string][] = [
     ["Tipo de Ativo:",   header.tipoAtivo],
@@ -181,15 +181,21 @@ function drawInfoPair(doc: jsPDF, yStart: number, header: AssetInfo): number {
       });
       const labelLinesH = (labelLines.length - 1) * (VR.line * 0.95);
 
-      // VALUE (1 linha, sem wrap, shrink + CLIP no box do valor)
-      const xValStart = x + labelW + mm(4);
-      const xValEnd   = xValStart + valueW + mm(2); // +2mm respiro
+      // VALUE (1 linha, shrink inline, alinhado à direita)
+      const xValEnd = x + labelW + mm(4) + valueW;
       doc.setFont("helvetica","normal"); setText(doc, BLUE);
-      textShrinkToFit(doc, value, valueW + mm(2));
-      withClipRect(doc, xValStart, y - mm(4), valueW + mm(2), VR.line * 1.2, () => {
-        doc.text(value, xValEnd, y, { align: "right" });
-      });
-      doc.setFontSize(9);
+      
+      // Shrink inline: reduz fonte até caber
+      let fs = 9; 
+      let w = doc.getTextWidth(value);
+      while (w > valueW && fs > 7.2) { 
+        fs -= 0.2; 
+        doc.setFontSize(fs); 
+        w = doc.getTextWidth(value); 
+      }
+      
+      doc.text(value, xValEnd, y, { align: "right" });
+      doc.setFontSize(9); // Reset para 9pt
 
       // avança y pelo maior bloco
       y += Math.max(labelLinesH, 0);
@@ -232,53 +238,62 @@ function drawSubheader(doc: jsPDF, yStart: number, titulo: string): number {
 function drawAtivo2Resumo(doc: jsPDF, yStart: number, ativo2: Ativo2Resumo): number {
   doc.setFontSize(9);
 
-  const xL = PAGE.ML + mm(6);
-  const xR = xL + mm(98);  // +2mm separação entre colunas
-  const labelW = mm(38);   // +2mm para mais espaço
-  const valueW = mm(66);   // +2mm para valores longos
+  // Duas meias-larguras simétricas (não posições absolutas)
+  const padX = mm(8);
+  const gap  = mm(14);
+  const colW = (fullW(doc) - padX*2 - gap) / 2;
+  const xColL = PAGE.ML + padX;
+  const xColR = xColL + colW + gap;
 
-  const L: [string,string][] = [
+  const labelW = mm(38);
+  const valueW = colW - labelW - mm(8);
+
+  const left: [string,string][] = [
     ["Tipo de Ativo:", ativo2.tipoAtivo],
     ["Distribuição:",  ativo2.distribuicao],
     ["Vencimento:",    ativo2.vencimento],
   ];
-  const R: [string,string][] = [
+  const right: [string,string][] = [
     ["Valor de Compra:", fmtBRL(ativo2.valorCompra)],
     ["Tributação IR:",   ativo2.tributacaoIR],
     ["Taxa:",            ativo2.taxa],
   ];
 
-  const wrap = (txt: string, maxW: number) => doc.splitTextToSize(txt, maxW);
-  const drawPairCol = (x: number, y0: number, rows: [string,string][]) => {
-    let y = y0;
-    rows.forEach(([label, value], i) => {
-      if (i) y += VR.line;
-      // LABEL (wrap + clip)
-      doc.setFont("helvetica","bold"); setText(doc, TEXT);
-      const lbl = doc.splitTextToSize(label, labelW + mm(2));
-      withClipRect(doc, x, y - mm(4), labelW + mm(2), VR.line * Math.max(1, lbl.length), () => {
-        doc.text(lbl, x, y);
-      });
-      const lblH = (lbl.length - 1) * (VR.line * 0.95);
+  const wrap = (t:string,w:number)=>doc.splitTextToSize(t,w);
 
-      // VALUE (sem wrap + shrink + clip, alinhado à direita)
-      const xValStart = x + labelW + mm(4);
-      const xValEnd   = xValStart + valueW + mm(2);
+  const drawCol = (x:number, y0:number, rows:[string,string][])=>{
+    let y = y0;
+    rows.forEach(([label,value],i)=>{
+      if(i) y += VR.line;
+
+      // label (wrap)
+      doc.setFont("helvetica","bold"); setText(doc, TEXT);
+      const ll = wrap(label, labelW); 
+      doc.text(ll, x, y);
+      const hLabel = (ll.length-1)*(VR.line*0.95);
+
+      // valor (1 linha + shrink inline + alinhado à direita)
+      const xValEnd = x + labelW + mm(4) + valueW;
       doc.setFont("helvetica","normal"); setText(doc, BLUE);
-      textShrinkToFit(doc, value, valueW + mm(2));
-      withClipRect(doc, xValStart, y - mm(4), valueW + mm(2), VR.line * 1.2, () => {
-        doc.text(value, xValEnd, y, { align: "right" });
-      });
+      
+      let fs=9, w=doc.getTextWidth(value);
+      while (w>valueW && fs>7.2){ 
+        fs-=0.2; 
+        doc.setFontSize(fs); 
+        w=doc.getTextWidth(value); 
+      }
+      
+      doc.text(value, xValEnd, y, { align:"right" });
       doc.setFontSize(9);
 
-      y += Math.max(lblH, 0);
+      y += Math.max(hLabel, 0);
     });
     setText(doc, TEXT);
     return y;
   };
 
-  const yL = drawPairCol(xL, yStart + mm(2), L);
-  const yR = drawPairCol(xR, yStart + mm(2), R);
+  const yL = drawCol(xColL, yStart + mm(3), left);
+  const yR = drawCol(xColR, yStart + mm(3), right);
   return Math.max(yL, yR) + VR.after;
 }
 
@@ -306,38 +321,41 @@ function drawDecompColumns(doc: jsPDF, yStart: number, left: DecompColuna, right
       else if (tone === "red") { fill = [255, 240, 240]; stroke = [255, 204, 204]; }
       else { fill = [245, 245, 245]; stroke = [230, 230, 230]; }
 
-      // Medir e permitir wrap apenas no LABEL; o VALUE é alinhado à direita sem quebrar
-      const labelMaxW = w * 0.62;
-      const valueMaxW = w * 0.32;
+      const labelMaxW = w * 0.60;  // Redistribui espaço
+      const valueMaxW = w * 0.34;
 
-      const lblLines = doc.splitTextToSize(label, labelMaxW + mm(2));
-      textShrinkToFit(doc, value, valueMaxW + mm(2));
+      const ll = doc.splitTextToSize(label, labelMaxW);
+      
+      // Shrink inline para valor
+      let fs=9, tw=doc.getTextWidth(value);
+      while (tw>valueMaxW && fs>7.2){ 
+        fs-=0.2; 
+        doc.setFontSize(fs); 
+        tw=doc.getTextWidth(value); 
+      }
 
-      // Altura dinâmica: linhas do label vs uma linha do valor
-      const rowH = Math.max(mm(9), mm(6) + (lblLines.length - 1) * (VR.line * 0.95));
+      // Altura calculada pela quantidade de linhas do label (valor sempre 1 linha)
+      const rowH = Math.max(mm(9), mm(6) + (ll.length-1)*(VR.line*0.95));
 
-      // Borda e preenchimento separados
-      doc.setDrawColor(stroke[0], stroke[1], stroke[2]);
-      (doc as any).roundedRect(x, y, w, rowH, 3, 3, "S");
-      setFill(doc, fill);
-      doc.rect(x, y, w, rowH, "F");
+      // Borda e preenchimento
+      doc.setDrawColor(stroke[0],stroke[1],stroke[2]);
+      (doc as any).roundedRect(x,y,w,rowH,3,3,"S");
+      setFill(doc, fill); 
+      doc.rect(x,y,w,rowH,"F");
 
-      // LABEL (clip no lado esquerdo)
-      doc.setFont("helvetica","normal"); doc.setFontSize(9); setText(doc, TEXT);
-      withClipRect(doc, x + mm(3), y + mm(1.2), labelMaxW + mm(2), rowH - mm(2.4), () => {
-        doc.text(lblLines, x + mm(5), y + mm(6));
-      });
-
-      // VALUE (uma linha + clip no lado direito)
-      doc.setFont("helvetica","bold");
-      withClipRect(doc, x + w - valueMaxW - mm(5), y + mm(1.2), valueMaxW + mm(2), rowH - mm(2.4), () => {
-        doc.text(value, x + w - mm(5), y + mm(6), { align: "right" });
-      });
-
-      // avança y
-      y += rowH + VR.cardGap;
-      // reset fonte
+      // LABEL (múltiplas linhas permitidas)
+      doc.setFont("helvetica","normal"); 
+      setText(doc, TEXT); 
       doc.setFontSize(9);
+      doc.text(ll, x + mm(5), y + mm(6));
+
+      // VALUE (sempre 1 linha, alinhado à direita, fonte já ajustada)
+      doc.setFont("helvetica","bold"); 
+      doc.setFontSize(fs);  // Usa a fonte já calculada pelo shrink
+      doc.text(value, x + w - mm(5), y + mm(6), { align:"right" });
+      doc.setFontSize(9);  // Reset
+
+      y += rowH + VR.cardGap;
     };
 
     col.linhas.forEach(l => box(l.label, l.valor, l.tom ?? "plain"));
