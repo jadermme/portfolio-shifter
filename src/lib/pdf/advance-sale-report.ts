@@ -131,95 +131,84 @@ function drawHeaderBar(doc: jsPDF, yTop: number, titulo: string): number {
   return y + VR.after; // Retorna próximo Y
 }
 
-function drawInfoPair(doc: jsPDF, yStart: number, header: AssetInfo): number {
+function drawInfoPair(doc: jsPDF, yStart: number, h: AssetInfo): number {
   doc.setFontSize(9);
 
-  const gutter = mm(12);            // +2mm espaço entre texto e cartão
+  // pista do cartão
+  const gutter = mm(12);
   const cardW  = mm(70), cardH = mm(32);
+  const leftW  = fullW(doc) - cardW - gutter;
   const xLeft  = PAGE.ML;
-  const leftBlockW = fullW(doc) - cardW - gutter;
-  const xCard  = xLeft + leftBlockW + gutter;
-  const yCard  = yStart;
+  const xCard  = PAGE.ML + leftW + gutter;
 
-  // sub-colunas dentro do bloco esquerdo
-  const padX = mm(6);
-  const colGap = mm(12);            // +2mm entre colunas
-  const colW   = (leftBlockW - padX*2 - colGap) / 2;
+  // grid de duas colunas no bloco esquerdo
+  const padX   = mm(6);
+  const colGap = mm(12);
+  const colW   = (leftW - padX*2 - colGap) / 2;
   const xColL  = xLeft + padX;
   const xColR  = xColL + colW + colGap;
 
-  // cada coluna terá labelWidth fixo; o valor ocupa o resto
   const labelW = mm(36);
-  const valueW = colW - labelW - mm(8);   // +2mm folga para valores
+  const valueW = colW - labelW - mm(8);
 
-  const L: [string,string][] = [
-    ["Tipo de Ativo:",   header.tipoAtivo],
-    ["Indexador:",       header.indexador],
-    ["Taxa:",            header.taxa],
-    ["Vencimento:",      header.vencimento],
-    ["Tributação IR:",   header.tributacaoIR],
+  const leftRows:  [string,string][] = [
+    ["Tipo de Ativo:", h.tipoAtivo],
+    ["Indexador:",     h.indexador],
+    ["Taxa:",          h.taxa],
+    ["Vencimento:",    h.vencimento],
+    ["Tributação IR:", h.tributacaoIR],
   ];
-  const R: [string,string][] = [
-    ["Valor de Compra:", fmtBRL(header.valorCompra)],
-    ["Valor de Curva:",  fmtBRL(header.valorCurva)],
-    ["Cupons Recebidos:",fmtBRL(header.cuponsRecebidos)],
-    ["Valor de Venda:",  fmtBRL(header.valorVenda)],
+  const rightRows: [string,string][] = [
+    ["Valor de Compra:",   fmtBRL(h.valorCompra)],
+    ["Valor de Curva:",    fmtBRL(h.valorCurva)],
+    ["Cupons Recebidos:",  fmtBRL(h.cuponsRecebidos)],
+    ["Valor de Venda:",    fmtBRL(h.valorVenda)],
   ];
 
-  const wrap = (txt: string, maxW: number) => doc.splitTextToSize(txt, maxW);
+  const rowH = mm(7);              // altura fixa por linha (robusto)
+  const yTop = yStart + mm(2);
 
-  const drawColumn = (x: number, y0: number, rows: [string,string][]) => {
-    let y = y0;
-    rows.forEach(([label, value], i) => {
-      if (i) y += VR.line;
+  const drawCellRow = (x: number, y: number, label: string, value: string) => {
+    // label (uma linha; aqui não precisa wrap — labels são curtos)
+    doc.setFont("helvetica","bold"); setText(doc, TEXT);
+    doc.text(label, x, y);
 
-      // LABEL (wrap permitido + CLIP no box do label)
-      doc.setFont("helvetica","bold"); setText(doc, TEXT);
-      const labelLines = wrap(label, labelW + mm(2)); // +2mm respiro
-      withClipRect(doc, x, y - mm(4), labelW + mm(2), VR.line * Math.max(1, labelLines.length), () => {
-        doc.text(labelLines, x, y);
-      });
-      const labelLinesH = (labelLines.length - 1) * (VR.line * 0.95);
-
-      // VALUE (1 linha, shrink inline, alinhado à direita)
-      const xValEnd = x + labelW + mm(4) + valueW;
-      doc.setFont("helvetica","normal"); setText(doc, BLUE);
-      
-      // Shrink inline: reduz fonte até caber
-      let fs = 9; 
-      let w = doc.getTextWidth(value);
-      while (w > valueW && fs > 7.2) { 
-        fs -= 0.2; 
-        doc.setFontSize(fs); 
-        w = doc.getTextWidth(value); 
-      }
-      
-      doc.text(value, xValEnd, y, { align: "right" });
-      doc.setFontSize(9); // Reset para 9pt
-
-      // avança y pelo maior bloco
-      y += Math.max(labelLinesH, 0);
-    });
-    setText(doc, TEXT);
-    return y;
+    // valor: 1 linha + shrink + direita
+    const xValEnd = x + labelW + mm(4) + valueW;
+    doc.setFont("helvetica","normal"); setText(doc, BLUE);
+    let fs = 9, w = doc.getTextWidth(value);
+    while (w > valueW && fs > 7.2) { fs -= 0.2; doc.setFontSize(fs); w = doc.getTextWidth(value); }
+    doc.text(value, xValEnd, y, { align: "right" });
+    doc.setFontSize(9);
   };
 
-  const yTextTop = yStart + mm(2);
-  const yEndL = drawColumn(xColL, yTextTop, L);
-  const yEndR = drawColumn(xColR, yTextTop, R);
-  const yTextBottom = Math.max(yEndL, yEndR);
+  // coluna esquerda (5 linhas)
+  leftRows.forEach(([lab,val], idx) => {
+    const y = yTop + idx * rowH;
+    drawCellRow(xColL, y, lab, val);
+  });
 
-  // CARTÃO à direita (sempre no espaço reservado)
-  setFill(doc, CARD_BG); roundRect(doc, xCard, yCard, cardW, cardH, 3, false, true);
+  // coluna direita (4 linhas) – sem if/else, sempre yTop + idx*rowH
+  rightRows.forEach(([lab,val], idx) => {
+    const y = yTop + idx * rowH;
+    drawCellRow(xColR, y, lab, val);
+  });
+
+  // cartão – área reservada (não encosta no texto)
+  setFill(doc, CARD_BG);
+  (doc as any).roundedRect(xCard, yStart, cardW, cardH, 3, 3, "F");
   doc.setFont("helvetica","normal"); setText(doc, TEXT); doc.setFontSize(9);
-  doc.text(header.resultadoTituloBox, xCard + cardW/2, yCard + mm(9), { align: "center" });
-  doc.setFont("helvetica","bold"); doc.setFontSize(14); setText(doc, BLUE);
-  doc.text(header.resultadoValorBox, xCard + cardW/2, yCard + cardH/2 + mm(2), { align: "center" });
-  doc.setFont("helvetica","normal"); doc.setFontSize(8); setText(doc, GREEN);
-  doc.text(header.resultadoSubBox,   xCard + cardW/2, yCard + cardH - mm(6), { align: "center" });
+  doc.text(h.resultadoTituloBox, xCard + cardW/2, yStart + mm(9), { align:"center" });
+  doc.setFont("helvetica","bold"); setText(doc, BLUE); doc.setFontSize(14);
+  doc.text(h.resultadoValorBox,  xCard + cardW/2, yStart + cardH/2 + mm(2), { align:"center" });
+  doc.setFont("helvetica","normal"); setText(doc, GREEN); doc.setFontSize(8);
+  doc.text(h.resultadoSubBox,    xCard + cardW/2, yStart + cardH - mm(6), { align:"center" });
 
   setText(doc, TEXT);
-  return Math.max(yTextBottom, yCard + cardH) + VR.after;
+
+  // y final: maior entre final do grid e base do cartão
+  const yGridBottom = yTop + (leftRows.length - 1) * rowH;
+  return Math.max(yGridBottom, yStart + cardH) + VR.after;
 }
 
 function drawSubheader(doc: jsPDF, yStart: number, titulo: string): number {
