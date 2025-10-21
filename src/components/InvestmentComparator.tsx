@@ -2490,7 +2490,7 @@ const InvestmentComparator = () => {
             onClick={handleGeneratePDF}
             size="lg" 
             className="bg-gradient-to-r from-financial-primary to-financial-secondary hover:opacity-90 text-white"
-            disabled={!results.ativo1 || !results.ativo2 || hasUnsavedChanges || !ativo1.valorVenda}
+            disabled={!results || !results.ativo1 || !results.ativo2 || hasUnsavedChanges || !ativo1.valorVenda}
           >
             <FileText className="h-4 w-4 mr-2" />
             Gerar PDF Profissional
