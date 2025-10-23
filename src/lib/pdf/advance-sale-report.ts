@@ -81,10 +81,21 @@ const fmtBRL = (v: Money) =>
 function setFill(doc: jsPDF, rgb: number[]) { doc.setFillColor(rgb[0], rgb[1], rgb[2]); }
 function setText(doc: jsPDF, rgb: number[]) { doc.setTextColor(rgb[0], rgb[1], rgb[2]); }
 
+// 🔒 CRÍTICO: Reset completo de estado gráfico
+const resetGraphicsState = (doc: jsPDF) => {
+  doc.setLineWidth(0);           // ESSENCIAL: remove stroke
+  doc.setDrawColor(0, 0, 0);     // ESSENCIAL: reset cor de desenho
+  doc.setTextColor(20, 20, 20);  // Reset cor de texto
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(9);
+};
+
 const resetFont = (doc: jsPDF) => { 
   doc.setFont("helvetica","normal"); 
   doc.setFontSize(9); 
   setText(doc, TEXT); 
+  doc.setLineWidth(0);        // ESSENCIAL: remove stroke
+  doc.setDrawColor(0, 0, 0);  // ESSENCIAL: reset cor de desenho
 };
 
 function roundRect(doc: jsPDF, x: number, y: number, w: number, h: number, r = 4, draw = true, fill = true) {
@@ -146,15 +157,23 @@ function withClipRect(doc: jsPDF, x: number, y: number, w: number, h: number, dr
 // ———————————————————————————————— desenho de blocos
 
 function drawHeaderBar(doc: jsPDF, yTop: number, titulo: string): number {
+  resetGraphicsState(doc); // 🔒 Reset antes de começar
+  
   const h = mm(14), w = fullW(doc), x = topX(doc), y = yTop + h;
   setFill(doc, BLUE); 
   roundRect(doc, x, yTop, w, h, 3, false, true);
+  
+  // 🔒 Reset completo antes de desenhar texto
+  doc.setLineWidth(0);
+  doc.setDrawColor(0, 0, 0);
   setText(doc, [255, 255, 255]); 
   doc.setFont("helvetica", "bold"); 
   doc.setFontSize(12);
+  
   // Baseline corrigida: yTop + altura - padding
   doc.text(titulo, x + mm(6), yTop + h - mm(4));
-  setText(doc, TEXT);
+  
+  resetGraphicsState(doc); // 🔒 Reset após terminar
   return y + VR.after; // Retorna próximo Y
 }
 
@@ -164,6 +183,8 @@ function drawInfoPair(doc: jsPDF, yStart: number, h: AssetInfo): number {
     return yStart;
   }
   __HEADER_DRAW_COUNT++;
+
+  resetGraphicsState(doc); // 🔒 Reset inicial
 
   // ——— layout base
   const gutter = mm(12);
@@ -183,12 +204,6 @@ function drawInfoPair(doc: jsPDF, yStart: number, h: AssetInfo): number {
   const rowH   = mm(8.8);
   const yTop   = yStart + mm(2);
   const gap    = mm(6); // espaço entre label e valor
-
-  // reset seguro de state gráfico (evita "modo stroke" herdado)
-  doc.setTextColor(20,20,20);
-  doc.setDrawColor(0); 
-  doc.setLineWidth(0); // CRITICAL: 0 = no stroke on text
-  doc.setFont("helvetica", "normal"); doc.setFontSize(9);
 
   const leftRows:  [string,string][] = [
     ["Tipo de Ativo:", h.tipoAtivo],
@@ -213,30 +228,44 @@ function drawInfoPair(doc: jsPDF, yStart: number, h: AssetInfo): number {
   const valueWRight = colW - labelWRight - gap;
 
   const drawRow = (x: number, y: number, label: string, value: string, labelW: number, valueW: number) => {
+    // 🔒 Reset completo antes de cada linha
+    resetGraphicsState(doc);
+    
     // label (1 chamada, 1 linha)
-    doc.setFont("helvetica","bold"); doc.setTextColor(20,20,20);
+    doc.setFont("helvetica","bold");
+    doc.setTextColor(20,20,20);
+    doc.setLineWidth(0); // CRÍTICO
     doc.text(label, x, y, { baseline: "alphabetic" });
 
     // valor (1 chamada, 1 linha, shrink até caber)
     const xValStart = x + labelW + gap;
     const xValEnd = xValStart + valueW;
-    doc.setFont("helvetica","normal"); doc.setTextColor(13,82,179);
+    
+    doc.setFont("helvetica","normal");
+    doc.setTextColor(13,82,179);
+    doc.setLineWidth(0); // CRÍTICO
+    
     let fs = 9, w = doc.getTextWidth(value);
-    while (w > valueW && fs > 7.2) { fs -= 0.2; doc.setFontSize(fs); w = doc.getTextWidth(value); }
+    while (w > valueW && fs > 7.2) {
+      fs -= 0.2;
+      doc.setFontSize(fs);
+      w = doc.getTextWidth(value);
+    }
+    
     doc.text(value, xValEnd, y, { align: "right", baseline: "alphabetic" });
     
-    // 🔒 CRÍTICO: Reset completo previne vazamento
-    resetFont(doc);
+    // 🔒 Reset após linha
+    resetGraphicsState(doc);
   };
 
-  // coluna esquerda: 5 linhas
+  // Coluna esquerda
   for (let i = 0; i < leftRows.length; i++) {
     const y = yTop + i * rowH;
     const [lab, val] = leftRows[i];
     drawRow(xColL, y, lab, val, labelWLeft, valueWLeft);
   }
 
-  // coluna direita: 4 linhas
+  // Coluna direita
   for (let i = 0; i < rightRows.length; i++) {
     const y = yTop + i * rowH;
     const [lab, val] = rightRows[i];
@@ -244,14 +273,28 @@ function drawInfoPair(doc: jsPDF, yStart: number, h: AssetInfo): number {
   }
 
   // cartão
+  resetGraphicsState(doc);
   setFill(doc, CARD_BG);
   (doc as any).roundedRect(xCard, yStart, cardW, cardH, 3, 3, "F");
-  doc.setFont("helvetica","normal"); doc.setTextColor(20,20,20); doc.setFontSize(9);
+  
+  // Texto do cartão
+  doc.setLineWidth(0);
+  doc.setFont("helvetica","normal");
+  doc.setTextColor(20,20,20);
+  doc.setFontSize(9);
   doc.text(h.resultadoTituloBox, xCard + cardW/2, yStart + mm(9), { align:"center" });
-  doc.setFont("helvetica","bold"); doc.setTextColor(13,82,179); doc.setFontSize(14);
+  
+  doc.setFont("helvetica","bold");
+  doc.setTextColor(13,82,179);
+  doc.setFontSize(14);
   doc.text(h.resultadoValorBox,  xCard + cardW/2, yStart + cardH/2 + mm(2), { align:"center" });
-  doc.setFont("helvetica","normal"); doc.setTextColor(46,139,87); doc.setFontSize(8);
+  
+  doc.setFont("helvetica","normal");
+  doc.setTextColor(46,139,87);
+  doc.setFontSize(8);
   doc.text(h.resultadoSubBox,    xCard + cardW/2, yStart + cardH - mm(6), { align:"center" });
+
+  resetGraphicsState(doc); // 🔒 Reset final
 
   // y final da seção
   const yGridBottom = yTop + (leftRows.length - 1) * rowH;
@@ -259,19 +302,28 @@ function drawInfoPair(doc: jsPDF, yStart: number, h: AssetInfo): number {
 }
 
 function drawSubheader(doc: jsPDF, yStart: number, titulo: string): number {
+  resetGraphicsState(doc); // 🔒 Reset inicial
+  
   const h = mm(10), w = fullW(doc), x = topX(doc);
   setFill(doc, BLUE_LIGHT); 
   roundRect(doc, x, yStart, w, h, 3, false, true);
+  
+  // 🔒 Reset antes de texto
+  doc.setLineWidth(0);
+  doc.setDrawColor(0, 0, 0);
   doc.setFont("helvetica", "bold"); 
   doc.setFontSize(10); 
   setText(doc, [255, 255, 255]);
+  
   // Baseline corrigida
   doc.text(titulo, x + mm(6), yStart + h - mm(3.5));
-  setText(doc, TEXT);
+  
+  resetGraphicsState(doc); // 🔒 Reset final
   return yStart + h + VR.after; // Retorna próximo Y
 }
 
 function drawAtivo2Resumo(doc: jsPDF, yStart: number, ativo2: Ativo2Resumo): number {
+  resetGraphicsState(doc); // 🔒 Reset inicial
   doc.setFontSize(9);
 
   // Duas meias-larguras simétricas (não posições absolutas)
@@ -302,15 +354,22 @@ function drawAtivo2Resumo(doc: jsPDF, yStart: number, ativo2: Ativo2Resumo): num
     rows.forEach(([label,value],i)=>{
       if(i) y += VR.line;
 
+      // 🔒 Reset antes de cada par
+      resetGraphicsState(doc);
+
       // label (wrap)
-      doc.setFont("helvetica","bold"); setText(doc, TEXT);
+      doc.setFont("helvetica","bold");
+      setText(doc, TEXT);
+      doc.setLineWidth(0);
       const ll = wrap(label, labelW); 
       doc.text(ll, x, y);
       const hLabel = (ll.length-1)*(VR.line*0.95);
 
       // valor (1 linha + shrink inline + alinhado à direita)
       const xValEnd = x + labelW + mm(4) + valueW;
-      doc.setFont("helvetica","normal"); setText(doc, BLUE);
+      doc.setFont("helvetica","normal");
+      setText(doc, BLUE);
+      doc.setLineWidth(0);
       
       let fs=9, w=doc.getTextWidth(value);
       while (w>valueW && fs>7.2){ 
@@ -324,17 +383,21 @@ function drawAtivo2Resumo(doc: jsPDF, yStart: number, ativo2: Ativo2Resumo): num
 
       y += Math.max(hLabel, 0);
     });
-    setText(doc, TEXT);
+    resetGraphicsState(doc);
     return y;
   };
 
   // yStart já está posicionado APÓS o subheader com VR.after incluído
   const yL = drawCol(xColL, yStart, left);
   const yR = drawCol(xColR, yStart, right);
+  
+  resetGraphicsState(doc); // 🔒 Reset final
   return Math.max(yL, yR) + VR.after;
 }
 
 function drawDecompColumns(doc: jsPDF, yStart: number, left: DecompColuna, right: DecompColuna): number {
+  resetGraphicsState(doc); // 🔒 Reset inicial
+  
   const x1 = PAGE.ML + mm(6);
   const totalW = fullW(doc) - mm(12);
   const colW = (totalW - mm(10)) / 2;
@@ -344,6 +407,7 @@ function drawDecompColumns(doc: jsPDF, yStart: number, left: DecompColuna, right
   doc.setFont("helvetica", "bold"); 
   doc.setFontSize(10); 
   setText(doc, TEXT);
+  doc.setLineWidth(0);
   const titleY = yStart;
   doc.text(left.titulo, x1, titleY);
   doc.text(right.titulo, x2, titleY);
@@ -351,21 +415,24 @@ function drawDecompColumns(doc: jsPDF, yStart: number, left: DecompColuna, right
   // Função interna para desenhar stack de cards
   const drawStack = (x: number, y0: number, w: number, col: DecompColuna): number => {
     // Inicia cards com espaçamento adequado após o título
-    // (titleToContent é maior que cardGap para evitar sobreposição visual)
     let y = y0 + VR.titleToContent;
     
     const box = (label: string, value: string, tone: "blue" | "red" | "plain" = "plain") => {
+      // 🔒 Reset completo antes de cada card
+      resetGraphicsState(doc);
+      
       let fill: number[], stroke: number[];
       if (tone === "blue") { fill = [235, 246, 255]; stroke = [179, 220, 255]; }
       else if (tone === "red") { fill = [255, 240, 240]; stroke = [255, 204, 204]; }
       else { fill = [245, 245, 245]; stroke = [230, 230, 230]; }
 
-      const labelMaxW = w * 0.62;  // +2% mais espaço para label
-      const valueMaxW = w * 0.33;  // -1% no valor (ainda confortável)
+      const labelMaxW = w * 0.62;
+      const valueMaxW = w * 0.33;
 
       const ll = doc.splitTextToSize(label, labelMaxW);
       
       // Shrink inline para valor
+      doc.setFontSize(9);
       let fs = 9; 
       let tw = doc.getTextWidth(value);
       while (tw > valueMaxW && fs > 7.2) {
@@ -379,9 +446,14 @@ function drawDecompColumns(doc: jsPDF, yStart: number, left: DecompColuna, right
 
       // Borda e preenchimento
       doc.setDrawColor(stroke[0],stroke[1],stroke[2]);
+      doc.setLineWidth(0.5); // Apenas para borda do retângulo
       (doc as any).roundedRect(x,y,w,rowH,3,3,"S");
       setFill(doc, fill); 
       doc.rect(x,y,w,rowH,"F");
+
+      // 🔒 CRÍTICO: Reset antes de texto
+      doc.setLineWidth(0);
+      doc.setDrawColor(0, 0, 0);
 
       // LABEL (múltiplas linhas permitidas)
       doc.setFont("helvetica","normal"); 
@@ -389,13 +461,14 @@ function drawDecompColumns(doc: jsPDF, yStart: number, left: DecompColuna, right
       doc.setFontSize(9);
       doc.text(ll, x + mm(5), y + mm(6));
 
-      // VALUE (sempre 1 linha, alinhado à direita, fonte já ajustada)
+      // VALUE (sempre 1 linha, alinhado à direita)
       doc.setFont("helvetica","bold"); 
-      doc.setFontSize(fs);  // Usa a fonte já calculada pelo shrink
+      doc.setFontSize(fs);
+      doc.setLineWidth(0); // CRÍTICO
       doc.text(value, x + w - mm(5), y + mm(6.5), { align:"right" });
       
-      // 🔒 CRÍTICO: Reset para próxima linha
-      resetFont(doc);
+      // 🔒 Reset completo após card
+      resetGraphicsState(doc);
 
       y += rowH + VR.cardGap;
     };
@@ -403,11 +476,16 @@ function drawDecompColumns(doc: jsPDF, yStart: number, left: DecompColuna, right
     col.linhas.forEach(l => box(l.label, l.valor, l.tom ?? "plain"));
 
     // Footer (valor final)
+    resetGraphicsState(doc);
     setFill(doc, [224, 234, 246]); 
     doc.setDrawColor(160, 190, 220);
+    doc.setLineWidth(0.5);
     const fh = mm(11); 
     roundRect(doc, x, y, w, fh, 3, true, true);
     
+    // 🔒 Reset antes de texto final
+    doc.setLineWidth(0);
+    doc.setDrawColor(0, 0, 0);
     doc.setFont("helvetica", "bold"); 
     doc.setFontSize(10); 
     setText(doc, TEXT);
@@ -418,16 +496,18 @@ function drawDecompColumns(doc: jsPDF, yStart: number, left: DecompColuna, right
   };
 
   // Desenhar ambas as colunas
-  // titleY é a baseline; somamos titleHeight para começar após o final visual do título
   const yLeftEnd = drawStack(x1, titleY + VR.titleHeight, colW, left);
   const yRightEnd = drawStack(x2, titleY + VR.titleHeight, colW, right);
   
-  return Math.max(yLeftEnd, yRightEnd) + VR.after; // Retorna próximo Y
+  resetGraphicsState(doc); // 🔒 Reset final
+  return Math.max(yLeftEnd, yRightEnd) + VR.after;
 }
 
 // ———————————————————————————————— página inteira
 
 function drawPage(doc: jsPDF, p: PageData) {
+  resetGraphicsState(doc); // 🔒 Reset no início da página
+  
   let y = PAGE.MT; // Margem superior
   
   // Cada função retorna o próximo Y
@@ -443,22 +523,28 @@ function drawPage(doc: jsPDF, p: PageData) {
   if (y > pageHeight - PAGE.MB) {
     console.warn('Conteúdo pode ter ultrapassado margem inferior');
   }
+  
+  resetGraphicsState(doc); // 🔒 Reset final da página
 }
 
 // ———————————————————————————————— API pública
 
 export async function buildPdf(data: ReportData): Promise<Blob> {
   const doc = new jsPDF({ unit: "pt", format: "a4" }); // portrait A4
-  __HEADER_DRAW_COUNT = 0; // Reset no início de cada PDF
+  
+  // 🔒 Reset global inicial
+  resetGraphicsState(doc);
+  __HEADER_DRAW_COUNT = 0;
+  
   data.pages.forEach((pg, i) => {
     if (i > 0) {
       doc.addPage();
-      __HEADER_DRAW_COUNT = 0; // Reset counter for new page
+      resetGraphicsState(doc); // 🔒 Reset para nova página
+      __HEADER_DRAW_COUNT = 0;
     }
     drawPage(doc, pg);
   });
+  
   const blob = doc.output("blob");
-  // também dispara download, se quiser:
-  // doc.save(data.filename ?? "Analise_Venda_Antecipada.pdf");
   return blob;
 }
