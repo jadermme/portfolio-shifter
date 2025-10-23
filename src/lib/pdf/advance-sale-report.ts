@@ -64,7 +64,12 @@ const USE_CLIP = false;
 
 // Constantes de layout e ritmo vertical
 const PAGE = { MT: mm(20), MB: mm(22), ML: mm(18), MR: mm(18) };
-const VR = { after: mm(10), line: mm(6.0), cardGap: mm(3.6) };
+const VR = { 
+  after: mm(10), 
+  line: mm(6.0), 
+  cardGap: mm(3.6),
+  titleToContent: mm(8)  // Espaço entre título de seção e primeiro card
+};
 
 function topX(doc: jsPDF) { return PAGE.ML; }
 function fullW(doc: jsPDF) { return doc.internal.pageSize.getWidth() - PAGE.ML - PAGE.MR; }
@@ -343,7 +348,9 @@ function drawDecompColumns(doc: jsPDF, yStart: number, left: DecompColuna, right
 
   // Função interna para desenhar stack de cards
   const drawStack = (x: number, y0: number, w: number, col: DecompColuna): number => {
-    let y = y0 + VR.cardGap; // Começa após título
+    // Inicia cards com espaçamento adequado após o título
+    // (titleToContent é maior que cardGap para evitar sobreposição visual)
+    let y = y0 + VR.titleToContent;
     
     const box = (label: string, value: string, tone: "blue" | "red" | "plain" = "plain") => {
       let fill: number[], stroke: number[];
