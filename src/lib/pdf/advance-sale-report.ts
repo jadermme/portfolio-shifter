@@ -68,7 +68,8 @@ const VR = {
   after: mm(10), 
   line: mm(6.0), 
   cardGap: mm(3.6),
-  titleToContent: mm(8)  // Espaço entre título de seção e primeiro card
+  titleToContent: mm(8),  // Espaço entre título de seção e primeiro card
+  titleHeight: mm(4.5)    // Altura visual do título de seção (font-size 10pt)
 };
 
 function topX(doc: jsPDF) { return PAGE.ML; }
@@ -416,8 +417,9 @@ function drawDecompColumns(doc: jsPDF, yStart: number, left: DecompColuna, right
   };
 
   // Desenhar ambas as colunas
-  const yLeftEnd = drawStack(x1, titleY, colW, left);
-  const yRightEnd = drawStack(x2, titleY, colW, right);
+  // titleY é a baseline; somamos titleHeight para começar após o final visual do título
+  const yLeftEnd = drawStack(x1, titleY + VR.titleHeight, colW, left);
+  const yRightEnd = drawStack(x2, titleY + VR.titleHeight, colW, right);
   
   return Math.max(yLeftEnd, yRightEnd) + VR.after; // Retorna próximo Y
 }
