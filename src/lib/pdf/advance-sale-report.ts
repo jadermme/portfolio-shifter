@@ -328,8 +328,9 @@ function drawAtivo2Resumo(doc: jsPDF, yStart: number, ativo2: Ativo2Resumo): num
     return y;
   };
 
-  const yL = drawCol(xColL, yStart + mm(3), left);
-  const yR = drawCol(xColR, yStart + mm(3), right);
+  // yStart já está posicionado APÓS o subheader com VR.after incluído
+  const yL = drawCol(xColL, yStart, left);
+  const yR = drawCol(xColR, yStart, right);
   return Math.max(yL, yR) + VR.after;
 }
 
