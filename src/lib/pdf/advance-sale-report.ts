@@ -89,17 +89,6 @@ function roundRect(doc: jsPDF, x: number, y: number, w: number, h: number, r = 4
   (doc as any).roundedRect(x, y, w, h, r, r, fill ? "F" : "S");
 }
 
-function measureMaxLabelWidth(doc: jsPDF, pairs: [string, string][], fontSize = 9, padRight = mm(2)): number {
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(fontSize);
-  let maxW = 0;
-  for (const [label] of pairs) {
-    const w = doc.getTextWidth(label);
-    if (w > maxW) maxW = w;
-  }
-  return maxW + padRight;
-}
-
 // ———————————————————————————————— desenho de blocos
 
 function drawHeaderBar(doc: jsPDF, yTop: number, titulo: string): number {
@@ -155,57 +144,59 @@ function drawInfoPair(doc: jsPDF, yStart: number, h: AssetInfo): number {
     ["Valor de Venda:",    fmtBRL(h.valorVenda)],
   ];
 
-  const labelWLeft  = measureMaxLabelWidth(doc, leftRows, 9, mm(2));
-  const labelWRight = measureMaxLabelWidth(doc, rightRows, 9, mm(2));
-
-  const valueWLeft  = colW - labelWLeft - gap;
-  const valueWRight = colW - labelWRight - gap;
-
-  const drawRow = (x: number, y: number, label: string, value: string, labelW: number, valueW: number) => {
-    // 🔒 CRÍTICO: Reset completo antes da linha
+  // 🔑 CORREÇÃO CRÍTICA: Função que garante medição correta
+  const drawRow = (x: number, y: number, label: string, value: string, maxValueW: number) => {
     doc.setLineWidth(0);
     doc.setDrawColor(0, 0, 0);
     
-    // Label
-    doc.setFont("helvetica","bold");
-    doc.setTextColor(20,20,20);
+    // 1️⃣ Configurar fonte para label E medir largura ANTES de desenhar
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(20, 20, 20);
     doc.setFontSize(9);
+    const labelWidth = doc.getTextWidth(label);  // 🔑 MEDIR AQUI!
+    
+    // 2️⃣ Desenhar label
     doc.text(label, x, y, { baseline: "alphabetic" });
-
-    // Valor - shrink e posicionamento corretos
-    const xValStart = x + labelW + gap;
     
-    doc.setFont("helvetica","normal");
-    doc.setTextColor(13,82,179);
+    // 3️⃣ Calcular posição do valor
+    const xValue = x + labelWidth + gap;
+    
+    // 4️⃣ Configurar fonte para valor
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(13, 82, 179);
     doc.setFontSize(9);
     
-    // Shrink se necessário
+    // 5️⃣ Shrink se necessário
     let fs = 9;
     let w = doc.getTextWidth(value);
-    while (w > valueW && fs > 7.2) {
+    while (w > maxValueW && fs > 7.2) {
       fs -= 0.2;
       doc.setFontSize(fs);
       w = doc.getTextWidth(value);
     }
     
-    // 🎯 CORREÇÃO: Posicionar à direita do espaço disponível
-    doc.text(value, xValStart + valueW, y, { align: "right", baseline: "alphabetic" });
+    // 6️⃣ Desenhar valor
+    doc.text(value, xValue, y, { baseline: "alphabetic" });
     
-    // Reset para próxima linha
+    // 7️⃣ Reset
     doc.setFontSize(9);
   };
+
+  // Espaço máximo para valores
+  const maxValueWLeft = colW - mm(40);  // Reserva mínima de 40mm para labels
+  const maxValueWRight = colW - mm(40);
 
   // Colunas
   for (let i = 0; i < leftRows.length; i++) {
     const y = yTop + i * rowH;
     const [lab, val] = leftRows[i];
-    drawRow(xColL, y, lab, val, labelWLeft, valueWLeft);
+    drawRow(xColL, y, lab, val, maxValueWLeft);
   }
 
   for (let i = 0; i < rightRows.length; i++) {
     const y = yTop + i * rowH;
     const [lab, val] = rightRows[i];
-    drawRow(xColR, y, lab, val, labelWRight, valueWRight);
+    drawRow(xColR, y, lab, val, maxValueWRight);
   }
 
   // Cartão
