@@ -1,5 +1,4 @@
 // src/lib/pdf/advance-sale-report.ts
-// deps: npm i jspdf
 import jsPDF from "jspdf";
 
 export type Money = number;
@@ -78,39 +77,6 @@ const fmtBRL = (v: Money) =>
 function setFill(doc: jsPDF, rgb: number[]) { doc.setFillColor(rgb[0], rgb[1], rgb[2]); }
 function setText(doc: jsPDF, rgb: number[]) { doc.setTextColor(rgb[0], rgb[1], rgb[2]); }
 
-/**
- * 🔒 CRÍTICO: Desenha texto com estado gráfico 100% isolado
- * Previne herança de stroke/lineWidth que causa duplicação
- */
-function drawTextIsolated(
-  doc: jsPDF, 
-  text: string | string[], 
-  x: number, 
-  y: number, 
-  options?: any
-) {
-  // Salva estado atual
-  (doc as any).saveGraphicsState?.();
-  
-  // Garante estado limpo para texto
-  doc.setLineWidth(0);              // CRÍTICO: sem stroke
-  doc.setDrawColor(0, 0, 0);        // Reset draw color
-  
-  // Desenha o texto
-  doc.text(text, x, y, options);
-  
-  // Restaura estado anterior
-  (doc as any).restoreGraphicsState?.();
-}
-
-const resetFont = (doc: jsPDF) => { 
-  doc.setFont("helvetica","normal"); 
-  doc.setFontSize(9); 
-  setText(doc, TEXT); 
-  doc.setLineWidth(0);
-  doc.setDrawColor(0, 0, 0);
-};
-
 const resetGraphicsState = (doc: jsPDF) => {
   doc.setLineWidth(0);
   doc.setDrawColor(0, 0, 0);
@@ -120,19 +86,7 @@ const resetGraphicsState = (doc: jsPDF) => {
 };
 
 function roundRect(doc: jsPDF, x: number, y: number, w: number, h: number, r = 4, draw = false, fill = true) {
-  // 🔒 SEMPRE use apenas "F" (fill) para evitar stroke no texto
   (doc as any).roundedRect(x, y, w, h, r, r, fill ? "F" : "S");
-}
-
-function textShrinkToFit(doc: jsPDF, text: string, maxW: number, base = 9, min = 7.2): number {
-  let fs = base; 
-  let w = doc.getTextWidth(text);
-  while (w > maxW && fs > min) { 
-    fs -= 0.2; 
-    doc.setFontSize(fs); 
-    w = doc.getTextWidth(text); 
-  }
-  return fs;
 }
 
 function measureMaxLabelWidth(doc: jsPDF, pairs: [string, string][], fontSize = 9, padRight = mm(2)): number {
@@ -146,30 +100,6 @@ function measureMaxLabelWidth(doc: jsPDF, pairs: [string, string][], fontSize = 
   return maxW + padRight;
 }
 
-function withClipRect(doc: jsPDF, x: number, y: number, w: number, h: number, draw: () => void) {
-  if (!USE_CLIP) { 
-    draw(); 
-    return; 
-  }
-  
-  if (x < 0 || y < 0 || w <= 0 || h <= 0 || isNaN(x) || isNaN(y) || isNaN(w) || isNaN(h)) {
-    console.warn('withClipRect: valores inválidos detectados, pulando clipping', {x, y, w, h});
-    draw();
-    return;
-  }
-  
-  (doc as any).saveGraphicsState?.();
-  doc.rect(x, y, w, h);
-  (doc as any).clip?.();
-  (doc as any).beginPath?.();
-  
-  try {
-    draw();
-  } finally {
-    (doc as any).restoreGraphicsState?.();
-  }
-}
-
 // ———————————————————————————————— desenho de blocos
 
 function drawHeaderBar(doc: jsPDF, yTop: number, titulo: string): number {
@@ -178,11 +108,11 @@ function drawHeaderBar(doc: jsPDF, yTop: number, titulo: string): number {
   setFill(doc, BLUE); 
   roundRect(doc, x, yTop, w, h, 3, false, true);
   
-  // Texto isolado
+  doc.setLineWidth(0);
   setText(doc, [255, 255, 255]); 
   doc.setFont("helvetica", "bold"); 
   doc.setFontSize(12);
-  drawTextIsolated(doc, titulo, x + mm(6), yTop + h - mm(4));
+  doc.text(titulo, x + mm(6), yTop + h - mm(4));
   
   resetGraphicsState(doc);
   return y + VR.after;
@@ -232,26 +162,36 @@ function drawInfoPair(doc: jsPDF, yStart: number, h: AssetInfo): number {
   const valueWRight = colW - labelWRight - gap;
 
   const drawRow = (x: number, y: number, label: string, value: string, labelW: number, valueW: number) => {
+    // 🔒 CRÍTICO: Reset completo antes da linha
+    doc.setLineWidth(0);
+    doc.setDrawColor(0, 0, 0);
+    
     // Label
     doc.setFont("helvetica","bold");
     doc.setTextColor(20,20,20);
-    drawTextIsolated(doc, label, x, y, { baseline: "alphabetic" });
+    doc.setFontSize(9);
+    doc.text(label, x, y, { baseline: "alphabetic" });
 
-    // Valor
+    // Valor - shrink e posicionamento corretos
     const xValStart = x + labelW + gap;
-    const xValEnd = xValStart + valueW;
     
     doc.setFont("helvetica","normal");
     doc.setTextColor(13,82,179);
+    doc.setFontSize(9);
     
-    let fs = 9, w = doc.getTextWidth(value);
+    // Shrink se necessário
+    let fs = 9;
+    let w = doc.getTextWidth(value);
     while (w > valueW && fs > 7.2) {
       fs -= 0.2;
       doc.setFontSize(fs);
       w = doc.getTextWidth(value);
     }
     
-    drawTextIsolated(doc, value, xValEnd, y, { align: "right", baseline: "alphabetic" });
+    // 🎯 CORREÇÃO: Posicionar à direita do espaço disponível
+    doc.text(value, xValStart + valueW, y, { align: "right", baseline: "alphabetic" });
+    
+    // Reset para próxima linha
     doc.setFontSize(9);
   };
 
@@ -272,20 +212,21 @@ function drawInfoPair(doc: jsPDF, yStart: number, h: AssetInfo): number {
   setFill(doc, CARD_BG);
   (doc as any).roundedRect(xCard, yStart, cardW, cardH, 3, 3, "F");
   
+  doc.setLineWidth(0);
   doc.setFont("helvetica","normal");
   doc.setTextColor(20,20,20);
   doc.setFontSize(9);
-  drawTextIsolated(doc, h.resultadoTituloBox, xCard + cardW/2, yStart + mm(9), { align:"center" });
+  doc.text(h.resultadoTituloBox, xCard + cardW/2, yStart + mm(9), { align:"center" });
   
   doc.setFont("helvetica","bold");
   doc.setTextColor(13,82,179);
   doc.setFontSize(14);
-  drawTextIsolated(doc, h.resultadoValorBox, xCard + cardW/2, yStart + cardH/2 + mm(2), { align:"center" });
+  doc.text(h.resultadoValorBox, xCard + cardW/2, yStart + cardH/2 + mm(2), { align:"center" });
   
   doc.setFont("helvetica","normal");
   doc.setTextColor(46,139,87);
   doc.setFontSize(8);
-  drawTextIsolated(doc, h.resultadoSubBox, xCard + cardW/2, yStart + cardH - mm(6), { align:"center" });
+  doc.text(h.resultadoSubBox, xCard + cardW/2, yStart + cardH - mm(6), { align:"center" });
 
   const yGridBottom = yTop + (leftRows.length - 1) * rowH;
   return Math.max(yGridBottom, yStart + cardH) + VR.after;
@@ -297,10 +238,11 @@ function drawSubheader(doc: jsPDF, yStart: number, titulo: string): number {
   setFill(doc, BLUE_LIGHT); 
   roundRect(doc, x, yStart, w, h, 3, false, true);
   
+  doc.setLineWidth(0);
   doc.setFont("helvetica", "bold"); 
   doc.setFontSize(10); 
   setText(doc, [255, 255, 255]);
-  drawTextIsolated(doc, titulo, x + mm(6), yStart + h - mm(3.5));
+  doc.text(titulo, x + mm(6), yStart + h - mm(3.5));
   
   resetGraphicsState(doc);
   return yStart + h + VR.after;
@@ -336,11 +278,13 @@ function drawAtivo2Resumo(doc: jsPDF, yStart: number, ativo2: Ativo2Resumo): num
     rows.forEach(([label,value],i)=>{
       if(i) y += VR.line;
 
+      doc.setLineWidth(0);
+      
       // Label
       doc.setFont("helvetica","bold");
       setText(doc, TEXT);
       const ll = wrap(label, labelW); 
-      drawTextIsolated(doc, ll, x, y);
+      doc.text(ll, x, y);
       const hLabel = (ll.length-1)*(VR.line*0.95);
 
       // Valor
@@ -355,7 +299,7 @@ function drawAtivo2Resumo(doc: jsPDF, yStart: number, ativo2: Ativo2Resumo): num
         w=doc.getTextWidth(value); 
       }
       
-      drawTextIsolated(doc, value, xValEnd, y, { align:"right" });
+      doc.text(value, xValEnd, y, { align:"right" });
       doc.setFontSize(9);
 
       y += Math.max(hLabel, 0);
@@ -376,12 +320,13 @@ function drawDecompColumns(doc: jsPDF, yStart: number, left: DecompColuna, right
   const x2 = x1 + colW + mm(10);
 
   // Títulos
+  doc.setLineWidth(0);
   doc.setFont("helvetica", "bold"); 
   doc.setFontSize(10); 
   setText(doc, TEXT);
   const titleY = yStart;
-  drawTextIsolated(doc, left.titulo, x1, titleY);
-  drawTextIsolated(doc, right.titulo, x2, titleY);
+  doc.text(left.titulo, x1, titleY);
+  doc.text(right.titulo, x2, titleY);
 
   const drawStack = (x: number, y0: number, w: number, col: DecompColuna): number => {
     let y = y0 + VR.titleToContent;
@@ -392,8 +337,8 @@ function drawDecompColumns(doc: jsPDF, yStart: number, left: DecompColuna, right
       else if (tone === "red") { fill = [255, 240, 240]; stroke = [255, 204, 204]; }
       else { fill = [245, 245, 245]; stroke = [230, 230, 230]; }
 
-      const labelMaxW = w * 0.62;
-      const valueMaxW = w * 0.33;
+      const labelMaxW = w * 0.60;
+      const valueMaxW = w * 0.35;
 
       const ll = doc.splitTextToSize(label, labelMaxW);
       
@@ -408,25 +353,26 @@ function drawDecompColumns(doc: jsPDF, yStart: number, left: DecompColuna, right
 
       const rowH = Math.max(mm(11), mm(7) + (ll.length - 1) * VR.line);
 
-      // Borda separada
+      // Borda
       doc.setDrawColor(stroke[0],stroke[1],stroke[2]);
       doc.setLineWidth(0.5);
       (doc as any).roundedRect(x,y,w,rowH,3,3,"S");
       
-      // Preenchimento separado
+      // Preenchimento
       doc.setLineWidth(0);
       setFill(doc, fill); 
       doc.rect(x,y,w,rowH,"F");
 
-      // Textos isolados
+      // Textos
+      doc.setLineWidth(0);
       doc.setFont("helvetica","normal"); 
       setText(doc, TEXT); 
       doc.setFontSize(9);
-      drawTextIsolated(doc, ll, x + mm(5), y + mm(6));
+      doc.text(ll, x + mm(5), y + mm(6));
 
       doc.setFont("helvetica","bold"); 
       doc.setFontSize(fs);
-      drawTextIsolated(doc, value, x + w - mm(5), y + mm(6.5), { align:"right" });
+      doc.text(value, x + w - mm(5), y + mm(6.5), { align:"right" });
       
       doc.setFontSize(9);
       y += rowH + VR.cardGap;
@@ -445,8 +391,8 @@ function drawDecompColumns(doc: jsPDF, yStart: number, left: DecompColuna, right
     doc.setFont("helvetica", "bold"); 
     doc.setFontSize(10); 
     setText(doc, TEXT);
-    drawTextIsolated(doc, "VALOR FINAL:", x + mm(5), y + fh - mm(3.6));
-    drawTextIsolated(doc, col.valorFinal, x + w - mm(5), y + fh - mm(3.6), { align: "right" });
+    doc.text("VALOR FINAL:", x + mm(5), y + fh - mm(3.6));
+    doc.text(col.valorFinal, x + w - mm(5), y + fh - mm(3.6), { align: "right" });
     
     return y + fh;
   };
@@ -456,8 +402,6 @@ function drawDecompColumns(doc: jsPDF, yStart: number, left: DecompColuna, right
   
   return Math.max(yLeftEnd, yRightEnd) + VR.after;
 }
-
-// ———————————————————————————————— página inteira
 
 function drawPage(doc: jsPDF, p: PageData) {
   resetGraphicsState(doc);
@@ -476,8 +420,6 @@ function drawPage(doc: jsPDF, p: PageData) {
     console.warn('Conteúdo pode ter ultrapassado margem inferior');
   }
 }
-
-// ———————————————————————————————— API pública
 
 export async function buildPdf(data: ReportData): Promise<Blob> {
   const doc = new jsPDF({ unit: "pt", format: "a4" });
