@@ -128,7 +128,10 @@ function drawInfoPair(doc: jsPDF, yStart: number, h: AssetInfo): number {
 
   const rowH   = mm(8.8);
   const yTop   = yStart + mm(2);
-  const gap    = mm(6);
+
+  // 🔑 Mesma lógica do Ativo 2: largura fixa para labels
+  const labelW = mm(42);
+  const valueW = colW - labelW - mm(4);
 
   const leftRows:  [string,string][] = [
     ["Tipo de Ativo:", h.tipoAtivo],
@@ -144,62 +147,51 @@ function drawInfoPair(doc: jsPDF, yStart: number, h: AssetInfo): number {
     ["Valor de Venda:",    fmtBRL(h.valorVenda)],
   ];
 
-  // 🔑 CORREÇÃO CRÍTICA: Função que garante medição correta
-  const drawRow = (x: number, y: number, label: string, value: string, maxValueW: number) => {
+  // 🔑 Copiando exatamente a lógica que funciona no drawAtivo2Resumo
+  const drawRow = (x: number, y: number, label: string, value: string) => {
     doc.setLineWidth(0);
-    doc.setDrawColor(0, 0, 0);
     
-    // 1️⃣ Configurar fonte para label E medir largura ANTES de desenhar
+    // Label (negrito, preto)
     doc.setFont("helvetica", "bold");
     doc.setTextColor(20, 20, 20);
     doc.setFontSize(9);
-    const labelWidth = doc.getTextWidth(label);  // 🔑 MEDIR AQUI!
+    doc.text(label, x, y);
     
-    // 2️⃣ Desenhar label
-    doc.text(label, x, y, { baseline: "alphabetic" });
-    
-    // 3️⃣ Calcular posição do valor
-    const xValue = x + labelWidth + gap;
-    
-    // 4️⃣ Configurar fonte para valor
+    // Valor alinhado à direita (igual linha 282-293 do drawAtivo2Resumo)
+    const xValEnd = x + labelW + mm(4) + valueW;
     doc.setFont("helvetica", "normal");
     doc.setTextColor(13, 82, 179);
     doc.setFontSize(9);
     
-    // 5️⃣ Shrink se necessário
+    // Ajustar fonte se necessário
     let fs = 9;
     let w = doc.getTextWidth(value);
-    while (w > maxValueW && fs > 7.2) {
+    while (w > valueW && fs > 7.2) {
       fs -= 0.2;
       doc.setFontSize(fs);
       w = doc.getTextWidth(value);
     }
     
-    // 6️⃣ Desenhar valor
-    doc.text(value, xValue, y, { baseline: "alphabetic" });
-    
-    // 7️⃣ Reset
+    // 🎯 A LINHA MÁGICA - igual ao drawAtivo2Resumo linha 293
+    doc.text(value, xValEnd, y, { align: "right" });
     doc.setFontSize(9);
   };
 
-  // Espaço máximo para valores
-  const maxValueWLeft = colW - mm(40);  // Reserva mínima de 40mm para labels
-  const maxValueWRight = colW - mm(40);
-
-  // Colunas
+  // Desenhar coluna esquerda
   for (let i = 0; i < leftRows.length; i++) {
     const y = yTop + i * rowH;
     const [lab, val] = leftRows[i];
-    drawRow(xColL, y, lab, val, maxValueWLeft);
+    drawRow(xColL, y, lab, val);
   }
 
+  // Desenhar coluna direita
   for (let i = 0; i < rightRows.length; i++) {
     const y = yTop + i * rowH;
     const [lab, val] = rightRows[i];
-    drawRow(xColR, y, lab, val, maxValueWRight);
+    drawRow(xColR, y, lab, val);
   }
 
-  // Cartão
+  // Cartão de resultado
   setFill(doc, CARD_BG);
   (doc as any).roundedRect(xCard, yStart, cardW, cardH, 3, 3, "F");
   
