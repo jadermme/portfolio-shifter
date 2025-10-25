@@ -120,27 +120,27 @@ function drawInfoPair(doc: jsPDF, yStart: number, h: AssetInfo): number {
   const xLeft  = PAGE.ML;
   const xCard  = PAGE.ML + leftW + gutter;
 
-  const padX   = mm(4);  // Reduzido para ganhar espaço
-  const colGap = mm(6);  // Otimizado: ganhar 2mm para redistribuir
+  const padX   = mm(3);  // Otimizado: ganhar 2mm total
+  const colGap = mm(5);  // Otimizado: ganhar 1mm
   const totalColW = leftW - padX*2 - colGap;
-  const colWLeft  = totalColW * 0.44;  // 44% para esquerda (labels curtos)
-  const colWRight = totalColW * 0.56;  // 56% para direita (labels longos - OTIMIZADO)
+  const colWLeft  = totalColW * 0.45;  // Otimizado: melhor distribuição (40mm)
+  const colWRight = totalColW * 0.55;  // Otimizado: melhor distribuição (48mm)
   
   const xColL  = xLeft + padX;
   const xColR  = xColL + colWLeft + colGap;
 
-  const rowH   = mm(9.5);  // Aumentado para acomodar fonte 8pt
+  const rowH   = mm(10.5);  // Otimizado: mais espaço vertical
   const yTop   = yStart + mm(2);
 
-  // 🔑 Configurações separadas por coluna
-  // Coluna esquerda (labels curtos)
-  const labelWLeft = mm(38);
-  const labelValueGapLeft = mm(12);
+  // 🔑 Configurações otimizadas e matematicamente viáveis
+  // Coluna esquerda: valueW = 40 - 32 - 6 = 2mm (fonte reduz automático)
+  const labelWLeft = mm(32);  // Otimizado: labels mais compactos
+  const labelValueGapLeft = mm(6);  // Otimizado: gap confortável
   const valueWLeft = colWLeft - labelWLeft - labelValueGapLeft;
 
-  // Coluna direita (labels longos - OTIMIZADO para mais espaço nos valores)
-  const labelWRight = mm(40);  // Reduzido: 42 → 40mm
-  const labelValueGapRight = mm(8);  // Reduzido: 12 → 8mm (ganhar 4mm para valores)
+  // Coluna direita: valueW = 48 - 34 - 6 = 8mm (fonte reduz automático)
+  const labelWRight = mm(34);  // Otimizado: labels mais compactos
+  const labelValueGapRight = mm(6);  // Otimizado: gap uniforme
   const valueWRight = colWRight - labelWRight - labelValueGapRight;
 
   const leftRows:  [string,string][] = [
