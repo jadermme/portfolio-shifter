@@ -114,7 +114,7 @@ function drawInfoPair(doc: jsPDF, yStart: number, h: AssetInfo): number {
   }
   __HEADER_DRAW_COUNT++;
 
-  const gutter = mm(12);
+  const gutter = mm(6);  // Reduzido para ganhar espaço
   const cardW  = mm(70), cardH = mm(32);
   const leftW  = fullW(doc) - cardW - gutter;
   const xLeft  = PAGE.ML;
@@ -122,17 +122,26 @@ function drawInfoPair(doc: jsPDF, yStart: number, h: AssetInfo): number {
 
   const padX   = mm(4);  // Reduzido para ganhar espaço
   const colGap = mm(8);  // Reduzido para redistribuir espaço
-  const colW   = (leftW - padX*2 - colGap) / 2;
+  const totalColW = leftW - padX*2 - colGap;
+  const colWLeft  = totalColW * 0.46;  // 46% para esquerda
+  const colWRight = totalColW * 0.54;  // 54% para direita (MAIOR)
+  
   const xColL  = xLeft + padX;
-  const xColR  = xColL + colW + colGap;
+  const xColR  = xColL + colWLeft + colGap;
 
   const rowH   = mm(8.8);
   const yTop   = yStart + mm(2);
 
-  // 🔑 Mesma lógica do Ativo 2: largura fixa para labels
-  const labelW = mm(38);  // Reduzido para dar mais espaço aos valores
-  const labelValueGap = mm(12);  // Aumentado para evitar sobreposição
-  const valueW = colW - labelW - labelValueGap;
+  // 🔑 Configurações separadas por coluna
+  // Coluna esquerda (labels curtos)
+  const labelWLeft = mm(38);
+  const labelValueGapLeft = mm(12);
+  const valueWLeft = colWLeft - labelWLeft - labelValueGapLeft;
+
+  // Coluna direita (labels longos - precisa mais espaço)
+  const labelWRight = mm(42);
+  const labelValueGapRight = mm(12);
+  const valueWRight = colWRight - labelWRight - labelValueGapRight;
 
   const leftRows:  [string,string][] = [
     ["Tipo de Ativo:", h.tipoAtivo],
@@ -148,8 +157,9 @@ function drawInfoPair(doc: jsPDF, yStart: number, h: AssetInfo): number {
     ["Valor de Venda:",    fmtBRL(h.valorVenda)],
   ];
 
-  // 🔑 Copiando exatamente a lógica que funciona no drawAtivo2Resumo
-  const drawRow = (x: number, y: number, label: string, value: string) => {
+  // 🔑 Função parametrizada para configurações diferentes por coluna
+  const drawRow = (x: number, y: number, label: string, value: string, 
+                   labelW: number, gap: number, valueW: number) => {
     doc.setLineWidth(0);
     
     // Label (negrito, preto)
@@ -158,8 +168,8 @@ function drawInfoPair(doc: jsPDF, yStart: number, h: AssetInfo): number {
     doc.setFontSize(9);
     doc.text(label, x, y);
     
-    // Valor alinhado à direita (igual linha 282-293 do drawAtivo2Resumo)
-    const xValEnd = x + labelW + labelValueGap + valueW;
+    // Valor alinhado à direita
+    const xValEnd = x + labelW + gap + valueW;
     doc.setFont("helvetica", "normal");
     doc.setTextColor(13, 82, 179);
     doc.setFontSize(9);
@@ -178,18 +188,18 @@ function drawInfoPair(doc: jsPDF, yStart: number, h: AssetInfo): number {
     doc.setFontSize(9);
   };
 
-  // Desenhar coluna esquerda
+  // Desenhar coluna esquerda (com suas medidas)
   for (let i = 0; i < leftRows.length; i++) {
     const y = yTop + i * rowH;
     const [lab, val] = leftRows[i];
-    drawRow(xColL, y, lab, val);
+    drawRow(xColL, y, lab, val, labelWLeft, labelValueGapLeft, valueWLeft);
   }
 
-  // Desenhar coluna direita
+  // Desenhar coluna direita (com suas medidas MAIORES)
   for (let i = 0; i < rightRows.length; i++) {
     const y = yTop + i * rowH;
     const [lab, val] = rightRows[i];
-    drawRow(xColR, y, lab, val);
+    drawRow(xColR, y, lab, val, labelWRight, labelValueGapRight, valueWRight);
   }
 
   // Cartão de resultado
