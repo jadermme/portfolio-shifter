@@ -129,7 +129,7 @@ function drawInfoPair(doc: jsPDF, yStart: number, h: AssetInfo): number {
   const xColL  = xLeft + padX;
   const xColR  = xColL + colWLeft + colGap;
 
-  const rowH   = mm(8.8);
+  const rowH   = mm(9.5);  // Aumentado para acomodar fonte 8pt
   const yTop   = yStart + mm(2);
 
   // 🔑 Configurações separadas por coluna
