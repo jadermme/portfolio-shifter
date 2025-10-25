@@ -120,8 +120,8 @@ function drawInfoPair(doc: jsPDF, yStart: number, h: AssetInfo): number {
   const xLeft  = PAGE.ML;
   const xCard  = PAGE.ML + leftW + gutter;
 
-  const padX   = mm(6);
-  const colGap = mm(12);
+  const padX   = mm(4);  // Reduzido para ganhar espaço
+  const colGap = mm(8);  // Reduzido para redistribuir espaço
   const colW   = (leftW - padX*2 - colGap) / 2;
   const xColL  = xLeft + padX;
   const xColR  = xColL + colW + colGap;
@@ -130,8 +130,8 @@ function drawInfoPair(doc: jsPDF, yStart: number, h: AssetInfo): number {
   const yTop   = yStart + mm(2);
 
   // 🔑 Mesma lógica do Ativo 2: largura fixa para labels
-  const labelW = mm(42);
-  const labelValueGap = mm(10); // Gap entre label e valor
+  const labelW = mm(38);  // Reduzido para dar mais espaço aos valores
+  const labelValueGap = mm(12);  // Aumentado para evitar sobreposição
   const valueW = colW - labelW - labelValueGap;
 
   const leftRows:  [string,string][] = [
@@ -167,7 +167,7 @@ function drawInfoPair(doc: jsPDF, yStart: number, h: AssetInfo): number {
     // Ajustar fonte se necessário
     let fs = 9;
     let w = doc.getTextWidth(value);
-    while (w > valueW && fs > 7.2) {
+    while (w > valueW && fs > 6.5) {  // Limite mais agressivo
       fs -= 0.2;
       doc.setFontSize(fs);
       w = doc.getTextWidth(value);
