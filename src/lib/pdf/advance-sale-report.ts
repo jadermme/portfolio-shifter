@@ -131,7 +131,8 @@ function drawInfoPair(doc: jsPDF, yStart: number, h: AssetInfo): number {
 
   // 🔑 Mesma lógica do Ativo 2: largura fixa para labels
   const labelW = mm(42);
-  const valueW = colW - labelW - mm(8); // Margem de segurança aumentada
+  const labelValueGap = mm(10); // Gap entre label e valor
+  const valueW = colW - labelW - labelValueGap;
 
   const leftRows:  [string,string][] = [
     ["Tipo de Ativo:", h.tipoAtivo],
@@ -158,7 +159,7 @@ function drawInfoPair(doc: jsPDF, yStart: number, h: AssetInfo): number {
     doc.text(label, x, y);
     
     // Valor alinhado à direita (igual linha 282-293 do drawAtivo2Resumo)
-    const xValEnd = x + labelW + mm(4) + valueW;
+    const xValEnd = x + labelW + labelValueGap + valueW;
     doc.setFont("helvetica", "normal");
     doc.setTextColor(13, 82, 179);
     doc.setFontSize(9);
