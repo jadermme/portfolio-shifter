@@ -2424,6 +2424,15 @@ const InvestmentComparator = () => {
           <Separator className="mt-6" />
         </div>
 
+        {/* Header visível apenas na impressão */}
+        <div className="hidden print:block print-header">
+          <h1 className="print-title">Análise Completa de Investimentos</h1>
+          <p className="print-subtitle">
+            Comparação Detalhada entre {ativo1.nome} e {ativo2.nome} | 
+            Gerado em {new Date().toLocaleDateString('pt-BR')} às {new Date().toLocaleTimeString('pt-BR')}
+          </p>
+        </div>
+
         {/* Asset Forms */}
         <div className="grid grid-cols-1 gap-6 mb-6 print:gap-3 print:mb-3 print:hidden">
           {renderAssetForm(ativo1, 'ativo1', `📊 ${ativo1.nome || 'Ativo 1'}`, 'financial-primary')}
@@ -2555,7 +2564,7 @@ const InvestmentComparator = () => {
             <div className="space-y-6">
               
               {/* Table 1 - CRA ZAMP with Early Sale Analysis */}
-              <Card className="border-financial-success/30 shadow-xl no-page-break">
+              <Card className="border-financial-success/30 shadow-xl no-page-break print:block print:break-inside-avoid">
                 <CardHeader className="bg-gradient-to-r from-financial-success to-blue-600 text-white rounded-t-lg">
                   <CardTitle className="flex items-center gap-2">
                     <TrendingUp className="h-5 w-5" />
@@ -2755,7 +2764,7 @@ const InvestmentComparator = () => {
 
             
             {/* Decomposição Detalhada dos Valores Finais */}
-            <Card className="border-financial-primary/30 shadow-xl">
+            <Card className="border-financial-primary/30 shadow-xl print:block print:break-inside-avoid">
               <CardHeader className="bg-gradient-to-r from-financial-primary to-financial-secondary text-white rounded-t-lg">
                 <CardTitle className="flex items-center gap-2">
                   <Calculator className="h-5 w-5" />
@@ -3095,7 +3104,7 @@ const InvestmentComparator = () => {
             )}
             
             {/* Final Analysis Summary */}
-            <Card className="border-financial-primary/30 shadow-xl">
+            <Card className="border-financial-primary/30 shadow-xl print:block print:break-inside-avoid">
               <CardHeader className="bg-gradient-to-r from-financial-primary to-financial-secondary text-white rounded-t-lg print:hidden">
                 <CardTitle className="flex items-center gap-2">
                   <BarChart3 className="h-5 w-5" />
@@ -3193,7 +3202,7 @@ const InvestmentComparator = () => {
             </Card>
 
             {/* Coupon Details Section - New Cash Flow System */}
-            {(results.couponDetails?.ativo1?.length || results.couponDetails?.ativo2?.length) && <Card className="border-blue-500/30 shadow-xl print:hidden">
+            {(results.couponDetails?.ativo1?.length || results.couponDetails?.ativo2?.length) && <Card className="border-blue-500/30 shadow-xl print:block print:break-inside-avoid">
                 <CardHeader className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-t-lg">
                   <CardTitle className="flex items-center gap-2">
                     <TrendingUp className="h-5 w-5" />
@@ -3396,6 +3405,29 @@ const InvestmentComparator = () => {
                   Os cálculos são baseados nas informações fornecidas e nas regras tributárias vigentes.
                 </p>
                 <p style={{ marginBottom: '0.5rem' }}>
+                  <strong>Metodologia:</strong> Comparação realizada até a data de vencimento do ativo com menor prazo. 
+                  Cálculos incluem impostos (IR regressivo) e consideram fluxo de caixa quando aplicável.
+                </p>
+                <p>
+                  <strong>Importante:</strong> Rentabilidades passadas não garantem resultados futuros. 
+                  Consulte sempre um assessor de investimentos qualificado.
+                </p>
+              </div>
+              <div style={{ textAlign: 'center', marginTop: '1rem', fontSize: '10px' }}>
+                Relatório gerado em {new Date().toLocaleDateString('pt-BR')} às {new Date().toLocaleTimeString('pt-BR')} | 
+                Comparador de Investimentos - Ferramenta de Análise Financeira
+              </div>
+            </div>
+
+            {/* Footer visível apenas na impressão */}
+            <div className="hidden print:block print-footer">
+              <div className="print-disclaimer">
+                <h4>DISCLAIMER</h4>
+                <p>
+                  Esta análise é meramente informativa e não constitui recomendação de investimento. 
+                  Os cálculos são baseados nas informações fornecidas e nas regras tributárias vigentes.
+                </p>
+                <p>
                   <strong>Metodologia:</strong> Comparação realizada até a data de vencimento do ativo com menor prazo. 
                   Cálculos incluem impostos (IR regressivo) e consideram fluxo de caixa quando aplicável.
                 </p>

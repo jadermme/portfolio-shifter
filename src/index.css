@@ -533,4 +533,96 @@ All colors MUST be HSL.
     font-weight: bold;
     border-top: 0.5px solid #000;
   }
+
+  /* ========== Estilos para Impressão Completa ========== */
+  
+  /* Garantir visibilidade de todos os cards de resultado */
+  .results-container {
+    display: block !important;
+  }
+  
+  /* Ocultar warnings e alertas */
+  .bg-yellow-50 {
+    display: none !important;
+  }
+  
+  /* Garantir que ícones decorativos não apareçam */
+  .lucide {
+    display: none !important;
+  }
+  
+  /* Forçar fonte legível em todos os elementos */
+  * {
+    font-family: Arial, Helvetica, sans-serif !important;
+  }
+  
+  /* Header de impressão */
+  .print-header {
+    padding: 20px;
+    border-bottom: 2px solid #000;
+    margin-bottom: 20px;
+    page-break-after: avoid;
+  }
+  
+  .print-title {
+    font-size: 20px;
+    font-weight: bold;
+    text-align: center;
+    margin-bottom: 5px;
+    color: #000 !important;
+  }
+  
+  .print-subtitle {
+    font-size: 12px;
+    text-align: center;
+    color: #666 !important;
+  }
+  
+  /* Footer de impressão */
+  .print-footer {
+    margin-top: 30px;
+    padding-top: 20px;
+    border-top: 1px solid #ccc;
+    font-size: 10px;
+    page-break-before: avoid;
+  }
+  
+  .print-disclaimer h4 {
+    font-size: 12px;
+    font-weight: bold;
+    margin-bottom: 10px;
+    color: #000 !important;
+  }
+  
+  .print-disclaimer p {
+    margin-bottom: 8px;
+    line-height: 1.4;
+    color: #000 !important;
+  }
+  
+  /* Garantir quebras de página adequadas */
+  .print\:break-inside-avoid,
+  .no-page-break {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+  
+  /* Forçar exibição dos cards */
+  .card {
+    display: block !important;
+    page-break-inside: avoid;
+    margin-bottom: 15px;
+  }
+  
+  /* Garantir que elementos print:block apareçam */
+  .print\:block {
+    display: block !important;
+  }
+  
+  /* Espaçamento entre seções */
+  h1, h2, h3, h4 {
+    page-break-after: avoid;
+    margin-top: 10px;
+    margin-bottom: 5px;
+  }
 }
