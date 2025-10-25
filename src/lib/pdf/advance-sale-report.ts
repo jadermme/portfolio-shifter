@@ -32,6 +32,7 @@ export type DecompColuna = {
   titulo: string;
   linhas: Array<{ label: string; valor: string; tom?: "blue"|"red"|"plain" }>;
   valorFinal: string;
+  nota?: string; // Nota de rodapé opcional
 };
 
 export type PageData = {
@@ -388,7 +389,20 @@ function drawDecompColumns(doc: jsPDF, yStart: number, left: DecompColuna, right
     doc.text("VALOR FINAL:", x + mm(5), y + fh - mm(3.6));
     doc.text(col.valorFinal, x + w - mm(5), y + fh - mm(3.6), { align: "right" });
     
-    return y + fh;
+    y += fh;
+    
+    // Nota de rodapé se houver
+    if (col.nota) {
+      y += mm(3);
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(7);
+      setText(doc, [100, 100, 100]);
+      const notaLines = doc.splitTextToSize(col.nota, w);
+      doc.text(notaLines, x, y);
+      y += notaLines.length * mm(3);
+    }
+    
+    return y;
   };
 
   const yLeftEnd = drawStack(x1, titleY + VR.titleHeight, colW, left);

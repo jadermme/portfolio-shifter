@@ -2498,20 +2498,35 @@ const InvestmentComparator = () => {
   const mapToDecompColunas = (): { esquerda: DecompColuna; direita: DecompColuna } => {
     const calculateDetailedBreakdown = (ativo: any, couponDetails: any[], valorInvestido: number) => {
       const principalInvestido = valorInvestido;
-      const cupomsBrutos = couponDetails?.reduce((sum, coupon) => sum + (coupon.gross || 0), 0) || 0;
-      const irSobreCupons = couponDetails?.reduce((sum, coupon) => sum + ((coupon.gross || 0) - (coupon.net || 0)), 0) || 0;
+      
+      // Separar cupons normais e truncados
+      const cuponsNormais = couponDetails?.filter(c => !c.isParcial) || [];
+      const cuponsTruncados = couponDetails?.filter(c => c.isParcial) || [];
+      
+      const cupomsBrutos = cuponsNormais.reduce((sum, coupon) => sum + (coupon.gross || 0), 0);
+      const cupomsTruncadosBrutos = cuponsTruncados.reduce((sum, coupon) => sum + (coupon.gross || 0), 0);
+      
+      const irSobreCupons = cuponsNormais.reduce((sum, coupon) => sum + ((coupon.gross || 0) - (coupon.net || 0)), 0);
+      const irSobreCuponsTruncados = cuponsTruncados.reduce((sum, coupon) => sum + ((coupon.gross || 0) - (coupon.net || 0)), 0);
+      
       const cuponsLiquidos = cupomsBrutos - irSobreCupons;
+      const cuponsTruncadosLiquidos = cupomsTruncadosBrutos - irSobreCuponsTruncados;
+      
       const valorFinalBruto = ativo.length > 0 ? ativo[ativo.length - 1] : 0;
       const totalReinvestido = couponDetails?.reduce((sum, coupon) => sum + (coupon.reinvested || 0), 0) || 0;
-      const rendimentoSobreCupons = totalReinvestido - cuponsLiquidos;
+      const rendimentoSobreCupons = totalReinvestido - (cuponsLiquidos + cuponsTruncadosLiquidos);
       
       return {
         principalInvestido,
         cupomsBrutos,
+        cupomsTruncadosBrutos,
         irSobreCupons,
+        irSobreCuponsTruncados,
         cuponsLiquidos,
+        cuponsTruncadosLiquidos,
         rendimentoSobreCupons,
-        valorFinal: valorFinalBruto
+        valorFinal: valorFinalBruto,
+        temCupomTruncado: cuponsTruncados.length > 0
       };
     };
     
@@ -2526,30 +2541,62 @@ const InvestmentComparator = () => {
       ? results.reinvestimento.valorFinalReinvestimento - results.reinvestimento.valorResgatado
       : 0;
     
+    // Montar linhas para Ativo 1
+    const linhas1: Array<{ label: string; valor: string; tom?: "blue"|"red"|"plain" }> = [
+      { label: "Principal Investido:", valor: `R$ ${formatCurrency(breakdown1.principalInvestido)}` },
+      { label: "Cupons Brutos Recebidos:", valor: `+ R$ ${formatCurrency(breakdown1.cupomsBrutos)}`, tom: "blue" }
+    ];
+    
+    // Adicionar cupom truncado se houver
+    if (breakdown1.temCupomTruncado) {
+      linhas1.push({ 
+        label: "Cupom Proporcional (pro rata):", 
+        valor: `+ R$ ${formatCurrency(breakdown1.cupomsTruncadosBrutos)}`, 
+        tom: "blue"
+      });
+    }
+    
+    linhas1.push(
+      { label: "IR sobre Cupons:", valor: `- R$ ${formatCurrency(breakdown1.irSobreCupons + breakdown1.irSobreCuponsTruncados)}`, tom: "red" },
+      { label: "Cupons Líquidos:", valor: `= R$ ${formatCurrency(breakdown1.cuponsLiquidos + breakdown1.cuponsTruncadosLiquidos)}` },
+      { label: "Rendimento sobre cupons:", valor: `R$ ${formatCurrency(breakdown1.rendimentoSobreCupons)}` },
+      { label: "Valor após vencimento reaplicado no CDI:", valor: `+ R$ ${formatCurrency(reinvestAtivo1)}` }
+    );
+    
+    // Montar linhas para Ativo 2
+    const linhas2: Array<{ label: string; valor: string; tom?: "blue"|"red"|"plain" }> = [
+      { label: "Principal Investido:", valor: `R$ ${formatCurrency(breakdown2.principalInvestido)}` },
+      { label: "Cupons Brutos Recebidos:", valor: `+ R$ ${formatCurrency(breakdown2.cupomsBrutos)}`, tom: "blue" }
+    ];
+    
+    // Adicionar cupom truncado se houver
+    if (breakdown2.temCupomTruncado) {
+      linhas2.push({ 
+        label: "Cupom Proporcional (pro rata):", 
+        valor: `+ R$ ${formatCurrency(breakdown2.cupomsTruncadosBrutos)}`, 
+        tom: "blue"
+      });
+    }
+    
+    linhas2.push(
+      { label: "IR sobre Cupons:", valor: `- R$ ${formatCurrency(breakdown2.irSobreCupons + breakdown2.irSobreCuponsTruncados)}`, tom: "red" },
+      { label: "Cupons Líquidos:", valor: `= R$ ${formatCurrency(breakdown2.cuponsLiquidos + breakdown2.cuponsTruncadosLiquidos)}` },
+      { label: "Rendimento sobre cupons:", valor: `R$ ${formatCurrency(breakdown2.rendimentoSobreCupons)}` },
+      { label: "Valor após vencimento reaplicado no CDI:", valor: `+ R$ ${formatCurrency(reinvestAtivo2)}` }
+    );
+    
     const colunaEsq: DecompColuna = {
       titulo: ativo1.nome,
-      linhas: [
-        { label: "Principal Investido:", valor: `R$ ${formatCurrency(breakdown1.principalInvestido)}` },
-        { label: "Cupons Brutos Recebidos:", valor: `+ R$ ${formatCurrency(breakdown1.cupomsBrutos)}`, tom: "blue" },
-        { label: "IR sobre Cupons:", valor: `- R$ ${formatCurrency(breakdown1.irSobreCupons)}`, tom: "red" },
-        { label: "Cupons Líquidos:", valor: `= R$ ${formatCurrency(breakdown1.cuponsLiquidos)}` },
-        { label: "Rendimento sobre cupons:", valor: `R$ ${formatCurrency(breakdown1.rendimentoSobreCupons)}` },
-        { label: "Valor após vencimento reaplicado no CDI:", valor: `+ R$ ${formatCurrency(reinvestAtivo1)}` }
-      ],
-      valorFinal: `R$ ${formatCurrency(breakdown1.valorFinal)}`
+      linhas: linhas1,
+      valorFinal: `R$ ${formatCurrency(breakdown1.valorFinal)}`,
+      nota: breakdown1.temCupomTruncado ? "(*) Cupom proporcional calculado por interpolação linear (método B3)" : undefined
     };
     
     const colunaDir: DecompColuna = {
       titulo: ativo2.nome,
-      linhas: [
-        { label: "Principal Investido:", valor: `R$ ${formatCurrency(breakdown2.principalInvestido)}` },
-        { label: "Cupons Brutos Recebidos:", valor: `+ R$ ${formatCurrency(breakdown2.cupomsBrutos)}`, tom: "blue" },
-        { label: "IR sobre Cupons:", valor: `- R$ ${formatCurrency(breakdown2.irSobreCupons)}`, tom: "red" },
-        { label: "Cupons Líquidos:", valor: `= R$ ${formatCurrency(breakdown2.cuponsLiquidos)}` },
-        { label: "Rendimento sobre cupons:", valor: `R$ ${formatCurrency(breakdown2.rendimentoSobreCupons)}` },
-        { label: "Valor após vencimento reaplicado no CDI:", valor: `+ R$ ${formatCurrency(reinvestAtivo2)}` }
-      ],
-      valorFinal: `R$ ${formatCurrency(breakdown2.valorFinal)}`
+      linhas: linhas2,
+      valorFinal: `R$ ${formatCurrency(breakdown2.valorFinal)}`,
+      nota: breakdown2.temCupomTruncado ? "(*) Cupom proporcional calculado por interpolação linear (método B3)" : undefined
     };
     
     return { esquerda: colunaEsq, direita: colunaDir };
