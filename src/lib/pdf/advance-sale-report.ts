@@ -177,8 +177,8 @@ function drawInfoPair(doc: jsPDF, yStart: number, h: AssetInfo): number {
     // Ajustar fonte se necessário
     let fs = 9;
     let w = doc.getTextWidth(value);
-    while (w > valueW && fs > 6.5) {  // Limite mais agressivo
-      fs -= 0.2;
+    while (w > valueW && fs > 8.0) {  // Limite mínimo mais legível
+      fs -= 0.1;  // Redução mais suave
       doc.setFontSize(fs);
       w = doc.getTextWidth(value);
     }
@@ -287,8 +287,8 @@ function drawAtivo2Resumo(doc: jsPDF, yStart: number, ativo2: Ativo2Resumo): num
       setText(doc, BLUE);
       
       let fs=9, w=doc.getTextWidth(value);
-      while (w>valueW && fs>7.2){ 
-        fs-=0.2; 
+      while (w>valueW && fs>8.0){ 
+        fs-=0.1;
         doc.setFontSize(fs); 
         w=doc.getTextWidth(value); 
       }
@@ -339,8 +339,8 @@ function drawDecompColumns(doc: jsPDF, yStart: number, left: DecompColuna, right
       doc.setFontSize(9);
       let fs = 9; 
       let tw = doc.getTextWidth(value);
-      while (tw > valueMaxW && fs > 7.2) {
-        fs -= 0.2; 
+      while (tw > valueMaxW && fs > 8.0) {
+        fs -= 0.1;
         doc.setFontSize(fs); 
         tw = doc.getTextWidth(value);
       }
