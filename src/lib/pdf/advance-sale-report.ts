@@ -131,7 +131,7 @@ function drawInfoPair(doc: jsPDF, yStart: number, h: AssetInfo): number {
 
   // 🔑 Mesma lógica do Ativo 2: largura fixa para labels
   const labelW = mm(42);
-  const valueW = colW - labelW - mm(4);
+  const valueW = colW - labelW - mm(8); // Margem de segurança aumentada
 
   const leftRows:  [string,string][] = [
     ["Tipo de Ativo:", h.tipoAtivo],
