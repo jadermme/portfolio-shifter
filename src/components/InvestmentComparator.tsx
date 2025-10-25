@@ -37,6 +37,11 @@ interface CouponResult {
   net: number;
   reinvestFactor: number;
   reinvested: number;
+  // Campos para cupom truncado (pro rata)
+  isParcial?: boolean;      // identifica cupom parcial
+  proporcao?: number;       // % do cupom completo (0-1)
+  diasAcumulados?: number;  // dias desde último cupom
+  diasTotais?: number;      // dias totais do período
 }
 interface CouponEngineInput {
   principal: number;
@@ -475,6 +480,132 @@ function getCDIRateForMonth(curve: CDIPoint[], dateISO: string): number {
   const pt = curve.find(p => p.date.slice(0, 7) === key);
   return pt ? pt.cdiAA : curve[curve.length - 1]?.cdiAA || 10;
 }
+
+/**
+ * Calcula cupom truncado usando interpolação linear (método B3)
+ * Usado quando venda ocorre entre datas de pagamento de cupons
+ */
+function calcularCupomTruncadoLinear(
+  x: CouponEngineInput,
+  lastCouponDate: string,
+  dataVenda: string,
+  rules: CalculationRules,
+  projecoes: Projecoes
+): CouponResult | null {
+  
+  // Determinar data do próximo cupom
+  const step = x.freq === 'MONTHLY' ? 1 : x.freq === 'SEMIANNUAL' ? 6 : 12;
+  const nextCouponDate = addMonths(lastCouponDate, step);
+  
+  // Verificar se venda está realmente entre cupons
+  if (new Date(dataVenda) >= new Date(nextCouponDate)) {
+    console.log('⚠️ Data de venda não está entre cupons - ignorando cupom truncado');
+    return null;
+  }
+  
+  console.log(`\n🔶 CALCULANDO CUPOM TRUNCADO (Método Linear B3):`);
+  console.log(`  📅 Último cupom pago: ${lastCouponDate}`);
+  console.log(`  📅 Próximo cupom seria: ${nextCouponDate}`);
+  console.log(`  📅 Data de venda: ${dataVenda}`);
+  
+  // Calcular período completo do cupom
+  let periodStart: string;
+  let periodEnd: string;
+  
+  if (x.freq === 'MONTHLY') {
+    // Cupom mensal: mês anterior ao pagamento
+    const [year, month, day] = nextCouponDate.split('-').map(Number);
+    const couponDateObj = new Date(year, month - 1, day);
+    
+    const startMonth = new Date(couponDateObj);
+    startMonth.setMonth(startMonth.getMonth() - 1);
+    startMonth.setDate(1);
+    
+    const endMonth = new Date(couponDateObj);
+    endMonth.setMonth(endMonth.getMonth() - 1 + 1);
+    endMonth.setDate(0);
+    
+    periodStart = startMonth.toISOString().split('T')[0];
+    periodEnd = endMonth.toISOString().split('T')[0];
+    
+  } else {
+    // Cupom semestral/anual: período desde último cupom
+    periodStart = lastCouponDate;
+    periodEnd = nextCouponDate;
+  }
+  
+  // Calcular dias
+  const use252 = rules.use252;
+  const diasTotais = use252 
+    ? businessDaysBetween(periodStart, periodEnd)
+    : daysBetween(periodStart, periodEnd);
+    
+  const diasAcumulados = use252
+    ? businessDaysBetween(lastCouponDate, dataVenda)
+    : daysBetween(lastCouponDate, dataVenda);
+  
+  // Validar proporção
+  if (diasAcumulados <= 0 || diasAcumulados >= diasTotais) {
+    console.log('⚠️ Período inválido para cupom truncado (proporção fora do intervalo)');
+    return null;
+  }
+  
+  const proporcao = diasAcumulados / diasTotais;
+  
+  console.log(`  📊 Período completo: ${periodStart} → ${periodEnd}`);
+  console.log(`  📊 Dias totais: ${diasTotais} ${use252 ? 'úteis' : 'corridos'}`);
+  console.log(`  📊 Dias acumulados: ${diasAcumulados} ${use252 ? 'úteis' : 'corridos'}`);
+  console.log(`  📊 Proporção: ${(proporcao * 100).toFixed(2)}%`);
+  
+  // Calcular cupom completo usando mesma lógica do sistema
+  const cdiAA = getCDIRateForMonth(x.cdiCurve, periodEnd);
+  
+  const rPeriodGross = rateOfAssetForPeriod(x.rateKind, {
+    taxaPreAA: x.taxaPreAA,
+    taxaRealAA: x.taxaRealAA,
+    ipcaAA: x.ipcaCurve?.[0]?.ipcaAA ?? 0,
+    percCDI: x.percCDI,
+    cdiAA,
+    spreadPreAA: x.spreadPreAA,
+    use252: rules.use252,
+    useDailyCapitalization: rules.useDailyCapitalization,
+    fromISO: periodStart,
+    toISO: periodEnd
+  });
+  
+  const cupomCompleto = x.principal * rPeriodGross;
+  
+  console.log(`  💰 Taxa do período: ${(rPeriodGross * 100).toFixed(4)}%`);
+  console.log(`  💰 Cupom completo: R$ ${cupomCompleto.toLocaleString('pt-BR', {minimumFractionDigits: 2})}`);
+  
+  // Aplicar interpolação linear
+  const cupomTruncadoBruto = cupomCompleto * proporcao;
+  
+  console.log(`  ✨ Cupom truncado (${(proporcao * 100).toFixed(2)}%): R$ ${cupomTruncadoBruto.toLocaleString('pt-BR', {minimumFractionDigits: 2})}`);
+  
+  // Calcular IR desde a data de aplicação
+  const diasDesdeAplicacao = daysBetween(x.startISO, dataVenda);
+  const aliquota = x.irRegressivo !== false ? irAliquotaRegressivo(diasDesdeAplicacao) : 0;
+  const ir = cupomTruncadoBruto * aliquota;
+  const cupomTruncadoLiquido = cupomTruncadoBruto - ir;
+  
+  console.log(`  📋 IR (${(aliquota * 100).toFixed(1)}%): R$ ${ir.toLocaleString('pt-BR', {minimumFractionDigits: 2})}`);
+  console.log(`  💵 Cupom líquido: R$ ${cupomTruncadoLiquido.toLocaleString('pt-BR', {minimumFractionDigits: 2})}`);
+  
+  // Cupom truncado NÃO é reinvestido (recebido na venda)
+  return {
+    couponDate: dataVenda,
+    gross: cupomTruncadoBruto,
+    net: cupomTruncadoLiquido,
+    reinvestFactor: 1.0,
+    reinvested: cupomTruncadoLiquido,
+    isParcial: true,
+    proporcao: proporcao,
+    diasAcumulados: diasAcumulados,
+    diasTotais: diasTotais
+  };
+}
+
 function projectWithReinvestCDI(x: CouponEngineInput, isLimitedAnalysis = false, assetType?: string, indexador?: string) {
   // Determine calculation rules based on asset type and indexer
   const rules = assetType && indexador ? getCalculationRules(assetType, indexador) : {
@@ -677,6 +808,32 @@ function projectWithReinvestCDI(x: CouponEngineInput, isLimitedAnalysis = false,
     // from last coupon date to end date using asset's rate
     const lastCouponDate = coupons[coupons.length - 1].couponDate;
     const daysFromLastCoupon = daysBetween(lastCouponDate, x.endISO);
+    
+    // Verificar se deve calcular cupom truncado
+    // Apenas para ativos com cupons semestrais ou anuais
+    if (x.freq && x.freq !== 'MONTHLY') {
+      console.log(`\n🔍 Verificando cupom truncado...`);
+      
+      const cupomTruncado = calcularCupomTruncadoLinear(
+        x,
+        lastCouponDate,
+        x.endISO,
+        rules,
+        { 
+          cdi: {}, 
+          ipca: {}, 
+          cdiCurve: x.cdiCurve, 
+          ipcaCurve: x.ipcaCurve 
+        }
+      );
+      
+      if (cupomTruncado) {
+        console.log(`✅ Cupom truncado adicionado: R$ ${cupomTruncado.gross.toLocaleString('pt-BR')}`);
+        coupons.push(cupomTruncado);
+      } else {
+        console.log(`ℹ️ Sem cupom truncado (venda coincide com cupom ou período inválido)`);
+      }
+    }
     
     console.log(`🔄 CAPITALIZAÇÃO DO PRINCIPAL:`);
     console.log(`📅 Último Cupom: ${lastCouponDate}`);
