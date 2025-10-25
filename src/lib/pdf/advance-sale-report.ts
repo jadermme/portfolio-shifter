@@ -121,10 +121,10 @@ function drawInfoPair(doc: jsPDF, yStart: number, h: AssetInfo): number {
   const xCard  = PAGE.ML + leftW + gutter;
 
   const padX   = mm(4);  // Reduzido para ganhar espaço
-  const colGap = mm(8);  // Reduzido para redistribuir espaço
+  const colGap = mm(6);  // Otimizado: ganhar 2mm para redistribuir
   const totalColW = leftW - padX*2 - colGap;
-  const colWLeft  = totalColW * 0.46;  // 46% para esquerda
-  const colWRight = totalColW * 0.54;  // 54% para direita (MAIOR)
+  const colWLeft  = totalColW * 0.44;  // 44% para esquerda (labels curtos)
+  const colWRight = totalColW * 0.56;  // 56% para direita (labels longos - OTIMIZADO)
   
   const xColL  = xLeft + padX;
   const xColR  = xColL + colWLeft + colGap;
@@ -138,9 +138,9 @@ function drawInfoPair(doc: jsPDF, yStart: number, h: AssetInfo): number {
   const labelValueGapLeft = mm(12);
   const valueWLeft = colWLeft - labelWLeft - labelValueGapLeft;
 
-  // Coluna direita (labels longos - precisa mais espaço)
-  const labelWRight = mm(42);
-  const labelValueGapRight = mm(12);
+  // Coluna direita (labels longos - OTIMIZADO para mais espaço nos valores)
+  const labelWRight = mm(40);  // Reduzido: 42 → 40mm
+  const labelValueGapRight = mm(8);  // Reduzido: 12 → 8mm (ganhar 4mm para valores)
   const valueWRight = colWRight - labelWRight - labelValueGapRight;
 
   const leftRows:  [string,string][] = [
