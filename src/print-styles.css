@@ -1,0 +1,509 @@
+/* ============================================================================
+   SISTEMA DE IMPRESSÃO COMPLETA (CTRL+P / CMD+P)
+   
+   Este arquivo garante que TODO o conteúdo visível na tela seja impresso
+   corretamente quando o usuário pressionar CTRL+P ou CMD+P.
+   
+   Funcionalidades:
+   - Layout adaptado para papel A4 (portrait)
+   - Remoção automática de botões e elementos interativos
+   - Preservação de cores e backgrounds
+   - Tabelas completas sem cortes
+   - Quebras de página inteligentes
+   - Classes utilitárias para controle fino
+   ============================================================================ */
+
+@media print {
+  /* ==========================================================================
+     1. CONFIGURAÇÃO DE PÁGINA
+     ========================================================================== */
+  
+  @page {
+    size: A4 portrait;
+    margin: 1.5cm 1cm; /* Margens: 1.5cm topo/baixo, 1cm laterais */
+  }
+
+  /* ==========================================================================
+     2. RESET E CONFIGURAÇÕES GLOBAIS
+     ========================================================================== */
+  
+  * {
+    /* Forçar impressão de cores e backgrounds */
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    color-adjust: exact !important;
+  }
+
+  html,
+  body {
+    width: 100%;
+    height: auto;
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 12pt;
+    line-height: 1.4;
+    color: #000;
+    background: #fff;
+  }
+
+  body {
+    margin: 0;
+    padding: 0;
+  }
+
+  /* ==========================================================================
+     3. OCULTAR ELEMENTOS INTERATIVOS AUTOMATICAMENTE
+     ========================================================================== */
+  
+  /* Botões (exceto os que têm classe .print-keep) */
+  button:not(.print-keep),
+  input[type="button"]:not(.print-keep),
+  input[type="submit"]:not(.print-keep),
+  input[type="reset"]:not(.print-keep) {
+    display: none !important;
+  }
+
+  /* Campos de formulário */
+  input:not([type="hidden"]),
+  select,
+  textarea,
+  .input,
+  .select,
+  .textarea {
+    display: none !important;
+  }
+
+  /* Checkboxes e radios */
+  input[type="checkbox"],
+  input[type="radio"] {
+    display: none !important;
+  }
+
+  /* Ícones decorativos (lucide-react) */
+  .lucide,
+  svg[role="img"],
+  .icon-only {
+    display: none !important;
+  }
+
+  /* Elementos de UI que não devem aparecer */
+  .tooltip,
+  .popover,
+  .dropdown-menu,
+  [role="tooltip"],
+  [role="dialog"]:not(.print-keep),
+  .dialog:not(.print-keep),
+  .sheet,
+  .drawer,
+  .toast,
+  .toaster {
+    display: none !important;
+  }
+
+  /* Scrollbars */
+  ::-webkit-scrollbar {
+    display: none !important;
+  }
+
+  /* Elementos com classe .print-hide */
+  .print-hide,
+  .screen-only {
+    display: none !important;
+  }
+
+  /* ==========================================================================
+     4. GARANTIR VISIBILIDADE DO CONTEÚDO
+     ========================================================================== */
+  
+  /* Forçar visibilidade de elementos principais */
+  main,
+  section,
+  article,
+  .card,
+  .content,
+  .container {
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    position: static !important;
+  }
+
+  /* Garantir que headers e footers apareçam */
+  header,
+  footer {
+    display: block !important;
+    visibility: visible !important;
+  }
+
+  /* Divs e spans importantes */
+  div,
+  span,
+  p,
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    visibility: visible !important;
+  }
+
+  /* Remover transformações que podem ocultar conteúdo */
+  * {
+    transform: none !important;
+    transition: none !important;
+    animation: none !important;
+  }
+
+  /* ==========================================================================
+     5. LAYOUT PARA IMPRESSÃO
+     ========================================================================== */
+  
+  /* Converter grid/flex em layout coluna única */
+  .grid,
+  [class*="grid-"],
+  [style*="display: grid"],
+  [style*="display:grid"] {
+    display: block !important;
+    grid-template-columns: 1fr !important;
+  }
+
+  .flex,
+  [class*="flex-"],
+  [style*="display: flex"],
+  [style*="display:flex"] {
+    display: block !important;
+    flex-direction: column !important;
+  }
+
+  /* Largura total para elementos */
+  main,
+  section,
+  article,
+  .container,
+  .content {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    padding-left: 0.5cm !important;
+    padding-right: 0.5cm !important;
+  }
+
+  /* Espaçamento entre seções */
+  section,
+  article,
+  .card {
+    margin-bottom: 1cm;
+  }
+
+  /* Remover sombras e bordas desnecessárias */
+  * {
+    box-shadow: none !important;
+    text-shadow: none !important;
+  }
+
+  /* ==========================================================================
+     6. FORMATAÇÃO DE TABELAS
+     ========================================================================== */
+  
+  table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+    margin-bottom: 0.5cm;
+    page-break-inside: auto;
+  }
+
+  thead {
+    display: table-header-group;
+  }
+
+  tfoot {
+    display: table-footer-group;
+  }
+
+  tbody {
+    display: table-row-group;
+  }
+
+  tr {
+    page-break-inside: avoid;
+    page-break-after: auto;
+  }
+
+  th,
+  td {
+    padding: 0.3cm 0.2cm !important;
+    border: 1px solid #ddd !important;
+    text-align: left;
+    vertical-align: top;
+  }
+
+  th {
+    background-color: #f5f5f5 !important;
+    font-weight: bold !important;
+    border-bottom: 2px solid #333 !important;
+  }
+
+  /* Garantir que células não quebrem */
+  th,
+  td {
+    page-break-inside: avoid;
+  }
+
+  /* ==========================================================================
+     7. CONTROLE DE QUEBRAS DE PÁGINA
+     ========================================================================== */
+  
+  /* Classe utilitária: evitar quebra no meio do elemento */
+  .no-page-break,
+  .keep-together {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+
+  /* Classe utilitária: forçar nova página antes */
+  .page-break-before,
+  .new-page {
+    page-break-before: always !important;
+    break-before: always !important;
+  }
+
+  /* Classe utilitária: forçar nova página depois */
+  .page-break-after {
+    page-break-after: always !important;
+    break-after: always !important;
+  }
+
+  /* Evitar quebra em elementos comuns */
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    page-break-after: avoid !important;
+    break-after: avoid !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+
+  /* Manter título + próximo elemento juntos */
+  h1 + *,
+  h2 + *,
+  h3 + *,
+  h4 + *,
+  h5 + *,
+  h6 + * {
+    page-break-before: avoid !important;
+    break-before: avoid !important;
+  }
+
+  /* Evitar quebra em parágrafos e listas */
+  p,
+  li {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+
+  /* Evitar quebra em imagens e figures */
+  img,
+  figure,
+  .image {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+
+  /* Cards e seções devem ficar juntos */
+  .card,
+  .section,
+  .panel {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+
+  /* ==========================================================================
+     8. CLASSES UTILITÁRIAS ESPECIAIS
+     ========================================================================== */
+  
+  /* Mostrar apenas na impressão */
+  .print-show,
+  .print-only {
+    display: block !important;
+    visibility: visible !important;
+  }
+
+  /* Destaque para valores monetários */
+  .currency,
+  .money,
+  .price {
+    font-weight: bold !important;
+    font-family: 'Courier New', Courier, monospace !important;
+  }
+
+  /* Links: mostrar URL após o texto */
+  a[href]:after {
+    content: " (" attr(href) ")";
+    font-size: 0.8em;
+    color: #666;
+  }
+
+  /* Não mostrar URL para links internos ou âncoras */
+  a[href^="#"]:after,
+  a[href^="/"]:after,
+  a[href*="javascript"]:after {
+    content: "";
+  }
+
+  /* Abreviações: mostrar título completo */
+  abbr[title]:after {
+    content: " (" attr(title) ")";
+    font-size: 0.8em;
+    color: #666;
+  }
+
+  /* ==========================================================================
+     9. TIPOGRAFIA E FORMATAÇÃO DE TEXTO
+     ========================================================================== */
+  
+  h1 {
+    font-size: 24pt !important;
+    margin-top: 0.5cm;
+    margin-bottom: 0.3cm;
+  }
+
+  h2 {
+    font-size: 20pt !important;
+    margin-top: 0.4cm;
+    margin-bottom: 0.3cm;
+  }
+
+  h3 {
+    font-size: 16pt !important;
+    margin-top: 0.3cm;
+    margin-bottom: 0.2cm;
+  }
+
+  h4 {
+    font-size: 14pt !important;
+    margin-top: 0.2cm;
+    margin-bottom: 0.2cm;
+  }
+
+  h5,
+  h6 {
+    font-size: 12pt !important;
+    margin-top: 0.2cm;
+    margin-bottom: 0.1cm;
+  }
+
+  p {
+    margin-bottom: 0.3cm;
+    text-align: justify;
+  }
+
+  /* Listas */
+  ul,
+  ol {
+    margin-bottom: 0.3cm;
+  }
+
+  li {
+    margin-bottom: 0.1cm;
+  }
+
+  /* Citações */
+  blockquote {
+    margin: 0.3cm 1cm;
+    padding: 0.2cm;
+    border-left: 3px solid #ccc;
+    font-style: italic;
+  }
+
+  /* Código */
+  code,
+  pre {
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 10pt;
+    background: #f5f5f5;
+    padding: 0.1cm;
+    border: 1px solid #ddd;
+  }
+
+  pre {
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    margin-bottom: 0.3cm;
+  }
+
+  /* ==========================================================================
+     10. ELEMENTOS ESPECÍFICOS DA APLICAÇÃO
+     ========================================================================== */
+  
+  /* Garantir que cards apareçam com borda */
+  .card {
+    border: 1px solid #ddd !important;
+    padding: 0.3cm !important;
+    margin-bottom: 0.5cm !important;
+  }
+
+  /* Badges e labels */
+  .badge,
+  .label,
+  .tag {
+    display: inline-block !important;
+    padding: 0.1cm 0.2cm !important;
+    border: 1px solid #333 !important;
+    font-size: 10pt !important;
+  }
+
+  /* Alertas e notificações */
+  .alert,
+  .notification,
+  .message {
+    border: 2px solid #333 !important;
+    padding: 0.3cm !important;
+    margin-bottom: 0.3cm !important;
+  }
+
+  /* Separadores */
+  hr,
+  .separator {
+    border: none !important;
+    border-top: 1px solid #333 !important;
+    margin: 0.5cm 0 !important;
+  }
+
+  /* ==========================================================================
+     11. OTIMIZAÇÕES DE PERFORMANCE
+     ========================================================================== */
+  
+  /* Desabilitar animações e transições */
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0s !important;
+    animation-delay: 0s !important;
+    transition-duration: 0s !important;
+    transition-delay: 0s !important;
+  }
+
+  /* ==========================================================================
+     12. ACESSIBILIDADE E COMPATIBILIDADE
+     ========================================================================== */
+  
+  /* Garantir contraste mínimo */
+  * {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Força fundo branco e texto preto para compatibilidade */
+  body {
+    color: #000 !important;
+    background: #fff !important;
+  }
+
+  /* ==========================================================================
+     FIM DOS ESTILOS DE IMPRESSÃO
+     ========================================================================== */
+}
