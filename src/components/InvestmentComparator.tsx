@@ -5,12 +5,19 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
-import { Calculator, TrendingUp, BarChart3, ArrowRight, AlertTriangle, FileText } from 'lucide-react';
+import { Calculator, TrendingUp, BarChart3, ArrowRight, AlertTriangle, FileText, Info } from 'lucide-react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useToast } from '@/hooks/use-toast';
 import { CouponManager } from './CouponManager';
 import { CouponSummary } from '@/types/coupon';
 import { buildPdf, ReportData, AssetInfo, Ativo2Resumo, DecompColuna } from '@/lib/pdf/advance-sale-report';
+
+// 🆕 Sistema de Projeções Macro
+import { focusBase2025_2028 } from '@/lib/macro/focusScenario';
+import { buildCurvesFromAnnual } from '@/lib/macro/buildCurvesFromAnnual';
+import type { MacroScenario, MacroYearProjection } from '@/lib/macro/types';
 
 // ===================== UTILITY FUNCTIONS =====================
 const formatCurrency = (value: number): string => {
@@ -109,7 +116,9 @@ interface Projecoes {
   ipca: {
     [key: number]: number;
   };
-  // NEW FIELDS FOR DETAILED CURVES
+  // 🆕 Sistema de Projeções Macro
+  macroScenario?: MacroScenario;
+  // Curvas mensais (calculadas dinamicamente)
   cdiCurve?: CDIPoint[];
   ipcaCurve?: IPCAPoint[];
 }
@@ -920,21 +929,73 @@ function mapCoupomFreq(tipoCupom: string): Freq {
   return 'SEMIANNUAL'; // Default to semiannual
 }
 
-// Generate monthly CDI curve from annual projections
-function generateCDICurve(projecoes: Projecoes): CDIPoint[] {
-  const curve: CDIPoint[] = [];
-  const currentYear = new Date().getFullYear();
-  for (let year = currentYear; year <= currentYear + 10; year++) {
-    const cdiAA = projecoes.cdi[year] || projecoes.cdi[Object.keys(projecoes.cdi).pop() as any] || 10;
-    for (let month = 1; month <= 12; month++) {
-      const date = `${year}-${month.toString().padStart(2, '0')}-01`;
-      curve.push({
-        date,
-        cdiAA
-      });
-    }
+/**
+ * Gera curvas mensais de CDI e IPCA usando o sistema de projeções macro.
+ * Implementa regime terminal automático para anos além de 2028.
+ */
+function generateMacroCurves(
+  projecoes: Projecoes, 
+  startDate: string, 
+  endDate: string
+): { cdiCurve: CDIPoint[]; ipcaCurve: IPCAPoint[] } {
+  
+  // Usar macroScenario se disponível, senão criar um temporário dos valores UI
+  let scenario = projecoes.macroScenario;
+  
+  if (!scenario) {
+    console.warn('⚠️ macroScenario não encontrado, criando temporário dos valores UI');
+    const years: MacroYearProjection[] = Object.keys(projecoes.cdi)
+      .map(year => parseInt(year))
+      .filter(year => year >= 2025 && year <= 2028)
+      .sort()
+      .map(year => ({
+        year,
+        cdiAnnual: (projecoes.cdi[year] || 10) / 100,
+        ipcaAnnual: (projecoes.ipca[year] || 3.5) / 100
+      }));
+    
+    scenario = { source: 'custom', description: 'Temporário', years };
   }
-  return curve;
+  
+  // Calcular duração da simulação
+  const start = new Date(startDate);
+  const end = new Date(endDate);
+  const startYear = start.getFullYear();
+  
+  // Calcular meses totais (arredonda para cima)
+  const monthsDiff = 
+    (end.getFullYear() - start.getFullYear()) * 12 + 
+    (end.getMonth() - start.getMonth()) + 1;
+  
+  console.log(`📊 Gerando curvas macro: ${startDate} → ${endDate} (${monthsDiff} meses)`);
+  
+  // Gerar curvas mensais usando o novo sistema
+  const { cdiCurve, ipcaCurve } = buildCurvesFromAnnual({
+    startYear,
+    totalMonths: Math.max(monthsDiff, 120), // mínimo 10 anos
+    years: scenario.years
+  });
+  
+  // Converter para formato legado (CDIPoint e IPCAPoint)
+  const cdiCurveLegacy: CDIPoint[] = [];
+  const ipcaCurveLegacy: IPCAPoint[] = [];
+  
+  for (let i = 0; i < cdiCurve.length; i++) {
+    const monthDate = new Date(start);
+    monthDate.setMonth(start.getMonth() + i);
+    const dateISO = monthDate.toISOString().slice(0, 10);
+    
+    // Converter taxa mensal para anual para compatibilidade
+    // Formula reversa: taxaAnual = (1 + taxaMensal)^12 - 1
+    const cdiAA = (Math.pow(1 + cdiCurve[i], 12) - 1) * 100; // em %
+    const ipcaAA = (Math.pow(1 + ipcaCurve[i], 12) - 1) * 100; // em %
+    
+    cdiCurveLegacy.push({ date: dateISO, cdiAA });
+    ipcaCurveLegacy.push({ date: dateISO, ipcaAA });
+  }
+  
+  console.log(`✅ Curvas legadas geradas: ${cdiCurveLegacy.length} pontos`);
+  return { cdiCurve: cdiCurveLegacy, ipcaCurve: ipcaCurveLegacy };
 }
 // ===================== PERSISTENCE FUNCTIONS =====================
 const STORAGE_KEYS = {
@@ -1073,24 +1134,32 @@ const getDefaultAtivo2 = (): AssetData => ({
   activePeriods: []
 });
 
-const getDefaultProjecoes = (): Projecoes => ({
-  cdi: {
-    2025: 15,
-    2026: 12.50,
-    2027: 11.70,
-    2028: 10.50,
-    2029: 10,
-    2030: 10
-  },
-  ipca: {
-    2025: 4.2,
-    2026: 3.8,
-    2027: 3.5,
-    2028: 3.25,
-    2029: 3.00,
-    2030: 3.00
-  }
-});
+const getDefaultProjecoes = (): Projecoes => {
+  // Base: cenário Focus oficial
+  const scenario = focusBase2025_2028;
+  
+  // Converter para formato UI (% ao invés de decimal)
+  const cdi: { [key: number]: number } = {};
+  const ipca: { [key: number]: number } = {};
+  
+  scenario.years.forEach(({ year, cdiAnnual, ipcaAnnual }) => {
+    cdi[year] = cdiAnnual * 100;   // 0.15 → 15
+    ipca[year] = ipcaAnnual * 100; // 0.0455 → 4.55
+  });
+  
+  // Regime terminal: adicionar anos 2029-2030 com valores de 2028
+  const lastYear = scenario.years[scenario.years.length - 1];
+  cdi[2029] = lastYear.cdiAnnual * 100;
+  cdi[2030] = lastYear.cdiAnnual * 100;
+  ipca[2029] = lastYear.ipcaAnnual * 100;
+  ipca[2030] = lastYear.ipcaAnnual * 100;
+  
+  return {
+    cdi,
+    ipca,
+    macroScenario: scenario
+  };
+};
 
 // Data migration function to handle legacy tipoTaxa field
 const migrateAssetData = (asset: any): AssetData => {
@@ -1292,13 +1361,45 @@ const InvestmentComparator = () => {
   const handleProjecaoChange = (tipo: 'cdi' | 'ipca', ano: number, valor: number) => {
     console.log(`📈 Alterando projeção ${tipo.toUpperCase()} para ${ano}: ${valor}%`);
     
-    setProjecoes(prev => ({
-      ...prev,
-      [tipo]: {
-        ...prev[tipo],
-        [ano]: valor
+    setProjecoes(prev => {
+      const updated = {
+        ...prev,
+        [tipo]: {
+          ...prev[tipo],
+          [ano]: valor
+        }
+      };
+      
+      // 🆕 Atualizar macroScenario quando usuário edita valores
+      if (updated.macroScenario) {
+        const updatedYears = [...updated.macroScenario.years];
+        const yearIndex = updatedYears.findIndex(y => y.year === ano);
+        
+        if (yearIndex !== -1) {
+          // Atualizar ano existente
+          updatedYears[yearIndex] = {
+            ...updatedYears[yearIndex],
+            [tipo === 'cdi' ? 'cdiAnnual' : 'ipcaAnnual']: valor / 100 // % → decimal
+          };
+        } else if (ano >= 2025 && ano <= 2028) {
+          // Adicionar ano se estiver no range Focus (2025-2028)
+          updatedYears.push({
+            year: ano,
+            cdiAnnual: tipo === 'cdi' ? valor / 100 : prev.cdi[ano] / 100,
+            ipcaAnnual: tipo === 'ipca' ? valor / 100 : prev.ipca[ano] / 100
+          });
+          updatedYears.sort((a, b) => a.year - b.year);
+        }
+        
+        updated.macroScenario = {
+          ...updated.macroScenario,
+          source: 'custom', // Marca como customizado
+          years: updatedYears
+        };
       }
-    }));
+      
+      return updated;
+    });
 
     // Invalidate results whenever projections change
     invalidateResults();
@@ -1435,8 +1536,9 @@ const InvestmentComparator = () => {
     console.log(`📅 Data Limite: ${dataLimite || 'Sem limite (vencimento natural)'}`);
     console.log(`🎯 Data Final Análise: ${endISO}`);
 
-    // Generate CDI curve from projections
-    const cdiCurve = projecoes.cdiCurve || generateCDICurve(projecoes);
+    // 🆕 Gerar curvas mensais usando novo sistema macro
+    const { cdiCurve: cdiCurveLegacy, ipcaCurve: ipcaCurveLegacy } = generateMacroCurves(projecoes, startISO, endISO);
+    const cdiCurve = cdiCurveLegacy;
 
      // Map legacy data to new format
      const rateKind = mapLegacyToNewFormat(dados);
@@ -1474,7 +1576,7 @@ const InvestmentComparator = () => {
         percCDI: rateKind === '%CDI' ? dados.taxa : undefined,
         cdiAABase: projecoes.cdi[new Date().getFullYear()] || 10,
         cdiCurve,
-        ipcaCurve: projecoes.ipcaCurve,
+        ipcaCurve: ipcaCurveLegacy, // 🆕 usar curva gerada dinamicamente
         feesAA: 0,
         irRegressivo: dados.tipoIR === 'renda-fixa',
         // use252 will be determined dynamically based on asset type and indexer
@@ -2655,12 +2757,39 @@ const InvestmentComparator = () => {
         </div>
 
         {/* CDI Projections */}
+        {/* 🆕 Alert Informativo sobre Projeções Macro */}
+        <Alert className="mb-6 border-financial-info/30 bg-gradient-to-r from-financial-info/10 to-transparent">
+          <Info className="h-4 w-4" />
+          <AlertDescription className="text-sm">
+            As projeções de CDI e IPCA utilizam como padrão a mediana do <strong>Relatório Focus (Banco Central)</strong> para os anos de 2025 a 2028.
+            A partir de 2029, as taxas de 2028 são mantidas constantes (regime terminal estável).
+            Você pode ajustar as taxas anuais para simular diferentes cenários macroeconômicos.
+          </AlertDescription>
+        </Alert>
+
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6 print:gap-3 print:mb-3 print:hidden">
           {/* CDI Projections */}
           <Card className="border-financial-secondary/20 shadow-lg">
             <CardHeader className="bg-gradient-to-r from-financial-secondary to-financial-primary text-white rounded-t-lg">
               <CardTitle className="flex justify-between items-center">
-                📈 Projeção CDI (%)
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span className="flex items-center gap-2">
+                        📈 Projeção CDI (%)
+                        <Info className="h-4 w-4 cursor-help opacity-70 hover:opacity-100" />
+                      </span>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom" align="start" className="max-w-md">
+                      <p className="text-xs">
+                        <strong>Projeções macroeconômicas</strong><br/>
+                        As taxas anuais de CDI e IPCA abaixo são usadas para gerar curvas mensais (cdiCurve e ipcaCurve) ao longo de todo o prazo do investimento.
+                        Anos sem projeção no Focus usam as mesmas taxas do último ano disponível (2028).
+                        Edite os valores para criar cenários alternativos.
+                      </p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
                 <Button
                   variant="outline"
                   size="sm"
@@ -2678,13 +2807,32 @@ const InvestmentComparator = () => {
                     <Input id={`cdi${year}`} type="number" step="0.1" value={value} onChange={e => handleProjecaoChange('cdi', parseInt(year), parseFloat(e.target.value) || 0)} />
                   </div>)}
               </div>
+              <div className="mt-4 pt-4 border-t border-border/50">
+                <p className="text-xs text-muted-foreground flex items-center gap-2">
+                  {projecoes.macroScenario?.source === 'focus' ? (
+                    <>✓ Cenário <strong>Focus (BCB)</strong></>
+                  ) : (
+                    <>✏️ Cenário <strong>Customizado</strong></>
+                  )}
+                </p>
+              </div>
             </CardContent>
           </Card>
 
           {/* IPCA Projections */}
           <Card className="border-financial-primary/20 shadow-lg">
             <CardHeader className="bg-gradient-to-r from-financial-primary to-financial-secondary text-white rounded-t-lg">
-              <CardTitle>📊 Projeção IPCA (%)</CardTitle>
+              <CardTitle className="flex justify-between items-center">
+                📊 Projeção IPCA (%)
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={resetProjecoes}
+                  className="bg-white/10 text-white border-white/20 hover:bg-white/20"
+                >
+                  Restaurar Padrões
+                </Button>
+              </CardTitle>
             </CardHeader>
             <CardContent className="p-6">
               <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
@@ -2692,6 +2840,15 @@ const InvestmentComparator = () => {
                     <Label htmlFor={`ipca${year}`}>{year}</Label>
                     <Input id={`ipca${year}`} type="number" step="0.1" value={value} onChange={e => handleProjecaoChange('ipca', parseInt(year), parseFloat(e.target.value) || 0)} />
                   </div>)}
+              </div>
+              <div className="mt-4 pt-4 border-t border-border/50">
+                <p className="text-xs text-muted-foreground flex items-center gap-2">
+                  {projecoes.macroScenario?.source === 'focus' ? (
+                    <>✓ Cenário <strong>Focus (BCB)</strong></>
+                  ) : (
+                    <>✏️ Cenário <strong>Customizado</strong></>
+                  )}
+                </p>
               </div>
             </CardContent>
           </Card>
