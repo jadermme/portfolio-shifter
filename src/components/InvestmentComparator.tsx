@@ -3106,7 +3106,8 @@ const InvestmentComparator = () => {
                               
                               switch (rateKind) {
                                 case '%CDI':
-                                  return `${taxa.toFixed(1)}% do CDI`;
+                                case 'percentual-cdi':
+                                  return `${taxa.toFixed(1)}%`;
                                 case 'CDI+PRE':
                                   return `CDI + ${taxa.toFixed(1)}%`;
                                 case 'PRE':
