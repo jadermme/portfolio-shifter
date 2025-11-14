@@ -1143,16 +1143,16 @@ const getDefaultProjecoes = (): Projecoes => {
   const ipca: { [key: number]: number } = {};
   
   scenario.years.forEach(({ year, cdiAnnual, ipcaAnnual }) => {
-    cdi[year] = cdiAnnual * 100;   // 0.15 → 15
-    ipca[year] = ipcaAnnual * 100; // 0.0455 → 4.55
+    cdi[year] = Number((cdiAnnual * 100).toFixed(2));   // 0.15 → 15.00
+    ipca[year] = Number((ipcaAnnual * 100).toFixed(2)); // 0.0455 → 4.55
   });
   
   // Regime terminal: adicionar anos 2029-2030 com valores de 2028
   const lastYear = scenario.years[scenario.years.length - 1];
-  cdi[2029] = lastYear.cdiAnnual * 100;
-  cdi[2030] = lastYear.cdiAnnual * 100;
-  ipca[2029] = lastYear.ipcaAnnual * 100;
-  ipca[2030] = lastYear.ipcaAnnual * 100;
+  cdi[2029] = Number((lastYear.cdiAnnual * 100).toFixed(2));
+  cdi[2030] = Number((lastYear.cdiAnnual * 100).toFixed(2));
+  ipca[2029] = Number((lastYear.ipcaAnnual * 100).toFixed(2));
+  ipca[2030] = Number((lastYear.ipcaAnnual * 100).toFixed(2));
   
   return {
     cdi,
@@ -2804,7 +2804,7 @@ const InvestmentComparator = () => {
               <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                 {Object.entries(projecoes.cdi).map(([year, value]) => <div key={year} className="space-y-2">
                     <Label htmlFor={`cdi${year}`}>{year}</Label>
-                    <Input id={`cdi${year}`} type="number" step="0.1" value={value} onChange={e => handleProjecaoChange('cdi', parseInt(year), parseFloat(e.target.value) || 0)} />
+                    <Input id={`cdi${year}`} type="number" step="0.01" value={Number(value.toFixed(2))} onChange={e => handleProjecaoChange('cdi', parseInt(year), parseFloat(e.target.value) || 0)} />
                   </div>)}
               </div>
               <div className="mt-4 pt-4 border-t border-border/50">
@@ -2838,7 +2838,7 @@ const InvestmentComparator = () => {
               <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                 {Object.entries(projecoes.ipca).map(([year, value]) => <div key={year} className="space-y-2">
                     <Label htmlFor={`ipca${year}`}>{year}</Label>
-                    <Input id={`ipca${year}`} type="number" step="0.1" value={value} onChange={e => handleProjecaoChange('ipca', parseInt(year), parseFloat(e.target.value) || 0)} />
+                    <Input id={`ipca${year}`} type="number" step="0.01" value={Number(value.toFixed(2))} onChange={e => handleProjecaoChange('ipca', parseInt(year), parseFloat(e.target.value) || 0)} />
                   </div>)}
               </div>
               <div className="mt-4 pt-4 border-t border-border/50">
