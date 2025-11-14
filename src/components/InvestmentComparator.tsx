@@ -3097,9 +3097,9 @@ const InvestmentComparator = () => {
                               
                               const taxa = ativo2.taxa || 0;
                               
-                              // Para BTDI11, sempre mostra como CDI + X%
+                              // Para BTDI11, sempre mostra como percentual
                               if (ativo2.nome && ativo2.nome.includes('BTDI11')) {
-                                return `CDI + ${taxa.toFixed(1)}%`;
+                                return `${taxa.toFixed(1)}%`;
                               }
                               
                               const rateKind = ativo2.rateKind || ativo2.indexador;
