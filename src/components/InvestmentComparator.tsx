@@ -74,7 +74,7 @@ interface AssetData {
   nome: string;
   codigo: string;
   // NEW: Separate fields for Asset Type and Indexer
-  tipoAtivo: 'debenture-incentivada' | 'cri-cra' | 'lci-lca' | 'cdb' | 'fundo-cetipado' | 'tesouro-direto';
+  tipoAtivo: 'debenture-incentivada' | 'cri-cra' | 'cdca' | 'lci-lca' | 'cdb' | 'fundo-cetipado' | 'tesouro-direto';
   indexador: 'pre-fixada' | 'percentual-cdi' | 'cdi-mais' | 'ipca-mais';
   // Legacy field for backward compatibility
   tipoTaxa?: 'pre-fixada' | 'percentual-cdi' | 'cdi-mais' | 'ipca-mais';
@@ -181,6 +181,7 @@ function getCalculationRules(tipoAtivo: string, indexador: string): CalculationR
       break;
 
     case 'cri-cra':
+    case 'cdca':
     case 'debenture-incentivada':
       if (indexador === 'percentual-cdi' || indexador === 'cdi-mais') {
         // CRI/CRA e Debêntures indexadas ao CDI usam 252 DU com capitalização mensal
@@ -384,8 +385,8 @@ function genCouponDates(startISO: string, endISO: string, freq: Freq, earningsSt
   if (earningsStartDate) {
     console.log(`📅 Usando data de início dos rendimentos: ${earningsStartDate}`);
     
-    // Special handling for CRI/CRA/Debêntures with configured coupon months
-    if ((tipoAtivo === 'cri-cra' || tipoAtivo === 'debenture-incentivada') && mesesCupons) {
+    // Special handling for CRI/CRA/CDCA/Debêntures with configured coupon months
+    if ((tipoAtivo === 'cri-cra' || tipoAtivo === 'cdca' || tipoAtivo === 'debenture-incentivada') && mesesCupons) {
       console.log(`📅 ${tipoAtivo.toUpperCase()}: Gerando cupons para os meses configurados: ${mesesCupons}`);
       
       const meses = mesesCupons.split(',').map(m => parseInt(m.trim()));
@@ -2018,6 +2019,8 @@ const InvestmentComparator = () => {
         return 'Debênture Incentivada';
       case 'cri-cra':
         return 'CRI/CRA';
+      case 'cdca':
+        return 'CDCA';
       case 'lci-lca':
         return 'LCI/LCA';
       case 'cdb':
@@ -2139,6 +2142,7 @@ const InvestmentComparator = () => {
               <SelectContent className="bg-background border-border shadow-lg z-50">
                 <SelectItem value="debenture-incentivada">Debênture Incentivada</SelectItem>
                 <SelectItem value="cri-cra">CRI/CRA</SelectItem>
+                <SelectItem value="cdca">CDCA</SelectItem>
                 <SelectItem value="lci-lca">LCI/LCA</SelectItem>
                 <SelectItem value="cdb">CDB</SelectItem>
                 <SelectItem value="fundo-cetipado">Fundo Cetipado (FII)</SelectItem>
